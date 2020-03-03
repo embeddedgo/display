@@ -111,13 +111,13 @@ func (d *Driver) HostCmd(cmd HostCmd, param byte) {
 }
 
 // ReadUint32 reads 32-bit word from address addr.
-func (d *Driver) ReadUint32(addr int) {
+func (d *Driver) ReadUint32(addr int) uint32 {
 	return d.w.readU32(addr)
 }
 
 // WriteUint32 writes 32-bit word to address addr.
 func (d *Driver) WriteUint32(addr int, u uint32) {
-	return d.w.writeU32(addr, u)
+	d.w.writeU32(addr, u)
 }
 
 // RegAddr returns address of r register.
@@ -144,19 +144,9 @@ func (d *Driver) R(addr int) *Reader {
 	return (*Reader)(&d.w.driver)
 }
 
-func (d *Driver) startWrite(addr int) {
-	panicBadAddr(addr)
-	d.w.panicNotIdle()
-	addr |= 1 << 23
-	d.w.buf = d.w.buf[:3]
-	d.w.buf[0] = byte(addr >> 16)
-	d.w.buf[1] = byte(addr >> 8)
-	d.w.buf[2] = byte(addr)
-}
-
 // W starts a new memory writing transaction at the address addr.
 func (d *Driver) W(addr int) *Writer {
-	d.startWrite(addr)
+	d.w.startWrite(addr)
 	d.w.state = stateWrite
 	d.w.addr = addr
 	return &d.w.Writer
@@ -177,15 +167,7 @@ func (d *Driver) DL(addr int) *DL {
 
 // CE starts a new command writing transaction to the co-processor engine FIFO.
 func (d *Driver) CE() *CE {
-	addr := int(d.ReadReg(REG_CMD_WRITE))
-	d.w.addr = addr
-	if d.w.typ == eve1 {
-		addr += mmap[d.w.typ].RAM_CMD.Start
-	} else {
-		addr = d.w.regAddr(REG_CMDB_WRITE)
-	}
-	d.startWrite(addr)
-	d.w.state = stateWriteCmd
+	d.w.startWriteCmd()
 	return &d.w
 }
 
@@ -227,7 +209,7 @@ func (d *Driver) WaitInt(flags IntFlags) {
 	}
 }
 
-// SetBacklight sets a PWM duty cycle of backlight output. The allowed pwmduty
+// SetBacklight sets the PWM duty cycle of backlight output. The allowed pwmduty
 // range is from 0 to 128.
 func (d *Driver) SetBacklight(pwmduty int) {
 	d.WriteReg(REG_PWM_DUTY, uint32(pwmduty&0xFF))
@@ -312,20 +294,6 @@ func (d *driver) readU32(addr int) uint32 {
 		uint32(buf[4])<<24
 }
 
-/*
-func (d *driver) writeU8(addr int, u uint32) {
-	d.panicNotIdle()
-	addr |= 1 << 23
-	buf := d.buf[:4]
-	buf[0] = byte(addr >> 16)
-	buf[1] = byte(addr >> 8)
-	buf[2] = byte(addr)
-	buf[3] = byte(u)
-	d.dci.Write(buf)
-	d.dci.End()
-}
-*/
-
 func (d *driver) writeU32(addr int, u uint32) {
 	d.panicNotIdle()
 	addr |= 1 << 23
@@ -339,6 +307,28 @@ func (d *driver) writeU32(addr int, u uint32) {
 	buf[6] = byte(u >> 24)
 	d.dci.Write(buf)
 	d.dci.End()
+}
+
+func (d *driver) startWrite(addr int) {
+	panicBadAddr(addr)
+	d.panicNotIdle()
+	addr |= 1 << 23
+	d.buf = d.buf[:3]
+	d.buf[0] = byte(addr >> 16)
+	d.buf[1] = byte(addr >> 8)
+	d.buf[2] = byte(addr)
+}
+
+func (d *driver) startWriteCmd() {
+	addr := int(d.readU32(d.regAddr(REG_CMD_WRITE)))
+	d.addr = addr
+	if d.typ == eve1 {
+		addr += mmap[d.typ].RAM_CMD.Start
+	} else {
+		addr = d.regAddr(REG_CMDB_WRITE)
+	}
+	d.startWrite(addr)
+	d.state = stateWriteCmd
 }
 
 func (d *driver) flush() {

@@ -44,20 +44,6 @@ func (w *Writer) Write8(v ...uint8) {
 	}
 }
 
-/*
-func (w *Writer) Write8(v ...uint8) {
-	w.addr += len(v)
-	for _, u := range v {
-		if len(w.buf) == cap(w.buf) {
-			w.flush()
-		}
-		n := len(w.buf)
-		w.buf = w.buf[:n+1]
-		w.buf[n] = u
-	}
-}
-*/
-
 func (w *Writer) Write(p []byte) (int, error) {
 	w.Write8(p...)
 	n := len(p)
