@@ -5,6 +5,9 @@ type DCI interface {
 	// SetClk sets the communication interface clock speed. If clkHz = 0 the
 	// communication interface can be disabled to save power.
 	SetClk(clkHz int)
+	
+	// Begin begins new read/write transaction.
+	Begin()
 
 	// Read reads len(p) bytes into p.
 	Read(p []byte)

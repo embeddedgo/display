@@ -106,6 +106,7 @@ func (d *Driver) HostCmd(cmd HostCmd, param byte) {
 	buf[0] = byte(cmd)
 	buf[1] = param
 	buf[2] = 0
+	d.w.dci.Begin()
 	d.w.dci.Write(buf)
 	d.w.dci.End()
 }
