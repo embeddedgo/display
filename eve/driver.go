@@ -257,15 +257,16 @@ const (
 )
 
 type driver struct {
-	dci    DCI
-	buf    []byte
-	note   *rtos.Note
-	addr   int
-	width  uint16
-	height uint16
-	state  uint8
-	intf   uint8
-	typ    int8 // 0: FT80x, 1: FT81x
+	dci     DCI
+	buf     []byte
+	note    *rtos.Note
+	addr    int
+	width   uint16
+	height  uint16
+	state   uint8
+	started bool
+	intf    uint8
+	typ     int8 // 0: FT80x, 1: FT81x
 }
 
 func (d *driver) panicNotIdle() {
@@ -284,6 +285,7 @@ func (d *driver) startRead(addr int) {
 	buf[0] = byte(addr >> 16)
 	buf[1] = byte(addr >> 8)
 	buf[2] = byte(addr)
+	d.dci.Begin()
 	d.dci.Write(buf)
 }
 
@@ -307,6 +309,7 @@ func (d *driver) writeU32(addr int, u uint32) {
 	buf[4] = byte(u >> 8)
 	buf[5] = byte(u >> 16)
 	buf[6] = byte(u >> 24)
+	d.dci.Begin()
 	d.dci.Write(buf)
 	d.dci.End()
 }
@@ -334,6 +337,10 @@ func (d *driver) startWriteCmd() {
 }
 
 func (d *driver) flush() {
+	if !d.started {
+		d.started = true
+		d.dci.Begin()
+	}
 	d.dci.Write(d.buf)
 	d.buf = d.buf[:0]
 }
@@ -346,9 +353,10 @@ func (d *driver) closeWriter(state uint8) {
 		d.flush()
 	}
 	d.dci.End()
-	closed := d.state
+	d.started = false
+	prev := d.state
 	d.state = stateIdle
-	if closed == stateWriteCmd && d.typ == eve1 {
+	if prev == stateWriteCmd && d.typ == eve1 {
 		d.writeU32(d.regAddr(REG_CMD_WRITE), uint32(d.addr&4095))
 	}
 }
