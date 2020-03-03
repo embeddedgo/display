@@ -140,6 +140,7 @@ func (d *Driver) R(addr int) *Reader {
 	panicBadAddr(addr)
 	d.w.startRead(addr)
 	d.w.state = stateRead
+	d.w.addr = addr
 	d.w.dci.Read(d.w.buf[:1]) // read dummy byte
 	return (*Reader)(&d.w.driver)
 }
