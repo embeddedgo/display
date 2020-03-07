@@ -1,5 +1,26 @@
 package eve
 
+// HostCmd represents EVE host command.
+type HostCmd byte
+
+const (
+	ACTIVE  HostCmd = 0x00 // Switch mode to Active.
+	STANDBY HostCmd = 0x41 // Switch mode to Standby: PLL and Oscillator on.
+	SLEEP   HostCmd = 0x42 // Switch mode to Sleep: PLL and Oscillator off.
+	PD_ROMS HostCmd = 0x49 // Power down individual ROMs.
+	PWRDOWN HostCmd = 0x50 // Switch off LDO, Clock, PLL and Oscillator.
+
+	CLKEXT HostCmd = 0x44 // Select PLL external clock source.
+	CLKINT HostCmd = 0x48 // Select PLL internal clock source (EVE2).
+	CLKSEL HostCmd = 0x61 // Select PLL multiple.
+	CLKMAX HostCmd = 0x62 // Select PLL maximum clock.
+
+	RST_PULSE HostCmd = 0x68 // Send reset pulse to FT81x core.
+
+	PINDRIVE     HostCmd = 0x70 // Set pins drive strength (EVE2).
+	PIN_PD_STATE HostCmd = 0x71 // Set pins state in PwrDown mode (EVE2).
+)
+
 // Display list commands.
 const (
 	ALPHA_FUNC         = 0x09000000 // Arg: func<<8 | ref

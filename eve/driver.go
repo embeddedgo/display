@@ -15,15 +15,16 @@ type Driver struct {
 
 // NewDriver returns a new driver to the EVE graphics controller. It uses dci
 // for communication and allocates n bytes for internal write buffer. The
-// returned driver has limited functionality until yuo call Init method because
+// returned driver has limited functionality until you call Init method because
 // some methods like MemMap, ReadReg, WriteReg, RR, RW, DL, CE require the
 // knowledge about EVE version.
 func NewDriver(dci DCI, n int) *Driver {
 	if dci == nil {
 		return nil
 	}
-	if n < 8 {
-		n = 8
+	n = (n + 3) &^ 3 // round up to full 4-byte words
+	if n < 16 {
+		n = 16
 	}
 	d := new(Driver)
 	d.w.typ = -1
@@ -63,6 +64,58 @@ func (d *Driver) MemMap() *MemMap {
 	return &mmap[d.w.typ]
 }
 
+// RegAddr returns address of r register.
+func (d *Driver) RegAddr(r Register) int {
+	return d.w.regAddr(r)
+}
+
+func (d *Driver) panicNotIdle() {
+	if d.w.state != stateIdle {
+		panic("eve: previous transaction not closed")
+	}
+}
+
+////
+
+// HostCmd invokes a host command. Param is a command parameter. It must be zero
+// in case of commands that do not require parameters.
+func (d *Driver) HostCmd(cmd HostCmd, param byte) {
+	d.panicNotIdle()
+	buf := d.w.sbuf[:3]
+	buf[0] = byte(cmd)
+	buf[1] = param
+	buf[2] = 0
+	d.w.dci.Begin()
+	d.w.dci.Write(buf)
+	d.w.dci.End()
+}
+
+// ReadUint32 reads 32-bit word from address addr.
+func (d *Driver) ReadUint32(addr int) uint32 {
+	d.panicNotIdle()
+	return d.w.readU32(addr)
+}
+
+// WriteUint32 writes 32-bit word to address addr.
+func (d *Driver) WriteUint32(addr int, u uint32) {
+	d.panicNotIdle()
+	d.w.writeU32(addr, u)
+}
+
+// ReadReg reads from register.
+func (d *Driver) ReadReg(r Register) uint32 {
+	d.panicNotIdle()
+	return d.w.readU32(d.w.regAddr(r))
+}
+
+// WriteReg writes to register.
+func (d *Driver) WriteReg(r Register, u uint32) {
+	d.panicNotIdle()
+	d.w.writeU32(d.w.regAddr(r), u)
+}
+
+////
+
 // IntFlags represents EVE interrupt flags.
 type IntFlags uint8
 
@@ -77,102 +130,6 @@ const (
 	IntConvComplete IntFlags = 1 << 7 // Touch-screen conversions completed.
 )
 
-// HostCmd represents EVE host command.
-type HostCmd byte
-
-const (
-	ACTIVE  HostCmd = 0x00 // Switch mode to Active.
-	STANDBY HostCmd = 0x41 // Switch mode to Standby: PLL and Oscillator on.
-	SLEEP   HostCmd = 0x42 // Switch mode to Sleep: PLL and Oscillator off.
-	PD_ROMS HostCmd = 0x49 // Power down individual ROMs.
-	PWRDOWN HostCmd = 0x50 // Switch off LDO, Clock, PLL and Oscillator.
-
-	CLKEXT HostCmd = 0x44 // Select PLL external clock source.
-	CLKINT HostCmd = 0x48 // Select PLL internal clock source (EVE2).
-	CLKSEL HostCmd = 0x61 // Select PLL multiple.
-	CLKMAX HostCmd = 0x62 // Select PLL maximum clock.
-
-	RST_PULSE HostCmd = 0x68 // Send reset pulse to FT81x core.
-
-	PINDRIVE     HostCmd = 0x70 // Set pins drive strength (EVE2).
-	PIN_PD_STATE HostCmd = 0x71 // Set pins state in PwrDown mode (EVE2).
-)
-
-// HostCmd invokes a host command. Param is a command parameter. It must be zero
-// in case of commands that do not require parameters.
-func (d *Driver) HostCmd(cmd HostCmd, param byte) {
-	d.w.panicNotIdle()
-	buf := d.w.buf[:3]
-	buf[0] = byte(cmd)
-	buf[1] = param
-	buf[2] = 0
-	d.w.dci.Begin()
-	d.w.dci.Write(buf)
-	d.w.dci.End()
-}
-
-// ReadUint32 reads 32-bit word from address addr.
-func (d *Driver) ReadUint32(addr int) uint32 {
-	return d.w.readU32(addr)
-}
-
-// WriteUint32 writes 32-bit word to address addr.
-func (d *Driver) WriteUint32(addr int, u uint32) {
-	d.w.writeU32(addr, u)
-}
-
-// RegAddr returns address of r register.
-func (d *Driver) RegAddr(r Register) int {
-	return d.w.regAddr(r)
-}
-
-// ReadReg reads from register.
-func (d *Driver) ReadReg(r Register) uint32 {
-	return d.w.readU32(d.w.regAddr(r))
-}
-
-// WriteReg writes to register.
-func (d *Driver) WriteReg(r Register, u uint32) {
-	d.w.writeU32(d.w.regAddr(r), u)
-}
-
-// R starts a new memory reading transaction at the address addr.
-func (d *Driver) R(addr int) *Reader {
-	panicBadAddr(addr)
-	d.w.startRead(addr)
-	d.w.state = stateRead
-	d.w.addr = addr
-	d.w.dci.Read(d.w.buf[:1]) // read dummy byte
-	return (*Reader)(&d.w.driver)
-}
-
-// W starts a new memory writing transaction at the address addr.
-func (d *Driver) W(addr int) *Writer {
-	d.w.startWrite(addr)
-	d.w.state = stateWrite
-	d.w.addr = addr
-	return &d.w.Writer
-}
-
-// DL starts a new display list writing transaction at the address addr. The
-// special address -1 makes it wait for IntSwap and start writting at the
-// beggining of RAM_DL.
-func (d *Driver) DL(addr int) *DL {
-	if addr == -1 {
-		addr = mmap[d.w.typ].RAM_DL.Start
-		d.WaitInt(IntSwap)
-	} else if addr&3 != 0 {
-		panic("eve: DL address not aligned")
-	}
-	return &d.W(addr).DL
-}
-
-// CE starts a new command writing transaction to the co-processor engine FIFO.
-func (d *Driver) CE() *CE {
-	d.w.startWriteCmd()
-	return &d.w
-}
-
 // IntFlags reads the REG_INT_FLAGS register, accumulates the read flags in the
 // internal variable and returns its value.
 func (d *Driver) IntFlags() IntFlags {
@@ -183,11 +140,13 @@ func (d *Driver) IntFlags() IntFlags {
 // ClearInt reads the REG_INT_FLAGS register and accumulates read flags in the
 // internal variable. After that it clears the flags specified by mask.
 func (d *Driver) ClearInt(flags IntFlags) {
+	d.panicNotIdle()
 	d.w.clearInt(flags)
 }
 
 // SetIntMask sets interrupt mask.
 func (d *Driver) SetIntMask(mask IntFlags) {
+	d.panicNotIdle()
 	d.w.setIntMask(mask)
 }
 
@@ -201,9 +160,9 @@ func (d *Driver) WaitInt(flags IntFlags) {
 			return
 		}
 		note.Clear()
-		d.w.setIntMask(flags)
+		d.SetIntMask(flags)
 		note.Sleep(-1)
-		d.w.setIntMask(0)
+		d.SetIntMask(0)
 		return
 	}
 	for d.IntFlags()&flags == 0 {
@@ -215,12 +174,6 @@ func (d *Driver) WaitInt(flags IntFlags) {
 // range is from 0 to 128.
 func (d *Driver) SetBacklight(pwmduty int) {
 	d.WriteReg(REG_PWM_DUTY, uint32(pwmduty&0xFF))
-}
-
-// CmdSpace returns the number of bytes of available space in the co-processor
-// engine command FIFO.
-func (d *Driver) CmdSpace() int {
-	return d.w.cmdSpace()
 }
 
 // TouchScreenXY reads the coordinaters of touch point.
@@ -249,10 +202,66 @@ func (d *Driver) Tracker() (val int, tag uint16) {
 
 ////
 
+// R starts a new memory reading transaction at the address addr.
+func (d *Driver) R(addr int) *Reader {
+	d.panicNotIdle()
+	d.w.state = stateRead
+	d.w.addr = addr
+	d.w.startRead(addr)
+	d.w.dci.Read(d.w.sbuf[:1]) // read dummy byte
+	return (*Reader)(&d.w.driver)
+}
+
+// W starts a new memory writing transaction at the address addr.
+func (d *Driver) W(addr int) *Writer {
+	d.panicNotIdle()
+	d.w.state = stateWrite
+	d.w.addr = addr
+	d.w.buf = d.w.buf[:4]
+	encodeWriteAddr(d.w.buf[1:], addr)
+	return &d.w.Writer
+}
+
+// DL starts a new display list writing transaction at the address addr. The
+// special address -1 makes it wait for IntSwap and start writting at the
+// beggining of RAM_DL.
+func (d *Driver) DL(addr int) *DL {
+	d.panicNotIdle()
+	if addr == -1 {
+		addr = mmap[d.w.typ].RAM_DL.Start
+		d.WaitInt(IntSwap)
+	} else if addr&3 != 0 {
+		panic("eve: DL address not aligned")
+	}
+	return &d.W(addr).DL
+}
+
+// CE starts a new command writing transaction to the co-processor engine FIFO.
+func (d *Driver) CE() *CE {
+	d.panicNotIdle()
+	rp, wp := d.w.readCmdPtrs()
+	d.w.addr = int(wp)
+	d.w.cmdspc = 4092 - (wp-rp)&4095
+	var addr int
+	if d.w.typ == eve1 {
+		d.w.cmdwp = wp
+		addr = mmap[eve1].RAM_CMD.Start + int(wp)
+	} else {
+		addr = d.w.regAddr(REG_CMDB_WRITE)
+	}
+	d.w.state = stateWriteCmd
+	d.w.aprefix = true
+	d.w.buf = d.w.buf[:4]
+	encodeWriteAddr(d.w.buf[1:], addr)
+	return &d.w
+}
+
+////
+
 const (
-	stateIdle uint8 = iota
+	stateIdle uint8 = iota // do not reorder or split
 	stateRead
-	stateWrite // all write states must be >= stateWrite (see start)
+	stateWrite
 	stateWriteCmd
 )
 
@@ -261,27 +270,31 @@ type driver struct {
 	buf     []byte
 	note    *rtos.Note
 	addr    int
+	cmdwp   uint16
+	cmdspc  uint16
 	width   uint16
 	height  uint16
+	sbuf    [9]byte
+	tactive bool
+	aprefix bool
 	state   uint8
-	started bool
 	intf    uint8
 	typ     int8 // 0: FT80x, 1: FT81x
-}
-
-func (d *driver) panicNotIdle() {
-	if d.state != stateIdle {
-		panic("eve: previous transaction not closed")
-	}
 }
 
 func (d *driver) regAddr(r Register) int {
 	return mmap[d.typ].RAM_REG.Start + int(r)>>(d.typ*16)&0xFFFF
 }
 
+func panicBadAddr(addr int) {
+	if uint(addr)>>22 != 0 {
+		panic("eve: bad addr")
+	}
+}
+
 func (d *driver) startRead(addr int) {
-	d.panicNotIdle()
-	buf := d.buf[:3]
+	panicBadAddr(addr)
+	buf := d.sbuf[:3]
 	buf[0] = byte(addr >> 16)
 	buf[1] = byte(addr >> 8)
 	buf[2] = byte(addr)
@@ -289,22 +302,26 @@ func (d *driver) startRead(addr int) {
 	d.dci.Write(buf)
 }
 
+func encodeWriteAddr(p []byte, addr int) {
+	panicBadAddr(addr)
+	addr |= 1 << 23
+	p[0] = byte(addr >> 16)
+	p[1] = byte(addr >> 8)
+	p[2] = byte(addr)
+}
+
 func (d *driver) readU32(addr int) uint32 {
 	d.startRead(addr)
-	buf := d.buf[:5]
-	d.dci.Read(buf) // read dummy byte and 4 bytes of register value
+	buf := d.sbuf[:5]
+	d.dci.Read(buf) // read dummy byte and 4-byte register
 	d.dci.End()
 	return uint32(buf[1]) | uint32(buf[2])<<8 | uint32(buf[3])<<16 |
 		uint32(buf[4])<<24
 }
 
 func (d *driver) writeU32(addr int, u uint32) {
-	d.panicNotIdle()
-	addr |= 1 << 23
-	buf := d.buf[:7]
-	buf[0] = byte(addr >> 16)
-	buf[1] = byte(addr >> 8)
-	buf[2] = byte(addr)
+	buf := d.sbuf[:7]
+	encodeWriteAddr(buf, addr)
 	buf[3] = byte(u)
 	buf[4] = byte(u >> 8)
 	buf[5] = byte(u >> 16)
@@ -314,34 +331,90 @@ func (d *driver) writeU32(addr int, u uint32) {
 	d.dci.End()
 }
 
-func (d *driver) startWrite(addr int) {
-	panicBadAddr(addr)
-	d.panicNotIdle()
-	addr |= 1 << 23
-	d.buf = d.buf[:3]
-	d.buf[0] = byte(addr >> 16)
-	d.buf[1] = byte(addr >> 8)
-	d.buf[2] = byte(addr)
-}
-
-func (d *driver) startWriteCmd() {
-	addr := int(d.readU32(d.regAddr(REG_CMD_WRITE)))
-	d.addr = addr
-	if d.typ == eve1 {
-		addr += mmap[d.typ].RAM_CMD.Start
-	} else {
-		addr = d.regAddr(REG_CMDB_WRITE)
+func (d *driver) writeCmds(p []byte, aprefix bool) {
+	n := len(p)
+	if aprefix {
+		n -= 4
 	}
-	d.startWrite(addr)
-	d.state = stateWriteCmd
+	for n > 0 {
+		m := 16 // minimal space in command FIFO before start to write
+		if m > n {
+			m = n
+		}
+		if d.typ == eve1 {
+			for m > int(d.cmdspc) {
+				runtime.Gosched()
+				rp := uint16(d.readU32(d.regAddr(REG_CMD_READ)))
+				d.cmdspc = 4092 - (d.cmdwp-rp)&4095
+			}
+			if n > int(d.cmdspc) {
+				n = int(d.cmdspc)
+			}
+			wp := int(d.cmdwp)
+			d.cmdwp = uint16(wp+n) & 4095
+			d.cmdspc = uint16(int(d.cmdspc) - n)
+			d.dci.Begin()
+			if aprefix {
+				aprefix = false
+				p = p[1:] // address bytes start from 1
+				n += 3
+			} else {
+				buf := d.sbuf[:3]
+				encodeWriteAddr(buf, mmap[eve1].RAM_CMD.Start+wp)
+				d.dci.Write(buf)
+			}
+			d.dci.Write(p[:n])
+			d.dci.End()
+			d.writeU32(d.regAddr(REG_CMD_WRITE), uint32(d.cmdwp))
+		} else {
+			if m > int(d.cmdspc) {
+				if d.tactive {
+					d.tactive = false
+					d.dci.End()
+				}
+				for m > int(d.cmdspc) {
+					runtime.Gosched()
+					d.cmdspc = uint16(d.readU32(d.regAddr(REG_CMDB_SPACE)))
+				}
+			}
+			if n > int(d.cmdspc) {
+				n = int(d.cmdspc)
+			}
+			d.cmdspc = uint16(int(d.cmdspc) - n)
+			if !d.tactive {
+				d.tactive = true
+				d.dci.Begin()
+				if aprefix {
+					aprefix = false
+					p = p[1:] // address bytes start from 1
+					n += 3
+				} else {
+					buf := d.sbuf[:3]
+					encodeWriteAddr(buf, d.regAddr(REG_CMDB_WRITE))
+					d.dci.Write(buf)
+				}
+			}
+			d.dci.Write(p[:n])
+		}
+		p = p[n:]
+		n = len(p)
+	}
 }
 
 func (d *driver) flush() {
-	if !d.started {
-		d.started = true
-		d.dci.Begin()
+	switch d.state {
+	case stateWriteCmd:
+		d.writeCmds(d.buf, d.aprefix)
+		d.aprefix = false
+	default:
+		buf := d.buf
+		if !d.tactive {
+			d.tactive = true
+			buf = buf[1:] // address bytes start from 1
+			d.dci.Begin()
+		}
+		d.dci.Write(buf)
 	}
-	d.dci.Write(d.buf)
 	d.buf = d.buf[:0]
 }
 
@@ -349,16 +422,14 @@ func (d *driver) closeWriter(state uint8) {
 	if d.state < state {
 		panic("eve: close")
 	}
-	if len(d.buf) != 0 {
+	if len(d.buf) > 0 {
 		d.flush()
 	}
-	d.dci.End()
-	d.started = false
-	prev := d.state
-	d.state = stateIdle
-	if prev == stateWriteCmd && d.typ == eve1 {
-		d.writeU32(d.regAddr(REG_CMD_WRITE), uint32(d.addr&4095))
+	if d.tactive {
+		d.tactive = false
+		d.dci.End()
 	}
+	d.state = stateIdle
 }
 
 func (d *driver) clearInt(flags IntFlags) {
@@ -370,26 +441,20 @@ func (d *driver) setIntMask(mask IntFlags) {
 	d.writeU32(d.regAddr(REG_INT_MASK), uint32(mask))
 }
 
-func (d *driver) cmdSpace() int {
-	if d.typ > eve1 {
-		n := d.readU32(d.regAddr(REG_CMDB_SPACE))
-		return int(n)
-	}
+func (d *driver) readCmdPtrs() (rp, wp uint16) {
 	d.startRead(d.regAddr(REG_CMD_READ))
-	buf := d.buf[:9]
-	d.dci.Read(buf)
+	buf := d.sbuf[:9]
+	d.dci.Read(buf) // read dumy byte and two 4-byte registers
 	d.dci.End()
-	cmdrd := uint32(buf[1]) | uint32(buf[2])<<8 | uint32(buf[3])<<16 |
-		uint32(buf[4])<<24
-	cmdwr := uint32(buf[5]) | uint32(buf[6])<<8 | uint32(buf[7])<<16 |
-		uint32(buf[8])<<24
-	return int(4092 - (cmdwr-cmdrd)&4095)
+	rp = uint16(buf[1]) | uint16(buf[2])<<8
+	wp = uint16(buf[5]) | uint16(buf[6])<<8
+	return
 }
 
-////
-
-func panicBadAddr(addr int) {
-	if uint(addr)>>22 != 0 {
-		panic("eve: bad addr")
+func (d *driver) cmdSpace() int {
+	if d.typ != eve1 {
+		return int(d.readU32(d.regAddr(REG_CMDB_SPACE)))
 	}
+	rp, wp := d.readCmdPtrs()
+	return int(4092 - (wp-rp)&4095)
 }

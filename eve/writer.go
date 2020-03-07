@@ -29,11 +29,12 @@ func (w *Writer) Write8(v ...uint8) {
 		// write long data directly
 		if len(w.buf) > 0 {
 			w.flush()
-		} else if !w.started {
-			w.started = true
-			w.dci.Begin()
 		}
-		w.dci.Write(v)
+		if w.state == stateWriteCmd {
+			w.writeCmds(v, false)
+		} else {
+			w.dci.Write(v)
+		}
 		return
 	}
 	n := len(w.buf)

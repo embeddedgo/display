@@ -83,29 +83,6 @@ func (w *CE) LoadImage(addr int, options uint16) {
 	w.Write32(CMD_LOADIMAGE, uint32(addr), uint32(options))
 }
 
-func (w *CE) LoadImageString(addr int, options uint16, img string) {
-	w.LoadImage(addr, options)
-	for len(img) > 0 {
-		w.closeWriter(stateWriteCmd)
-		var n int
-		for {
-			n = w.cmdSpace()
-			if n >= len(img) {
-				n = len(img)
-				break
-			}
-			if n >= 8 {
-				break
-			}
-			runtime.Gosched()
-		}
-		w.startWriteCmd()
-		w.WriteString(img[:n])
-		img = img[n:]
-	}
-	w.Align(4)
-}
-
 // MediaFIFO sets up a streaming media FIFO in RAM_G.
 func (w *CE) MediaFIFO(addr, size int) {
 	w.Write32(CMD_MEDIAFIFO, uint32(addr), uint32(size))
