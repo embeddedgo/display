@@ -212,13 +212,18 @@ func (d *Driver) R(addr int) *Reader {
 	return (*Reader)(&d.w.driver)
 }
 
-// W starts a new memory writing transaction at the address addr.
-func (d *Driver) W(addr int) *Writer {
+func (d *Driver) startWrite(addr int) {
 	d.panicNotIdle()
 	d.w.state = stateWrite
 	d.w.addr = addr
 	d.w.buf = d.w.buf[:4]
 	encodeWriteAddr(d.w.buf[1:], addr)
+}
+
+
+// W starts a new memory writing transaction at the address addr.
+func (d *Driver) W(addr int) *Writer {
+	d.startWrite(addr)
 	return &d.w.Writer
 }
 
@@ -226,14 +231,14 @@ func (d *Driver) W(addr int) *Writer {
 // special address -1 makes it wait for IntSwap and start writting at the
 // beggining of RAM_DL.
 func (d *Driver) DL(addr int) *DL {
-	d.panicNotIdle()
 	if addr == -1 {
 		addr = mmap[d.w.typ].RAM_DL.Start
 		d.WaitInt(IntSwap)
 	} else if addr&3 != 0 {
 		panic("eve: DL address not aligned")
 	}
-	return &d.W(addr).DL
+	d.startWrite(addr)
+	return &d.w.DL
 }
 
 // CE starts a new command writing transaction to the co-processor engine FIFO.

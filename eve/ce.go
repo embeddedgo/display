@@ -11,7 +11,7 @@ import "runtime"
 // commands to the RAM_DL memory. Unlike the other writers CE methods can use
 // multiple read and write transactions to achieve more complex operations.
 type CE struct {
-	Writer
+	DL
 }
 
 // Close ends the wrtie transaction and waits for the co-processor engine to

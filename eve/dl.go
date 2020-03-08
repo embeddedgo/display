@@ -6,14 +6,7 @@ package eve
 
 // DL allows to write display list commands.
 type DL struct {
-	driver
-}
-
-// Close closes the wrtie transaction and returns the address just after the
-// last write operation.
-func (w *DL) Close() int {
-	w.closeWriter(stateWrite)
-	return w.addr
+	Writer
 }
 
 // SwapDL closes the wrtie transaction, clears the IntSwap interrupt flag and
@@ -22,37 +15,8 @@ func (w *DL) Close() int {
 func (w *DL) SwapDL() int {
 	w.closeWriter(stateWrite)
 	w.clearInt(IntSwap)
-	w.writeU32(w.regAddr(REG_DLSWAP), DLSWAP_FRAME)	
+	w.writeU32(w.regAddr(REG_DLSWAP), DLSWAP_FRAME)
 	return w.addr
-}
-
-func (w *DL) wr32(u uint32) {
-	w.addr += 4
-	if len(w.buf)+4 > cap(w.buf) {
-		w.flush()
-	}
-	n := len(w.buf)
-	w.buf = w.buf[:n+4]
-	w.buf[n] = byte(u)
-	w.buf[n+1] = byte(u >> 8)
-	w.buf[n+2] = byte(u >> 16)
-	w.buf[n+3] = byte(u >> 24)
-}
-
-// Write32 writes 32-bit words.
-func (w *DL) Write32(v ...uint32) {
-	w.addr += len(v) * 4
-	for _, u := range v {
-		if len(w.buf)+4 > cap(w.buf) {
-			w.flush()
-		}
-		n := len(w.buf)
-		w.buf = w.buf[:n+4]
-		w.buf[n] = byte(u)
-		w.buf[n+1] = byte(u >> 8)
-		w.buf[n+2] = byte(u >> 16)
-		w.buf[n+3] = byte(u >> 24)
-	}
 }
 
 // AlphaFunc sets the alpha test function.

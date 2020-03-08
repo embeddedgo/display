@@ -73,7 +73,6 @@ type DisplayConfig struct {
 	ClkMHz  uint8  // Pixel Clock MHz.................(Fclk)
 }
 
-//emgo:const
 var (
 	Default320x240 = DisplayConfig{
 		Hcycle: 408, Hsize: 320, Hsync0: 0, Hsync1: 10, Hoffset: 70,
@@ -86,9 +85,9 @@ var (
 		ClkPol: 1, ClkMHz: 9,
 	}
 	Default800x480 = DisplayConfig{
-		Hcycle: 928, Hsize: 800, Hsync0: 40, Hsync1: 40 + 48, Hoffset: 88,
-		Vcycle: 525, Vsize: 480, Vsync0: 13, Vsync1: 13 + 3, Voffset: 32,
-		ClkPol: 1, ClkMHz: 30, // KD50G21-40NT-A1
+		Hcycle: 928, Hsize: 800, Hsync0: 0, Hsync1: 48, Hoffset: 88,
+		Vcycle: 525, Vsize: 480, Vsync0: 0, Vsync1: 3, Voffset: 32,
+		ClkPol: 1, ClkMHz: 30,
 	}
 )
 

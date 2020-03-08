@@ -6,7 +6,14 @@ package eve
 
 // Writer extends DLW to allow write arbitrary data.
 type Writer struct {
-	DL
+	driver
+}
+
+// Close closes the wrtie transaction and returns the address just after the
+// last write operation.
+func (w *Writer) Close() int {
+	w.closeWriter(stateWrite)
+	return w.addr
 }
 
 func (w *Writer) wr8(u uint8) {
@@ -92,6 +99,35 @@ func (w *Writer) Write16(v ...uint16) {
 		w.buf = w.buf[:n+2]
 		w.buf[n] = byte(u)
 		w.buf[n+1] = byte(u >> 8)
+	}
+}
+
+func (w *Writer) wr32(u uint32) {
+	w.addr += 4
+	if len(w.buf)+4 > cap(w.buf) {
+		w.flush()
+	}
+	n := len(w.buf)
+	w.buf = w.buf[:n+4]
+	w.buf[n] = byte(u)
+	w.buf[n+1] = byte(u >> 8)
+	w.buf[n+2] = byte(u >> 16)
+	w.buf[n+3] = byte(u >> 24)
+}
+
+// Write32 writes 32-bit words.
+func (w *Writer) Write32(v ...uint32) {
+	w.addr += len(v) * 4
+	for _, u := range v {
+		if len(w.buf)+4 > cap(w.buf) {
+			w.flush()
+		}
+		n := len(w.buf)
+		w.buf = w.buf[:n+4]
+		w.buf[n] = byte(u)
+		w.buf[n+1] = byte(u >> 8)
+		w.buf[n+2] = byte(u >> 16)
+		w.buf[n+3] = byte(u >> 24)
 	}
 }
 
