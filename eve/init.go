@@ -204,8 +204,8 @@ func (d *Driver) Init(dcf *DisplayConfig, cfg *Config) error {
 		presc = (60*2 + int(dcf.ClkMHz) + 1) / (int(dcf.ClkMHz) * 2)
 	}
 	d.WriteReg(REG_PCLK, uint32(presc)) // Enable PCLK.
-
-	time.Sleep(20 * time.Millisecond) // Wait for new main clock.
-
+	
+	d.w.dci.SetClk(30e6)
+	
 	return d.Err(true)
 }

@@ -14,25 +14,31 @@ type CE struct {
 	DL
 }
 
-// Close ends the wrtie transaction and waits for the co-processor engine to
-// process all written commands. Use Writer.Close to avoid waiting for CE.
-func (w *CE) Close() {
-	w.closeWriter(stateWriteCmd)
-	if w.note != nil {
-		w.clearInt(IntCmdEmpty)
-		if w.cmdSpace() == 4092 {
-			return
+// Close ends the wrtie transaction. If written to the co-processor engine FIFO
+// it waits for the co-processor to process all written commands (use
+// Writer.Close to avoid waiting for CE).
+func (w *CE) Close() int {
+	switch {
+	case w.state == stateWrite:
+		w.closeWriter(stateWrite)
+	default:
+		w.closeWriter(stateWriteCmd)
+		if w.note != nil {
+			w.clearInt(IntCmdEmpty)
+			if w.cmdSpace() == 4092 {
+				break
+			}
+			w.note.Clear()
+			w.setIntMask(IntCmdEmpty)
+			w.note.Sleep(-1)
+			w.setIntMask(0)
+			break
 		}
-		w.note.Clear()
-		w.setIntMask(IntCmdEmpty)
-		w.note.Sleep(-1)
-		w.setIntMask(0)
-		return
+		for w.cmdSpace() != 4092 {
+			runtime.Gosched()
+		}
 	}
-	for w.cmdSpace() != 4092 {
-		runtime.Gosched()
-	}
-
+	return w.addr
 }
 
 // DLStart starts a new display list.
@@ -297,7 +303,7 @@ func (w *CE) TextString(x, y int, font byte, options uint16, s string) {
 	w.Align(4)
 }
 
-// SetBase sets the base for number output.
+// SetBase sets the base for number output (EVE2).
 func (w *CE) SetBase(base int) {
 	w.Write32(CMD_SETBASE, uint32(base))
 }
@@ -321,11 +327,8 @@ func (w *CE) LoadIdentity() {
 
 // SetMatrix assigns the value of the current matrix to the bitmap transform
 // matrix of the graphics engine by generating display list commands.
-func (w *CE) SetMatrix(a, b, c, d, e, f int) {
-	w.Write32(
-		CMD_SETMATRIX,
-		uint32(a), uint32(b), uint32(c), uint32(d), uint32(e), uint32(f),
-	)
+func (w *CE) SetMatrix() {
+	w.wr32(CMD_SETMATRIX)
 }
 
 // GetMatrix retrieves the current matrix within the context of the graphics
@@ -344,18 +347,20 @@ func (w *CE) GetProps() {
 	w.wr32(CMD_GETPROPS)
 }
 
-// Scale applies a scale to the current matrix.
-func (w *CE) Scale(sx, sy int) {
+// Scale applies a scale to the current matrix (sx, sy are signed 16.16-bit
+// fixed-point numbers).
+func (w *CE) Scale(sx, sy int32) {
 	w.Write32(CMD_SCALE, uint32(sx), uint32(sy))
 }
 
-// Rotate applies a rotation to the current matrix.
+// Rotate applies a rotation to the current matrix in units of 2π/65536.
 func (w *CE) Rotate(a int) {
 	w.Write32(CMD_ROTATE, uint32(a))
 }
 
-// Translate applies a translation to the current matrix.
-func (w *CE) Translate(tx, ty int) {
+// Translate applies a translation to the current matrix (tx, ty are signed
+// 16.16-bit fixed-point numbers).
+func (w *CE) Translate(tx, ty int32) {
 	w.Write32(CMD_TRANSLATE, uint32(tx), uint32(ty))
 }
 

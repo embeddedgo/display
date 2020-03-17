@@ -220,7 +220,6 @@ func (d *Driver) startWrite(addr int) {
 	encodeWriteAddr(d.w.buf[1:], addr)
 }
 
-
 // W starts a new memory writing transaction at the address addr.
 func (d *Driver) W(addr int) *Writer {
 	d.startWrite(addr)
@@ -241,21 +240,27 @@ func (d *Driver) DL(addr int) *DL {
 	return &d.w.DL
 }
 
-// CE starts a new command writing transaction to the co-processor engine FIFO.
-func (d *Driver) CE() *CE {
+// CE starts a new co-processor engine command writing transaction at the
+// address addr. The special address -1 makes it write to the co-processor
+// engine FIFO.
+func (d *Driver) CE(addr int) *CE {
 	d.panicNotIdle()
-	rp, wp := d.w.readCmdPtrs()
-	d.w.addr = int(wp)
-	d.w.cmdspc = 4092 - (wp-rp)&4095
-	var addr int
-	if d.w.typ == eve1 {
-		d.w.cmdwp = wp
-		addr = mmap[eve1].RAM_CMD.Start + int(wp)
+	if addr == -1 {
+		rp, wp := d.w.readCmdPtrs()
+		d.w.addr = int(wp)
+		d.w.cmdspc = 4092 - (wp-rp)&4095
+		if d.w.typ == eve1 {
+			d.w.cmdwp = wp
+			addr = mmap[eve1].RAM_CMD.Start + int(wp)
+		} else {
+			addr = d.w.regAddr(REG_CMDB_WRITE)
+		}
+		d.w.state = stateWriteCmd
+		d.w.aprefix = true
 	} else {
-		addr = d.w.regAddr(REG_CMDB_WRITE)
+		d.w.state = stateWrite
+		d.w.addr = addr
 	}
-	d.w.state = stateWriteCmd
-	d.w.aprefix = true
 	d.w.buf = d.w.buf[:4]
 	encodeWriteAddr(d.w.buf[1:], addr)
 	return &d.w

@@ -9,6 +9,21 @@ type Writer struct {
 	driver
 }
 
+// Width returns screen width.
+func (w *Writer) Width() int {
+	return int(w.width)
+}
+
+// Height returns screen height.
+func (w *Writer) Height() int {
+	return int(w.height)
+}
+
+// Flush writes any buffered data to the underlying DCI.
+func (w *Writer) Flush() {
+	w.flush()
+}
+
 // Close closes the wrtie transaction and returns the address just after the
 // last write operation.
 func (w *Writer) Close() int {
@@ -141,8 +156,8 @@ func (w *Writer) Align(n int) {
 	w.addr += m
 	m += len(w.buf)
 	if m > cap(w.buf) {
-		w.flush()
 		m -= len(w.buf)
+		w.flush()
 	}
 	w.buf = w.buf[:m]
 }

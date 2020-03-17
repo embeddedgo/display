@@ -121,7 +121,9 @@ const DEFAULT = 0
 
 // Bitmap options (BITMAP_SIZE).
 const (
+	NEAREST  = 0
 	BILINEAR = 1 << 2
+	BORDER   = 0
 	REPEATX  = 1 << 1
 	REPEATY  = 1 << 0
 )
@@ -212,7 +214,7 @@ const (
 	CMD_SETBASE      = 0xFFFFFF38 // Arg: base (EVE2)
 	CMD_NUMBER       = 0xFFFFFF2E // Arg: x, y int, font, options, n
 	CMD_LOADIDENTITY = 0xFFFFFF26
-	CMD_SETMATRIX    = 0xFFFFFF2A // Arg: a, b, c, d, e, f
+	CMD_SETMATRIX    = 0xFFFFFF2A
 	CMD_GETMATRIX    = 0xFFFFFF33
 	CMD_GETPTR       = 0xFFFFFF23
 	CMD_GETPROPS     = 0xFFFFFF25

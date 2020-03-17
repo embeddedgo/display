@@ -63,34 +63,40 @@ func (w *DL) BitmapSource(addr int) {
 	w.wr32(BITMAP_SOURCE | uint32(addr)&0x3FFFFF)
 }
 
-// BitmapTransA sets the A coefficient of the bitmap transform matrix.
-func (w *DL) BitmapTransformA(a int) {
-	w.wr32(BITMAP_TRANSFORM_A | uint32(a)&0x1FFFF)
+// BitmapTransA sets the A coefficient of the bitmap transform matrix (a is
+// signed 8.8-bit fixed-point number).
+func (w *DL) BitmapTransformA(a int16) {
+	w.wr32(BITMAP_TRANSFORM_A | uint32(a))
 }
 
-// BitmapTransformB sets the B coefficient of the bitmap transform matrix.
-func (w *DL) BitmapTransformB(b int) {
-	w.wr32(BITMAP_TRANSFORM_B | uint32(b)&0x1FFFF)
+// BitmapTransformB sets the B coefficient of the bitmap transform matrix (b is
+// signed 8.8-bit fixed-point number).
+func (w *DL) BitmapTransformB(b int16) {
+	w.wr32(BITMAP_TRANSFORM_B | uint32(b))
 }
 
-// BitmapTransformC sets the C coefficient of the bitmap transform matrix.
+// BitmapTransformC sets the C coefficient of the bitmap transform matrix (c is
+// signed 8.8-bit fixed-point number).
 func (w *DL) BitmapTransformC(c int) {
-	w.wr32(BITMAP_TRANSFORM_C | uint32(c)&0x1FFFF)
+	w.wr32(BITMAP_TRANSFORM_C | uint32(c))
 }
 
-// BitmapTransformD sets the D coefficient of the bitmap transform matrix.
+// BitmapTransformD sets the D coefficient of the bitmap transform matrix (d is
+// signed 8.8-bit fixed-point number).
 func (w *DL) BitmapTransformD(d int) {
-	w.wr32(BITMAP_TRANSFORM_D | uint32(d)&0x1FFFF)
+	w.wr32(BITMAP_TRANSFORM_D | uint32(d))
 }
 
-// BitmapTransformE sets the E coefficient of the bitmap transform matrix.
+// BitmapTransformE sets the E coefficient of the bitmap transform matrix (e is
+// signed 8.8-bit fixed-point number).
 func (w *DL) BitmapTransformE(e int) {
-	w.wr32(BITMAP_TRANSFORM_E | uint32(e)&0x1FFFF)
+	w.wr32(BITMAP_TRANSFORM_E | uint32(e))
 }
 
-// BitmapTransformF sets the F coefficient of the bitmap transform matrix.
+// BitmapTransformF sets the F coefficient of the bitmap transform matrix (f is
+// signed 8.8-bit fixed-point number).
 func (w *DL) BitmapTransformF(f int) {
-	w.wr32(BITMAP_TRANSFORM_F | uint32(f)&0x1FFFF)
+	w.wr32(BITMAP_TRANSFORM_F | uint32(f))
 }
 
 // BlendFunc configures pixel arithmetic.
@@ -247,14 +253,26 @@ func (w *DL) Vertex2f(x, y int) {
 	w.wr32(VERTEX2F | uint32(x)&0x7FFF<<15 | uint32(y)&0x7FFF)
 }
 
-// Vertex2II starts the operation of graphics primitive at the specified
+// Vertex2ii starts the operation of graphics primitive at the specified
 // coordinates in pixel precision.
 func (w *DL) Vertex2ii(x, y int, handle, cell uint8) {
 	w.wr32(VERTEX2II | uint32(x)&511<<21 | uint32(y)&511<<12 |
-		uint32(handle)<<7 | uint32(cell))
+		uint32(handle)&31<<7 | uint32(cell)&127)
 }
 
 // VertexFormat sets the precision of Vertex2f coordinates (EVE2).
 func (w *DL) VertexFormat(frac uint) {
 	w.wr32(VERTEX_FORMAT | uint32(frac)&7)
+}
+
+////
+
+// F8 converts n integer number to signed 8.8-bit fixed point number.
+func F8(n int) int16 {
+	return int16(n << 8)
+}
+
+// F16 converts n integer number to signed 16.16-bit fixed point number.
+func F16(n int) int32 {
+	return int32(n << 16)
 }
