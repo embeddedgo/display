@@ -6,10 +6,11 @@ package eve
 
 import "runtime"
 
-// CE extends Writer to help write Co-processor Engine commands to the CE
-// command FIFO. The effect of most commands is the CE writes display-list
-// commands to the RAM_DL memory. Unlike the other writers CE methods can use
-// multiple read and write transactions to achieve more complex operations.
+// CE extends DL to help to write Co-processor Engine commands to the CE command
+// FIFO or to any memory location. The effect of executing most commands is the
+// co-processor engine writes display-list commands to the RAM_DL memory. Unlike
+// the other writers CE methods can use multiple read and write transactions to
+// achieve more complex operations.
 type CE struct {
 	DL
 }
