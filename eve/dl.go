@@ -9,7 +9,7 @@ type DL struct {
 	Writer
 }
 
-// SwapDL closes the wrtie transaction, clears the IntSwap interrupt flag and
+// SwapDL closes the write transaction, clears the IntSwap interrupt flag and
 // schedules the display lists swap to be performed after rendering the current
 // frame. It returns the address just after the last write operation.
 func (w *DL) SwapDL() int {
@@ -263,6 +263,16 @@ func (w *DL) Vertex2ii(x, y int, handle, cell uint8) {
 // VertexFormat sets the precision of Vertex2f coordinates (EVE2).
 func (w *DL) VertexFormat(frac uint) {
 	w.wr32(VERTEX_FORMAT | uint32(frac)&7)
+}
+
+// VertexTranslateX specifies the offset added to vertex x coordinates (EVE2).
+func (w *DL) VertexTranslateX(x int) {
+	w.wr32(VERTEX_TRANSLATE_X | uint32(x)&0x1FFFF)
+}
+
+// VertexTranslateY specifies the offset added to vertex y coordinates (EVE2).
+func (w *DL) VertexTranslateY(y int) {
+	w.wr32(VERTEX_TRANSLATE_Y | uint32(y)&0x1FFFF)
 }
 
 ////

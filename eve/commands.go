@@ -69,6 +69,8 @@ const (
 	VERTEX2F           = 0x40000000 // Arg: x<<15 | y
 	VERTEX2II          = 0x80000000 // Arg: x<<21 | y<<12 | handle<<7 | cell
 	VERTEX_FORMAT      = 0x27000000 // Arg: frac (EVE2)
+	VERTEX_TRANSLATE_X = 0x2B000000 // Arg: x (EVE2)
+	VERTEX_TRANSLATE_Y = 0x2C000000 // Arg: y (EVE2)
 )
 
 // Alpha/stencil function (ALPHA_FUNC, STENCIL_FUNC).
