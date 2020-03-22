@@ -77,25 +77,25 @@ func (w *DL) BitmapTransformB(b int16) {
 
 // BitmapTransformC sets the C coefficient of the bitmap transform matrix (c is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformC(c int) {
+func (w *DL) BitmapTransformC(c int16) {
 	w.wr32(BITMAP_TRANSFORM_C | uint32(c))
 }
 
 // BitmapTransformD sets the D coefficient of the bitmap transform matrix (d is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformD(d int) {
+func (w *DL) BitmapTransformD(d int16) {
 	w.wr32(BITMAP_TRANSFORM_D | uint32(d))
 }
 
 // BitmapTransformE sets the E coefficient of the bitmap transform matrix (e is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformE(e int) {
+func (w *DL) BitmapTransformE(e int16) {
 	w.wr32(BITMAP_TRANSFORM_E | uint32(e))
 }
 
 // BitmapTransformF sets the F coefficient of the bitmap transform matrix (f is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformF(f int) {
+func (w *DL) BitmapTransformF(f int16) {
 	w.wr32(BITMAP_TRANSFORM_F | uint32(f))
 }
 
@@ -273,16 +273,4 @@ func (w *DL) VertexTranslateX(x int) {
 // VertexTranslateY specifies the offset added to vertex y coordinates (EVE2).
 func (w *DL) VertexTranslateY(y int) {
 	w.wr32(VERTEX_TRANSLATE_Y | uint32(y)&0x1FFFF)
-}
-
-////
-
-// F8 converts n integer number to signed 8.8-bit fixed point number.
-func F8(n int) int16 {
-	return int16(n << 8)
-}
-
-// F16 converts n integer number to signed 16.16-bit fixed point number.
-func F16(n int) int32 {
-	return int32(n << 16)
 }

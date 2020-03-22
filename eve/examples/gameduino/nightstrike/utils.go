@@ -41,3 +41,7 @@ func max(a, b int) int {
 func prob(num, denom int) bool {
 	return int(rand.Int63())&0xFFFF < num<<16/denom
 }
+
+func f16(n int) int32 {
+	return int32(n << 16)
+}

@@ -20,7 +20,7 @@ func drawDXT1(ce *eve.CE, colorHandle, bitHandle uint8) {
 
 	ce.ColorMask(eve.RGB)
 	ce.LoadIdentity()
-	ce.Scale(eve.F16(4), eve.F16(4))
+	ce.Scale(f16(4), f16(4))
 	ce.SetMatrix()
 
 	ce.BlendFunc(eve.DST_ALPHA, eve.ZERO)
@@ -90,13 +90,13 @@ func (e *element) draw(ce *eve.CE, cell byte, flip bool, scale int) {
 	} else {
 		ce.SaveContext()
 		ce.LoadIdentity()
-		ce.Translate(eve.F16(scale*e.shape.w/2), eve.F16(scale*e.shape.h/2))
+		ce.Translate(f16(scale*e.shape.w/2), f16(scale*e.shape.h/2))
 		if flip {
-			ce.Scale(eve.F16(-scale), eve.F16(scale))
+			ce.Scale(f16(-scale), f16(scale))
 		} else {
-			ce.Scale(eve.F16(scale), eve.F16(scale))
+			ce.Scale(f16(scale), f16(scale))
 		}
-		ce.Translate(eve.F16(-(e.shape.w / 2)), eve.F16(-(e.shape.h / 2)))
+		ce.Translate(f16(-(e.shape.w / 2)), f16(-(e.shape.h / 2)))
 		ce.SetMatrix()
 		e.vertex(ce, cell, scale)
 		ce.RestoreContext()
@@ -121,9 +121,9 @@ func (e *rotatingElement) setxy16ths(x, y int) {
 func (e *rotatingElement) draw(ce *eve.CE, cell byte) {
 	ce.SaveContext()
 	ce.LoadIdentity()
-	ce.Translate(eve.F16(e.shape.size/2), eve.F16(e.shape.size/2))
+	ce.Translate(f16(e.shape.size/2), f16(e.shape.size/2))
 	ce.Rotate(e.angle)
-	ce.Translate(eve.F16(-(e.shape.w / 2)), eve.F16(-(e.shape.h / 2)))
+	ce.Translate(f16(-(e.shape.w / 2)), f16(-(e.shape.h / 2)))
 	ce.SetMatrix()
 	x0 := e.x - (e.shape.size << 3)
 	y0 := e.y - (e.shape.size << 3)
