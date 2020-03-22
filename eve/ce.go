@@ -411,12 +411,12 @@ func (w *CE) Stop() {
 
 // SetFont sets up a custom font.
 func (w *CE) SetFont(font byte, addr int) {
-	w.Write32(CMD_SETROTATE, uint32(font), uint32(addr))
+	w.Write32(CMD_SETFONT, uint32(font), uint32(addr))
 }
 
 // SetFont2 sets up a custom font (EVE2).
 func (w *CE) SetFont2(font byte, addr, firstchar int) {
-	w.Write32(CMD_SETROTATE, uint32(font), uint32(addr), uint32(firstchar))
+	w.Write32(CMD_SETFONT2, uint32(font), uint32(addr), uint32(firstchar))
 }
 
 // SetScratch sets the scratch bitmap for widget use (EVE2).
