@@ -350,7 +350,7 @@ func (w *CE) GetProps() {
 
 // Scale applies a scale to the current matrix (sx, sy are signed 16.16-bit
 // fixed-point numbers).
-func (w *CE) Scale(sx, sy int32) {
+func (w *CE) Scale(sx, sy int) {
 	w.Write32(CMD_SCALE, uint32(sx), uint32(sy))
 }
 
@@ -361,7 +361,7 @@ func (w *CE) Rotate(a int) {
 
 // Translate applies a translation to the current matrix (tx, ty are signed
 // 16.16-bit fixed-point numbers).
-func (w *CE) Translate(tx, ty int32) {
+func (w *CE) Translate(tx, ty int) {
 	w.Write32(CMD_TRANSLATE, uint32(tx), uint32(ty))
 }
 
