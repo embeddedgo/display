@@ -65,38 +65,38 @@ func (w *DL) BitmapSource(addr int) {
 
 // BitmapTransA sets the A coefficient of the bitmap transform matrix (a is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformA(a int16) {
-	w.wr32(BITMAP_TRANSFORM_A | uint32(a))
+func (w *DL) BitmapTransformA(prec uint8, a int) {
+	w.wr32(BITMAP_TRANSFORM_A | uint32(prec)<<17 | uint32(a&0x1FFFF))
 }
 
 // BitmapTransformB sets the B coefficient of the bitmap transform matrix (b is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformB(b int16) {
-	w.wr32(BITMAP_TRANSFORM_B | uint32(b))
+func (w *DL) BitmapTransformB(prec uint8, b int) {
+	w.wr32(BITMAP_TRANSFORM_B | uint32(prec)<<17 | uint32(b&0x1FFFF))
 }
 
 // BitmapTransformC sets the C coefficient of the bitmap transform matrix (c is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformC(c int16) {
-	w.wr32(BITMAP_TRANSFORM_C | uint32(c))
+func (w *DL) BitmapTransformC(prec uint8, c int) {
+	w.wr32(BITMAP_TRANSFORM_C | uint32(prec)<<17 | uint32(c&0x1FFFF))
 }
 
 // BitmapTransformD sets the D coefficient of the bitmap transform matrix (d is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformD(d int16) {
-	w.wr32(BITMAP_TRANSFORM_D | uint32(d))
+func (w *DL) BitmapTransformD(prec uint8, d int) {
+	w.wr32(BITMAP_TRANSFORM_D | uint32(prec)<<17 | uint32(d&0x1FFFF))
 }
 
 // BitmapTransformE sets the E coefficient of the bitmap transform matrix (e is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformE(e int16) {
-	w.wr32(BITMAP_TRANSFORM_E | uint32(e))
+func (w *DL) BitmapTransformE(prec uint8, e int) {
+	w.wr32(BITMAP_TRANSFORM_E | uint32(prec)<<17 | uint32(e&0x1FFFF))
 }
 
 // BitmapTransformF sets the F coefficient of the bitmap transform matrix (f is
 // signed 8.8-bit fixed-point number).
-func (w *DL) BitmapTransformF(f int16) {
-	w.wr32(BITMAP_TRANSFORM_F | uint32(f))
+func (w *DL) BitmapTransformF(prec uint8, f int) {
+	w.wr32(BITMAP_TRANSFORM_F | uint32(prec)<<17 | uint32(f))
 }
 
 // BlendFunc configures pixel arithmetic.
@@ -109,7 +109,7 @@ func (w *DL) Call(dest int) {
 	w.wr32(CALL | uint32(dest)&0xFFFF)
 }
 
-// Cell sets the bitmap cell number for the Vertex2F command.
+// Cell sets the bitmap cell number for the Vertex2f command.
 func (w *DL) Cell(cell uint8) {
 	w.wr32(CELL | uint32(cell))
 }
