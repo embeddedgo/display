@@ -284,7 +284,3 @@ const (
 	TOUCHMODE_ONESHOT    = 1
 	AW_SAMPLES           = 1
 )
-
-func MakeRGB(r, g, b int) uint32 {
-	return uint32(r&255<<16 | g&255<<8 | b&255)
-}
