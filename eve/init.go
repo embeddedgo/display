@@ -133,11 +133,12 @@ func (d *Driver) Init(dcf *DisplayConfig, cfg *Config) error {
 	switch {
 	case cid == 0x10008:
 		d.w.typ = eve1
-	case 0x11008 <= cid && cid <= 0x111308:
-		d.w.typ = eve2
+	case 0x11008 <= cid && cid <= 0x111608:
+		d.w.typ = eve2 // EVE 2/3
 	default:
 		return errors.New("eve: unknown controller")
 	}
+	d.w.chipid = uint8(cid >> 8)
 
 	/*
 		// Simple triming algorithm if the internal oscilator is used.
@@ -204,8 +205,8 @@ func (d *Driver) Init(dcf *DisplayConfig, cfg *Config) error {
 		presc = (60*2 + int(dcf.ClkMHz) + 1) / (int(dcf.ClkMHz) * 2)
 	}
 	d.WriteReg(REG_PCLK, uint32(presc)) // Enable PCLK.
-	
+
 	d.w.dci.SetClk(30e6)
-	
+
 	return d.Err(true)
 }

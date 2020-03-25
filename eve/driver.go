@@ -290,6 +290,7 @@ type driver struct {
 	state   uint8
 	intf    uint8
 	typ     int8 // 0: FT80x, 1: FT81x
+	chipid  uint8
 }
 
 func (d *driver) regAddr(r Register) int {
