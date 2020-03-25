@@ -24,11 +24,21 @@ func (w *Writer) Flush() {
 	w.flush()
 }
 
+// Addr returns the address just after the last write operation. The address is
+// calculated and may be ahead of actual writes due to internal buffering.
+func (w *Writer) Addr() int {
+	if w.state == stateWriteCmd {
+		return mmap[w.typ].RAM_CMD.Start + w.addr&4095
+	}
+	return w.addr
+}
+
 // Close closes the wrtie transaction and returns the address just after the
 // last write operation.
 func (w *Writer) Close() int {
+	addr := w.Addr()
 	w.closeWriter(stateWrite)
-	return w.addr
+	return addr
 }
 
 func (w *Writer) wr8(u uint8) {
