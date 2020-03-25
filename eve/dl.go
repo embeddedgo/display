@@ -106,7 +106,7 @@ func (w *DL) BlendFunc(src, dst uint8) {
 
 // Call executes a sequence of commands at another location in the display list.
 func (w *DL) Call(dest int) {
-	w.wr32(CALL | uint32(dest)&0xFFFF)
+	w.wr32(CALL | uint32(dest>>2)&0xFFFF)
 }
 
 // Cell sets the bitmap cell number for the Vertex2f command.
@@ -167,7 +167,7 @@ func (w *DL) End() {
 // Jump executes commands at another location in the display list. Dest is the
 // command number in display list (address = RAM_DL + dest*4).
 func (w *DL) Jump(dest int) {
-	w.wr32(JUMP | uint32(dest)&0xFFFF)
+	w.wr32(JUMP | uint32(dest>>2)&0xFFFF)
 }
 
 // LineWidth sets the width of lines to be drawn with primitive LINES in 1/16
