@@ -190,8 +190,8 @@ func (d *Driver) TouchTagXY() (x, y int) {
 }
 
 // TouchTag returns the current touch tag or zero in case of no touch.
-func (d *Driver) TouchTag() uint16 {
-	return uint16(d.ReadReg(REG_TOUCH_TAG))
+func (d *Driver) TouchTag() int {
+	return int(d.ReadReg(REG_TOUCH_TAG))
 }
 
 // Tracker returns touch value and touch tag.

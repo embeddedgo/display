@@ -136,7 +136,7 @@ func (w *DL) ClearStencil(s uint8) {
 
 // ClearTag sets the clear value for the stencil buffer.
 func (w *DL) ClearTag(t int) {
-	w.wr32(CLEAR_TAG | uint32(uint16(t)))
+	w.wr32(CLEAR_TAG | uint32(t&0xFF))
 }
 
 // ColorA sets the current color alpha.
@@ -239,12 +239,16 @@ func (w *DL) StencilOp(sfail, spass uint8) {
 // Tag attaches the tag value for the following graphics objects drawn on the
 // screen. The initial tag buffer value is 255.
 func (w *DL) Tag(t int) {
-	w.wr32(TAG | uint32(uint16(t)))
+	w.wr32(TAG | uint32(t&0xFF))
 }
 
 // TagMask controls the writing of the tag buffer.
-func (w *DL) TagMask(mask uint8) {
-	w.wr32(TAG_MASK | uint32(mask))
+func (w *DL) TagMask(en bool) {
+	cmd := uint32(TAG_MASK)
+	if en {
+		cmd |= 1
+	}
+	w.wr32(cmd)
 }
 
 // Vertex2f starts the operation of graphics primitives at the specified screen

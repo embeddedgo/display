@@ -435,7 +435,7 @@ func (w *CE) Track(x, y, width, height, tag int) {
 		CMD_TRACK,
 		uint32(x)&0xFFFF|uint32(y)&0xFFFF<<16,
 		uint32(width)&0xFFFF|uint32(height)&0xFFFF<<16,
-		uint32(uint16(tag)),
+		uint32(tag&0xFF),
 	)
 }
 
