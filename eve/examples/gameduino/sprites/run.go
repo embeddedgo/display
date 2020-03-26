@@ -3,7 +3,7 @@ package sprites
 import "github.com/embeddedgo/display/eve"
 
 func Run(d *eve.Driver) {
-	ce := d.CE()
+	ce := d.CE(-1)
 	ce.DLStart()
 	ce.WriteString(assets)
 	ce.Display()
@@ -12,7 +12,7 @@ func Run(d *eve.Driver) {
 
 	var t byte
 	for {
-		ce := d.CE()
+		ce := d.CE(-1)
 		ce.DLStart()
 		ce.Clear(eve.CST)
 		ce.Begin(eve.BITMAPS)
