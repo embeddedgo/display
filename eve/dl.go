@@ -110,8 +110,8 @@ func (w *DL) Call(dest int) {
 }
 
 // Cell sets the bitmap cell number for the Vertex2f command.
-func (w *DL) Cell(cell uint8) {
-	w.wr32(CELL | uint32(cell))
+func (w *DL) Cell(cell int) {
+	w.wr32(CELL | uint32(cell&0xFF))
 }
 
 // Clear clears buffers to preset values.
