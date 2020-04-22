@@ -33,7 +33,7 @@ func drawDXT1(ce *eve.CE, colorHandle, bitHandle uint8) {
 }
 
 func drawFade(ce *eve.CE, fade int) {
-	ce.TagMask(0)
+	ce.TagMask(false)
 	ce.ColorA(uint8(fade))
 	ce.ColorRGB(0x000000)
 	ce.Begin(eve.RECTS)
@@ -72,7 +72,7 @@ func (e *element) setxy(x, y int) {
 	e.y = y
 }
 
-func (e *element) vertex(ce *eve.CE, cell byte, scale int) {
+func (e *element) vertex(ce *eve.CE, cell int, scale int) {
 	x0 := e.x - (e.shape.w>>1)*scale
 	y0 := e.y - (e.shape.h>>1)*scale
 	if (x0|y0)&511 == 0 {
@@ -84,7 +84,7 @@ func (e *element) vertex(ce *eve.CE, cell byte, scale int) {
 	}
 }
 
-func (e *element) draw(ce *eve.CE, cell byte, flip bool, scale int) {
+func (e *element) draw(ce *eve.CE, cell int, flip bool, scale int) {
 	if !flip && scale == 1 {
 		e.vertex(ce, cell, scale)
 	} else {
@@ -118,7 +118,7 @@ func (e *rotatingElement) setxy16ths(x, y int) {
 	e.y = y
 }
 
-func (e *rotatingElement) draw(ce *eve.CE, cell byte) {
+func (e *rotatingElement) draw(ce *eve.CE, cell int) {
 	ce.SaveContext()
 	ce.LoadIdentity()
 	ce.Translate(f16(e.shape.size/2), f16(e.shape.size/2))
@@ -507,7 +507,7 @@ func (f *fires) create(x, y int) {
 
 func (f *fires) draw(ce *eve.CE) {
 	for i := f.stack.alive(); i >= 0; i = f.stack.next(i) {
-		f.e[i].draw(ce, fireA[f.anim[i]], false, 1)
+		f.e[i].draw(ce, int(fireA[f.anim[i]]), false, 1)
 	}
 }
 
@@ -547,7 +547,7 @@ func (e *explosions) create(x, y, angle int) {
 
 func (e *explosions) draw(ce *eve.CE) {
 	for i := e.stack.alive(); i >= 0; i = e.stack.next(i) {
-		e.e[i].draw(ce, explodeA[e.anim[i]])
+		e.e[i].draw(ce, int(explodeA[e.anim[i]]))
 	}
 }
 
@@ -588,13 +588,13 @@ func (o *heliObject) initialize() {
 	o.vy = 0
 }
 
-func (o *heliObject) draw(ce *eve.CE, anim byte) {
+func (o *heliObject) draw(ce *eve.CE, anim int) {
 	if o.state == -1 {
 		o.e.draw(ce, anim, o.vx > 0, 1)
 	} else {
 		aframes := "\x00\x01\x02\x81\x80\x03\x83"
 		a := aframes[(o.state>>1)%len(aframes)]
-		o.e.draw(ce, a&0x7f, a&0x80 != 0, 2)
+		o.e.draw(ce, int(a&0x7f), a&0x80 != 0, 2)
 	}
 }
 
@@ -647,7 +647,7 @@ func (h *helis) launch() {
 
 func (h *helis) draw(ce *eve.CE, t int) {
 	for i := h.stack.alive(); i >= 0; i = h.stack.next(i) {
-		h.m[i].draw(ce, byte((i+t)>>2&1))
+		h.m[i].draw(ce, (i+t)>>2&1)
 	}
 }
 
@@ -685,7 +685,7 @@ func (o *soldierObject) initialize(vx int) {
 }
 
 func (o *soldierObject) draw(ce *eve.CE) {
-	o.e.draw(ce, soldierA[o.a], o.vx > 0, 1)
+	o.e.draw(ce, int(soldierA[o.a]), o.vx > 0, 1)
 }
 
 func (o *soldierObject) update(t int) bool {
@@ -901,7 +901,7 @@ func (o *gameObject) loadLevel(lcd *eve.Driver, n int) {
 func (o *gameObject) draw(ce *eve.CE) {
 	ce.Tag(1)
 	drawDXT1(ce, backgroundColorHandle, backgroundBitsHandle)
-	ce.TagMask(0)
+	ce.TagMask(false)
 	ce.Begin(eve.BITMAPS)
 	o.base.drawBase(ce)
 	o.helis.draw(ce, t)

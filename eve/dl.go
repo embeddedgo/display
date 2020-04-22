@@ -259,7 +259,7 @@ func (w *DL) Vertex2f(x, y int) {
 
 // Vertex2ii starts the operation of graphics primitive at the specified
 // coordinates in pixel precision.
-func (w *DL) Vertex2ii(x, y int, handle, cell uint8) {
+func (w *DL) Vertex2ii(x, y int, handle uint8, cell int) {
 	w.wr32(VERTEX2II | uint32(x)&511<<21 | uint32(y)&511<<12 |
 		uint32(handle)&31<<7 | uint32(cell)&127)
 }
