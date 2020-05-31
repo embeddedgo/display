@@ -24,10 +24,13 @@ var (
 	soldierRunShape     = shape{10, 34, 40, 0}
 )
 
+// TODO: move to some external storage
 var assetsLevels = [...]string{
 	assetsLevel0,
 	assetsLevel1,
-	assetsLevel2,
+
+	// commented because of lask of Flash
+	//assetsLevel2,
 	//assetsLevel3,
 	//assetsLevel4,
 }
