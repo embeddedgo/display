@@ -69,7 +69,7 @@ func (d *Driver) RegAddr(r Register) int {
 	return d.w.regAddr(r)
 }
 
-func (d *Driver) panicNotIdle() {
+func panicNotIdle(d *Driver) {
 	if d.w.state != stateIdle {
 		panic("eve: previous transaction not closed")
 	}
@@ -80,7 +80,7 @@ func (d *Driver) panicNotIdle() {
 // HostCmd invokes a host command. Param is a command parameter. It must be zero
 // in case of commands that do not require parameters.
 func (d *Driver) HostCmd(cmd HostCmd, param byte) {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	buf := d.w.sbuf[:3]
 	buf[0] = byte(cmd)
 	buf[1] = param
@@ -92,25 +92,25 @@ func (d *Driver) HostCmd(cmd HostCmd, param byte) {
 
 // ReadUint32 reads 32-bit word from address addr.
 func (d *Driver) ReadUint32(addr int) uint32 {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	return d.w.readU32(addr)
 }
 
 // WriteUint32 writes 32-bit word to address addr.
 func (d *Driver) WriteUint32(addr int, u uint32) {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	d.w.writeU32(addr, u)
 }
 
 // ReadReg reads from register.
 func (d *Driver) ReadReg(r Register) uint32 {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	return d.w.readU32(d.w.regAddr(r))
 }
 
 // WriteReg writes to register.
 func (d *Driver) WriteReg(r Register, u uint32) {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	d.w.writeU32(d.w.regAddr(r), u)
 }
 
@@ -140,13 +140,13 @@ func (d *Driver) IntFlags() IntFlags {
 // ClearInt reads the REG_INT_FLAGS register and accumulates read flags in the
 // internal variable. After that it clears the flags specified by mask.
 func (d *Driver) ClearInt(flags IntFlags) {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	d.w.clearInt(flags)
 }
 
 // SetIntMask sets interrupt mask.
 func (d *Driver) SetIntMask(mask IntFlags) {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	d.w.setIntMask(mask)
 }
 
@@ -204,7 +204,7 @@ func (d *Driver) Tracker() (val int, tag uint16) {
 
 // R starts a new memory reading transaction at the address addr.
 func (d *Driver) R(addr int) *Reader {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	d.w.state = stateRead
 	d.w.addr = addr
 	d.w.startRead(addr)
@@ -212,8 +212,8 @@ func (d *Driver) R(addr int) *Reader {
 	return (*Reader)(&d.w.driver)
 }
 
-func (d *Driver) startWrite(addr int) {
-	d.panicNotIdle()
+func startWrite(d *Driver, addr int) {
+	panicNotIdle(d)
 	d.w.state = stateWrite
 	d.w.addr = addr
 	d.w.buf = d.w.buf[:4]
@@ -222,7 +222,7 @@ func (d *Driver) startWrite(addr int) {
 
 // W starts a new memory writing transaction at the address addr.
 func (d *Driver) W(addr int) *Writer {
-	d.startWrite(addr)
+	startWrite(d, addr)
 	return &d.w.Writer
 }
 
@@ -236,7 +236,7 @@ func (d *Driver) DL(addr int) *DL {
 	} else if addr&3 != 0 {
 		panic("eve: DL address not aligned")
 	}
-	d.startWrite(addr)
+	startWrite(d, addr)
 	return &d.w.DL
 }
 
@@ -244,7 +244,7 @@ func (d *Driver) DL(addr int) *DL {
 // address addr. The special address -1 makes it write to the co-processor
 // engine FIFO.
 func (d *Driver) CE(addr int) *CE {
-	d.panicNotIdle()
+	panicNotIdle(d)
 	if addr == -1 {
 		rp, wp := d.w.readCmdPtrs()
 		d.w.addr = int(wp)
