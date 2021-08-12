@@ -57,11 +57,11 @@ func TestAll(t *testing.T) {
 		y := 3 + (r+2)*r
 		a.SetColorRGB(0, 100, 200)
 		a.FillCircle(image.Pt(20, y), r)
-		a.FillCircle1(image.Pt(60, y), r)
+		//a.FillCircle1(image.Pt(59, y), r)
 
 		a.SetColorRGB(100, 50, 0)
 		a.DrawCircle(image.Pt(20, y), r)
-		a.DrawCircle1(image.Pt(60, y), r)
+		//a.DrawCircle1(image.Pt(59, y), r)
 	}
 
 	f, err := os.OpenFile("image.png", os.O_WRONLY|os.O_CREATE, 0755)
