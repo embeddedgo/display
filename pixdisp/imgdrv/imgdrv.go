@@ -12,30 +12,31 @@ import (
 	"image/draw"
 )
 
-type Driver struct{ Image draw.Image }
+type Driver struct {
+	img  draw.Image
+	fill image.Uniform
+}
+
+func New(img draw.Image) *Driver {
+	return &Driver{img: img}
+}
 
 func (d Driver) Dim() (width, height int) {
-	r := d.Image.Bounds()
+	r := d.img.Bounds()
 	return r.Dx(), r.Dy()
 }
 
-func (d Driver) Draw(r image.Rectangle, src image.Image, sp image.Point) {
-	draw.Draw(d.Image, r.Add(d.Image.Bounds().Min), src, sp, draw.Src)
+func (d Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+	draw.DrawMask(d.img, r.Add(d.img.Bounds().Min), src, sp, mask, mp, op)
 }
 
-func (d Driver) Color(c color.Color) uint64 {
+func (d Driver) SetColor(c color.Color) {
 	r, g, b, a := c.RGBA()
-	return uint64(r<<16|g)<<32 | uint64(b<<16|a)
+	d.fill.C = color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
 }
 
-func (d Driver) Fill(r image.Rectangle, c uint64) {
-	rgba64 := color.RGBA64{
-		uint16(c >> 48),
-		uint16(c >> 32),
-		uint16(c >> 16),
-		uint16(c),
-	}
-	d.Draw(r, &image.Uniform{rgba64}, image.Point{})
+func (d Driver) Fill(r image.Rectangle) {
+	d.Draw(r, &d.fill, image.Point{}, nil, image.Point{}, draw.Over)
 }
 
 func (d Driver) Flush()               {}

@@ -4,12 +4,16 @@
 
 package pixdisp
 
-import "image"
+import (
+	"image"
+	"image/color"
+)
 
 // Display represents a pixmap based display.
 type Display struct {
-	drv    Driver
-	swapWH bool
+	drv       Driver
+	lastColor color.Color
+	swapWH    bool
 }
 
 // NewDisplay returns a new itialized display.
@@ -39,13 +43,13 @@ func (d *Display) Err(clear bool) error {
 func (d *Display) Bounds() image.Rectangle {
 	width, height := d.drv.Dim()
 	if d.swapWH {
-		return image.Rectangle{Max: image.Pt(height, width)}
+		return image.Rectangle{Max: image.Point{height, width}}
 	}
-	return image.Rectangle{Max: image.Pt(width, height)}
+	return image.Rectangle{Max: image.Point{width, height}}
 }
 
 func (d *Display) NewArea(r image.Rectangle) *Area {
-	a := &Area{disp: d, rect: r.Canon()}
+	a := &Area{disp: d, color: color.Gray{255}, rect: r.Canon()}
 	a.updateBounds()
 	return a
 }

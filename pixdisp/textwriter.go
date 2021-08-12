@@ -4,7 +4,7 @@
 
 // +build ignore
 
-package tft
+package pixdisp
 
 import (
 	"image"

@@ -15,19 +15,20 @@ func abs(x int) int {
 
 // DrawLine draws a line from p0 to p1 (including both points).
 func (a *Area) DrawLine(p0, p1 image.Point) {
+	setColor(a)
 	dp := p1.Sub(p0)
 	if dp.Y == 0 {
 		if dp.X < 0 {
 			p1.X, p0.X = p0.X, p1.X
 		}
-		a.hline(p0.X, p0.Y, p1.X)
+		hline(a, p0.X, p0.Y, p1.X)
 		return
 	}
 	if dp.X == 0 {
 		if dp.Y < 0 {
 			p1.Y, p0.Y = p0.Y, p1.Y
 		}
-		a.vline(p0.X, p0.Y, p1.Y)
+		vline(a, p0.X, p0.Y, p1.Y)
 		return
 	}
 	vl := abs(dp.Y) > abs(dp.X)
@@ -49,9 +50,9 @@ func (a *Area) DrawLine(p0, p1 image.Point) {
 		e += dp.Y
 		if e > 0 {
 			if vl {
-				a.vline(p0.Y, p0.X, x)
+				vline(a, p0.Y, p0.X, x)
 			} else {
-				a.hline(p0.X, p0.Y, x)
+				hline(a, p0.X, p0.Y, x)
 			}
 			p0.X = x + 1
 			p0.Y += sy
@@ -60,18 +61,20 @@ func (a *Area) DrawLine(p0, p1 image.Point) {
 	}
 	if p0.X <= p1.X {
 		if vl {
-			a.vline(p0.Y, p0.X, p1.X)
+			vline(a, p0.Y, p0.X, p1.X)
 		} else {
-			a.hline(p0.X, p0.Y, p1.X)
+			hline(a, p0.X, p0.Y, p1.X)
 		}
 	}
 }
 
+/*
 // DrawLine_ draws a line from p0 to p1 (including both pointsc). DrawLine_
-///uses less memory for code than DrawLine but is generally slower (can be
+///uses less memory for code than DrawLine but it is generally slower (can be
 // faster for very short lines: 1-3 pixels). Use DrawLine_ if you are very
 // short of Flash space and do not care about speed or to draw very short lines.
 func (a *Area) DrawLine_(p0, p1 image.Point) {
+	setColor(a)
 	dp := p1.Sub(p0)
 	sx, sy := 1, 1
 	if dp.X < 0 {
@@ -84,7 +87,7 @@ func (a *Area) DrawLine_(p0, p1 image.Point) {
 	dp.Y = abs(dp.Y)
 	e := dp.X - dp.Y
 	for {
-		a.DrawPixel(p0)
+		drawPixel(a, p0)
 		if p0 == p1 {
 			return
 		}
@@ -99,3 +102,4 @@ func (a *Area) DrawLine_(p0, p1 image.Point) {
 		}
 	}
 }
+*/

@@ -10,13 +10,20 @@ import (
 )
 
 type Area struct {
-	color  uint64
 	disp   *Display
+	color  color.Color
 	rect   image.Rectangle
 	p0     image.Point
 	width  int
 	height int
 	swapWH bool
+}
+
+func setColor(a *Area) {
+	if a.disp.lastColor != a.color {
+		a.disp.lastColor = a.color
+		a.disp.drv.SetColor(a.color)
+	}
 }
 
 func (a *Area) P0() image.Point {
@@ -35,15 +42,15 @@ func (a *Area) Bounds() image.Rectangle {
 	if a.swapWH != a.disp.swapWH {
 		a.updateBounds()
 	}
-	return image.Rectangle{Max: image.Pt(int(a.width), int(a.height))}
+	return image.Rectangle{Max: image.Point{int(a.width), int(a.height)}}
 }
 
 // SetColor sets the color used by drawing methods.
 func (a *Area) SetColor(c color.Color) {
-	a.color = a.disp.drv.Color(c)
+	a.color = c
 }
 
 // SetColorRGB is a convenient wrapper over SetColor(RGB{r, g, b}).
 func (a *Area) SetColorRGB(r, g, b uint8) {
-	a.color = a.disp.drv.Color(color.RGBA{r, g, b, 255})
+	a.color = RGB{r, g, b}
 }

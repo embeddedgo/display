@@ -7,6 +7,7 @@ package pixdisp
 import (
 	"image"
 	"image/color"
+	"image/draw"
 )
 
 // Driver lists the operations expected from a display driver.
@@ -14,23 +15,25 @@ type Driver interface {
 	// Dim returns the display dimensions.
 	Dim() (width, height int)
 
-	// Draw draws an image. It works similar to the draw.Draw function with op
-	// set to draw.Src.
+	// Draw works like draw.DrawMask function with dst set to the image
+	// representing the whole display.
 	//
-	// Draw is actually the only operation required from a display cntroller.
+	// The draw.Over operator can be implemented in a limited way but it must
+	// at least do not modify a display pixel if the corresponding masked
+	// source pixel is transparent.
+	//
+	// Draw is actually the only operation required from a display controller.
 	// The Fill operation below can be easily implemented by drawing an uniform
 	// image.
-	Draw(r image.Rectangle, src image.Image, sp image.Point)
+	Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op)
 
-	// Color allows to convert any color to the drivers/controller internal
-	// representation. It helps to reduce the number of required color
-	// conversions.
-	Color(c color.Color) uint64
+	// SetColor sets the color used by Fill method.
+	SetColor(c color.Color)
 
 	// Fill helps to increase prformance when drawing filled rectangles. Any
-	// geometric shape or font is drawed using finite number of filed
-	// rectangles so its heavily used operation which is worth optimizing.
-	Fill(r image.Rectangle, c uint64)
+	// geometric shape is drawed using finite number of filed rectangles so it
+	// is heavily used operation which is worth optimizing.
+	Fill(r image.Rectangle)
 
 	// Flush allows to flush the drivers internal buffers. Drivers is allowed to
 	// implement any kind of buffering if the direct drawing to the display is
