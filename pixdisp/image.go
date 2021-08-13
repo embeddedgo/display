@@ -33,6 +33,15 @@ type Mono struct {
 	Pix    []uint8
 }
 
+func NewMono(r image.Rectangle) *Mono {
+	stride := (r.Dx() + 7) / 8
+	return &Mono{
+		Rect:   r,
+		Stride: stride,
+		Pix:    make([]uint8, stride*r.Dy()),
+	}
+}
+
 func (p *Mono) ColorModel() color.Model { return MonoModel }
 func (p *Mono) Bounds() image.Rectangle { return p.Rect }
 

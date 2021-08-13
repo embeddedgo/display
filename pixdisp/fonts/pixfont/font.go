@@ -9,39 +9,56 @@ import "image"
 // Font is a pixmap based font.
 type Font struct {
 	Name     string
-	Height   int        // interline spacing
-	Ascent   int        // height above the baseline
-	Subfonts []*Subfont // ordered subfonts that make up the font
-	Loader   FontLoader // used to load missing subfonts
+	Height   int16         // interline spacing (sumarizes all subfonts)
+	Ascent   int16         // height above the baseline (sumarizes all subfonts)
+	Subfonts []*Subfont    // ordered subfonts that make up the font
+	Loader   SubfontLoader // used to load missing subfonts
 }
 
-// Subfont consist of an image that contains N glyphs and metadata that
-// describes how to get a subimage containing the glyph for a given rune.
-type Subfont struct {
-	First  rune        // first character in the subfont
-	Last   rune        // last character in the subfont
-	Ascent int         // height above the baseline
-	Info   FontInfo    // character descriptions
-	Bits   image.Image // image holding the glyphs
+func (f *Font) Size() (height, ascent int) {
+	return int(f.Height), int(f.Ascent)
 }
 
-// FontInfo is the interface that wraps the Glyph method. Glyph returns the i-th
-// Glyph in the subfont.
-type FontInfo interface {
-	Glyph(i int) Glyph
+func getSubfont(f *Font, r rune) *Subfont {
+	// TODO: binary search in ordered subfonts
+	for _, sf := range f.Subfonts {
+		if sf.First <= r && r <= sf.Last {
+			return sf
+		}
+	}
+	if f.Loader == nil {
+		return nil
+	}
+	new := f.Loader.LoadSubfont(r)
+	if new == nil {
+		return nil
+	}
+	// TODO: binary search in ordered subfonts
+	for i, sf := range f.Subfonts {
+		if new.Last < sf.First {
+			f.Subfonts = append(f.Subfonts[:i+1], f.Subfonts[i:]...)
+			f.Subfonts[i] = new
+			return new
+		}
+	}
+	f.Subfonts = append(f.Subfonts, new)
+	return new
 }
 
-type Glyph struct {
-	X      int // x position in the image holding the glyphs
-	Top    int // first non-zero scan line
-	Bottom int // last non-zero scan line
-	Left   int // offset of baseline
-	Width  int // width of baseline
+func (f *Font) Advance(r rune) int {
+	sf := getSubfont(f, r)
+	if sf == nil {
+		return 0
+	}
+	_, _, advance := sf.Info.Glyph(int(r - sf.First))
+	return advance
 }
 
-// FontLoader is the interface that wraps the Load method. Load loads the
-// subfont containing a given rune. A successful call returns the pointer to
-// the loaded subfont. Otherwise the nil pointer is returned.
-type FontLoader interface {
-	Load(r rune) *Subfont
+func (f *Font) Glyph(r rune) (img image.Image, origin image.Point, advance int) {
+	sf := getSubfont(f, r)
+	if sf == nil {
+		return
+	}
+	bounds, origin, advance := sf.Info.Glyph(int(r - sf.First))
+	return sf.Bits.SubImage(bounds), origin, advance
 }
