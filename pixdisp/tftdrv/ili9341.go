@@ -2,21 +2,75 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package tft
+package tftdrv
 
 import (
 	"image"
 	"image/color"
 	"time"
+
+	"github.com/embeddedgo/display/pixdisp"
 )
 
-type ILI9341 struct{ DCI DCI }
+// The commands below can be used to directly interract with a display
+// controller..
+const (
+	NOP      = 0x00
+	SWRESET  = 0x01
+	SLPIN    = 0x10
+	SLPOUT   = 0x11
+	GAMMASET = 0x26
+	DISPOFF  = 0x28
+	DISPON   = 0x29
+	CASET    = 0x2A
+	PASET    = 0x2B
+	RAMWR    = 0x2C
+	MADCTL   = 0x36
+	VSCRSADD = 0x37
+	PIXSET   = 0x3A
+	FRMCTR1  = 0xB1
+	DFUNCTR  = 0xB6
+	PWCTR1   = 0xC0
+	PWCTR2   = 0xC1
+	VMCTR1   = 0xC5
+	VMCTR2   = 0xC7
+	PWCTRB   = 0xCF
+	GMCTRP1  = 0xE0
+	GMCTRN1  = 0xE1
+)
 
-func (tft ILI9341) Init(madctl uint8, swreset bool) {
+// MADCTL arguments
+const (
+	MH  = 1 << 2 // Horizontal refresh order.
+	BGR = 1 << 3 // RGB-BGR order.
+	ML  = 1 << 4 // Vertical refresh order.
+	MV  = 1 << 5 // Row/column exchange.
+	MX  = 1 << 6 // Column address order.
+	MY  = 1 << 7 // Row address order.
+)
+
+// PIXSET arguments
+const (
+	PF16 = 0x55 // 16-bit 565 pixel format.
+	PF18 = 0x66 // 18-bit 666 pixel format.
+)
+
+type ILI9341 struct {
+	dci   DCI
+	color uint16
+}
+
+func NewILI9341(dci DCI) *ILI9341 {
+	return &ILI9341{dci: dci}
+}
+
+func (d *ILI9341) DCI() DCI { return d.dci }
+
+func (d *ILI9341) Init(madctl uint8, swreset bool) {
 	resetTime := time.Now()
 	time.Sleep(5 * time.Millisecond)
 
-	dci := tft.DCI
+	dci := d.dci
 
 	dci.Cmd(0xEF)
 	dci.WriteBytes(0x03, 0x80, 0x02)
@@ -87,20 +141,29 @@ func (tft ILI9341) Init(madctl uint8, swreset bool) {
 	dci.Cmd(RAMWR)
 }
 
-func (tft ILI9341) DriverColor(c color.Color) uint64 {
-	r, g, b, _ := c.RGBA()
-	return uint64((r&0x1f)<<11 | (g&0x3f)<<5 | (b & 0x1f))
+func (d *ILI9341) Dim() (width, height int) {
+	return 200, 320
 }
 
-func (tft ILI9341) FillRect(r image.Rectangle, color uint64) {
+//func (d *ILI9341) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op)
+
+func (d *ILI9341) SetColor(c color.Color) {
+	if rgb565, ok := c.(pixdisp.RGB565); ok {
+		d.color = uint16(rgb565)
+	}
+	r, g, b, _ := c.RGBA()
+	d.color = uint16((r&0x1f)<<11 | (g&0x3f)<<5 | (b & 0x1f))
+}
+
+func (d *ILI9341) Fill(r image.Rectangle) {
+	dci := d.dci
 	dci.Cmd(CASET)
 	dci.WriteWords(uint16(r.Min.X), uint16(r.Max.X-1))
 	dci.Cmd(PASET)
 	dci.WriteWords(uint16(r.Min.Y), uint16(r.Max.Y-1))
 	dci.Cmd(RAMWR)
-	dci.WriteWordN(uint16(color), r.Dx()*r.Dy())
+	dci.WriteWordN(d.color, r.Dx()*r.Dy())
 }
 
-func (tft ILI9341) Draw(at image.Point, img image.Image) {
-	// TODO
-}
+func (d *ILI9341) Flush()               {}
+func (d *ILI9341) Err(clear bool) error { return d.dci.Err(clear) }
