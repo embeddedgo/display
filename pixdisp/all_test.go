@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/embeddedgo/display/pixdisp"
-	"github.com/embeddedgo/display/pixdisp/imgdrv"
+	"github.com/embeddedgo/display/pixdisp/drivers/imgdrv"
 )
 
 func TestAll(t *testing.T) {
