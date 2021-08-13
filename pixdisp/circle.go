@@ -68,5 +68,5 @@ func (a *Area) FillCircle(p image.Point, r int) {
 		e = ne
 	}
 	// Fill the center.
-	a.FillRect(p.Sub(image.Point{x, x}), p.Add(image.Point{x, x}))
+	a.Fill(image.Rectangle{p.Sub(image.Point{x - 1, x - 1}), p.Add(image.Point{x, x})})
 }
