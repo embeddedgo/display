@@ -49,7 +49,7 @@ func (d *Display) Bounds() image.Rectangle {
 }
 
 func (d *Display) NewArea(r image.Rectangle) *Area {
-	a := &Area{disp: d, color: color.Gray{255}, rect: r.Canon()}
+	a := &Area{disp: d, color: color.Alpha{255}, rect: r.Canon()}
 	a.updateBounds()
 	return a
 }

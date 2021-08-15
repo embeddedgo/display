@@ -15,8 +15,8 @@ type Driver interface {
 	// Dim returns the display dimensions.
 	Dim() (width, height int)
 
-	// Draw works like draw.DrawMask function with dst set to the image
-	// representing the whole display.
+	// Draw works like draw.DrawMask with dst set to the image representing the
+	// whole display.
 	//
 	// The draw.Over operator can be implemented in a limited way but it must
 	// at least do not modify a display pixel if the corresponding masked

@@ -7,6 +7,7 @@ package pixdisp_test
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -24,7 +25,7 @@ func failErr(t *testing.T, err error) {
 	}
 }
 
-func TestDraw(t *testing.T) {
+func TestDrawGeom(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
 	screen := image.NewNRGBA(image.Rect(0, 0, 91, 400))
@@ -63,28 +64,53 @@ func TestDraw(t *testing.T) {
 		a.DrawLine(image.Pt(max.X-1-2, y), image.Pt(max.X-1-x, 2))
 	}
 
-	f, err := os.OpenFile(filepath.Join(dir, "draw.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	f, err := os.OpenFile(filepath.Join(dir, "geom.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
 	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())
 }
 
-func TestImage(t *testing.T) {
+func TestDrawImage(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 200, 200))
+	screen := image.NewNRGBA(image.Rect(0, 0, 40, 40))
 	disp := pixdisp.NewDisplay(imgdrv.New(screen))
 
-	a := disp.NewArea(disp.Bounds())
-	a.SetColor(color.Gray{220})
+	a := disp.NewArea(disp.Bounds().Inset(4))
+	a.SetColor(pixdisp.RGB{0, 0, 128})
 	a.Fill(a.Bounds())
 
-	img := pixdisp.NewMono(image.Rect(0, 0, 50, 50))
-	img.Set(10, 10, color.Alpha{1})
-	img.SetAlpha(30, 20, color.Alpha{1})
+	img := pixdisp.NewMono(image.Rect(0, 0, 11, 11))
+	img.Set(0, 10, color.Alpha{1})
+	img.Set(2, 8, color.Gray{1})
+	img.Set(4, 6, color.Gray16{1})
+	img.SetAlpha(6, 4, color.Alpha{1})
+	img.Set(8, 2, color.RGBA{0, 0, 0, 1})
+	img.Set(10, 0, color.RGBA64{0, 0, 0, 1})
+	img.SetAlpha(4, 4, color.Alpha{1})
+
+	a.Draw(disp.Bounds(), img, image.Pt(0, 0), draw.Over)
+	a.Draw(disp.Bounds().Add(image.Pt(20, 25)), img, image.Pt(0, 0), draw.Over)
+
+	imm := pixdisp.NewImmMono(img.Bounds(), string(img.Pix))
+	img = &pixdisp.Mono{}
+
+	a.DrawMask(disp.Bounds().Add(image.Pt(5, 5)),
+		&image.Uniform{pixdisp.RGB{255, 0, 0}}, image.Pt(0, 0), // source
+		imm, image.Pt(0, 0), // mask
+		draw.Over,
+	)
+	a.DrawMask(disp.Bounds().Add(image.Pt(10, 10)),
+		&image.Uniform{color.NRGBA{255, 0, 0, 150}}, image.Pt(0, 0), // source
+		imm, image.Pt(0, 0), // mask
+		draw.Over,
+	)
+
+	imm = imm.SubImage(image.Rect(2, 2, 11, 11)).(*pixdisp.ImmMono)
+	a.Draw(disp.Bounds().Add(image.Pt(16, 16)), imm, image.Pt(2, 2), draw.Src)
 
 	f, err := os.OpenFile(filepath.Join(dir, "image.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
-	failErr(t, png.Encode(f, img))
+	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())
 }

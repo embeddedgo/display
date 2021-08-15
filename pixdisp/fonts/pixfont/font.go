@@ -8,7 +8,7 @@ import "image"
 
 // Font is a pixmap based font.
 type Font struct {
-	Name     string
+	Name     string        // name of the font
 	Height   int16         // interline spacing (sumarizes all subfonts)
 	Ascent   int16         // height above the baseline (sumarizes all subfonts)
 	Subfonts []*Subfont    // ordered subfonts that make up the font
@@ -17,6 +17,22 @@ type Font struct {
 
 func (f *Font) Size() (height, ascent int) {
 	return int(f.Height), int(f.Ascent)
+}
+
+func (f *Font) Advance(r rune) int {
+	sf := getSubfont(f, r)
+	if sf == nil {
+		return 0
+	}
+	return sf.Data.Advance(int(r - sf.First))
+}
+
+func (f *Font) Glyph(r rune) (img image.Image, origin image.Point, advance int) {
+	sf := getSubfont(f, r)
+	if sf == nil {
+		return
+	}
+	return sf.Data.Glyph(int(r - sf.First))
 }
 
 func getSubfont(f *Font, r rune) *Subfont {
@@ -43,22 +59,4 @@ func getSubfont(f *Font, r rune) *Subfont {
 	}
 	f.Subfonts = append(f.Subfonts, new)
 	return new
-}
-
-func (f *Font) Advance(r rune) int {
-	sf := getSubfont(f, r)
-	if sf == nil {
-		return 0
-	}
-	_, _, advance := sf.Info.Glyph(int(r - sf.First))
-	return advance
-}
-
-func (f *Font) Glyph(r rune) (img image.Image, origin image.Point, advance int) {
-	sf := getSubfont(f, r)
-	if sf == nil {
-		return
-	}
-	bounds, origin, advance := sf.Info.Glyph(int(r - sf.First))
-	return sf.Bits.SubImage(bounds), origin, advance
 }

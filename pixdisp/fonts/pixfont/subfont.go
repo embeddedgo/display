@@ -6,34 +6,26 @@ package pixfont
 
 import "image"
 
-// FontInfo is the interface that wraps the Glyph method. Glyph returns the
-// bounds of i-th Glyph in the subfont image together with the origin point and
-// advance.
-type FontInfo interface {
-	Glyph(i int) (bounds image.Rectangle, origin image.Point, advance int)
-}
+type FontData interface {
+	// Advance returns the advance for the i-th glyph.
+	Advance(i int) int
 
-// Image is an image.Image with a SubImage method to obtain the portion of the
-// image visible through r.
-type Image interface {
-	image.Image
-	SubImage(r image.Rectangle) image.Image
+	// Glyph returns the data of the i-th glyph. The returned image is valid
+	// until the next Glyph call.
+	Glyph(i int) (img image.Image, origin image.Point, advance int)
 }
 
 // Subfont consist of an image that contains N glyphs and metadata that
 // describes how to get a subimage containing the glyph for a given rune.
 type Subfont struct {
-	First  rune     // first character in the subfont
-	Last   rune     // last character in the subfont
-	Height int16    // interline spacing
-	Ascent int16    // height above the baseline
-	Info   FontInfo // character descriptions
-	Bits   Image    // image holding the glyphs
+	First rune     // first character in the subfont
+	Last  rune     // last character in the subfont
+	Data  FontData // character data
 }
 
 // SubfontLoader is the interface that wraps the LoadSubfont method.
 // LoadSubfont loads the subfont containing a given rune. A successful call
-// returns the pointer to the loaded subfont. Otherwise the nil pointer is
+// returns the pointer to the loaded subfont, otherwise the nil pointer is
 // returned.
 type SubfontLoader interface {
 	LoadSubfont(r rune) *Subfont

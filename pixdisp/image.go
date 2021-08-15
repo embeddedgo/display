@@ -33,6 +33,7 @@ type Mono struct {
 	Pix    []uint8
 }
 
+// NewMono returns a new Mono image with the given bounds.
 func NewMono(r image.Rectangle) *Mono {
 	stride := (r.Dx() + 7) / 8
 	return &Mono{
@@ -110,10 +111,67 @@ func (p *Mono) SubImage(r image.Rectangle) image.Image {
 	}
 }
 
-// MonoStr is like Mono but its pixels are stored in string so it is immutable.
-type MonoStr struct {
+// ImmMono is like Mono but its pixels are stored in string so it is immutable.
+type ImmMono struct {
 	Rect   image.Rectangle
 	Stride int
 	Shift  int
 	Pix    string
+}
+
+// NewImmMono returns a new ImmMono image with the given bounds and the pixels
+// values stored in string.
+func NewImmMono(r image.Rectangle, bits string) *ImmMono {
+	stride := (r.Dx() + 7) / 8
+	return &ImmMono{
+		Rect:   r,
+		Stride: stride,
+		Pix:    bits,
+	}
+}
+
+func (p *ImmMono) ColorModel() color.Model { return MonoModel }
+func (p *ImmMono) Bounds() image.Rectangle { return p.Rect }
+
+func (p *ImmMono) AlphaAt(x, y int) color.Alpha {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return color.Alpha{}
+	}
+	i, s := p.PixOffset(x, y)
+	return color.Alpha{p.Pix[i] >> s & 1 * 0xff}
+}
+
+func (p *ImmMono) At(x, y int) color.Color {
+	return p.AlphaAt(x, y)
+}
+
+// PixOffset returns the index of the first element of Pix that corresponds to
+// the pixel at (x, y) and the index of bit in that element that determines the
+// pixel value.
+func (p *ImmMono) PixOffset(x, y int) (offset, shift int) {
+	x += p.Shift - p.Rect.Min.X
+	y -= p.Rect.Min.Y
+	col := x / 8
+	offset = y*p.Stride + col
+	shift = x - col*8
+	return
+}
+
+// SubImage returns an image representing the portion of the image p visible
+// through r. The returned value shares pixels with the original image.
+func (p *ImmMono) SubImage(r image.Rectangle) image.Image {
+	r = r.Intersect(p.Rect)
+	// If r1 and r2 are Rectangles, r1.Intersect(r2) is not guaranteed to be
+	// inside either r1 or r2 if the intersection is empty. Without explicitly
+	// checking for this, the Pix[i:] expression below can panic.
+	if r.Empty() {
+		return &ImmMono{}
+	}
+	i, shift := p.PixOffset(r.Min.X, r.Min.Y)
+	return &ImmMono{
+		Rect:   r,
+		Stride: p.Stride,
+		Shift:  shift,
+		Pix:    p.Pix[i:],
+	}
 }

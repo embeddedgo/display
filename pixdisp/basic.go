@@ -6,6 +6,7 @@ package pixdisp
 
 import (
 	"image"
+	"image/draw"
 )
 
 func drawPixel(a *Area, p image.Point) {
@@ -79,3 +80,21 @@ func (a *Area) FillRect(p0, p1 image.Point) {
 //func (a *Area) DrawRect(p0, p1 image.Point) {
 //	a.Fill(image.Rectangle{p0, p1.Add(image.Point{1, 1})})
 //}
+
+// Draw works like draw.Draw with dst set to the image representing the whole
+// area.
+func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, op draw.Op) {
+	r = r.Canon().Intersect(a.Bounds())
+	if !r.Empty() {
+		a.disp.drv.Draw(r.Add(a.P0()), src, sp, nil, image.Point{}, op)
+	}
+}
+
+// DrawMask works like draw.DrawMask with dst set to the image representing the
+// whole area.
+func (a *Area) DrawMask(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+	r = r.Canon().Intersect(a.Bounds())
+	if !r.Empty() {
+		a.disp.drv.Draw(r.Add(a.P0()), src, sp, mask, mp, op)
+	}
+}
