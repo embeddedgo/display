@@ -6,20 +6,22 @@ package subfont
 
 import "image"
 
-// Font is a collection of subfonts that implements the pixdisp.Font interface.
-type Font struct {
-	Name     string        // name of the font
+// Face is a collection of subfonts from one font with the same size, style and
+// weight.
+type Face struct {
+	Name     string        // name of the font (all faces of the font share it)
+	Style    string        // style and weight: "bold", "italic", "italic-bold"
 	Height   int16         // interline spacing (sumarizes all subfonts)
 	Ascent   int16         // height above the baseline (sumarizes all subfonts)
-	Subfonts []*Subfont    // ordered subfonts that make up the font
+	Subfonts []*Subfont    // ordered subfonts that make up the face
 	Loader   SubfontLoader // used to load missing subfonts
 }
 
-func (f *Font) Size() (height, ascent int) {
+func (f *Face) Size() (height, ascent int) {
 	return int(f.Height), int(f.Ascent)
 }
 
-func (f *Font) Advance(r rune) int {
+func (f *Face) Advance(r rune) int {
 	sf := getSubfont(f, r)
 	if sf == nil {
 		return 0
@@ -27,7 +29,7 @@ func (f *Font) Advance(r rune) int {
 	return sf.Data.Advance(int(r - sf.First))
 }
 
-func (f *Font) Glyph(r rune) (img image.Image, origin image.Point, advance int) {
+func (f *Face) Glyph(r rune) (img image.Image, origin image.Point, advance int) {
 	sf := getSubfont(f, r)
 	if sf == nil {
 		return
@@ -35,7 +37,7 @@ func (f *Font) Glyph(r rune) (img image.Image, origin image.Point, advance int) 
 	return sf.Data.Glyph(int(r - sf.First))
 }
 
-func getSubfont(f *Font, r rune) *Subfont {
+func getSubfont(f *Face, r rune) *Subfont {
 	// TODO: binary search in ordered subfonts
 	for _, sf := range f.Subfonts {
 		if sf.First <= r && r <= sf.Last {

@@ -3,5 +3,6 @@
 // license that can be found in the LICENSE file.
 
 // Package subfont describes a font as a collection of subfonts. A Subfont holds
-// the character data for a specific range of unicode codepoints.
+// the character data for a specific size, style, weight and specific range of
+// unicode codepoints.
 package subfont
