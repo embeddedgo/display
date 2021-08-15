@@ -111,7 +111,8 @@ func (p *Mono) SubImage(r image.Rectangle) image.Image {
 	}
 }
 
-// ImmMono is like Mono but its pixels are stored in string so it is immutable.
+// ImmMono is like Mono but its pixels are stored in a string so it is
+// immutable.
 type ImmMono struct {
 	Rect   image.Rectangle
 	Stride int

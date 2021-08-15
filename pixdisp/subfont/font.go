@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package pixfont
+package subfont
 
 import "image"
 
-// Font is a pixmap based font.
+// Font is a collection of subfonts that implements the pixdisp.Font interface.
 type Font struct {
 	Name     string        // name of the font
 	Height   int16         // interline spacing (sumarizes all subfonts)

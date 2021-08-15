@@ -2,11 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package pixfont
+package subfont
 
 import "image"
 
-type FontData interface {
+type Data interface {
 	// Advance returns the advance for the i-th glyph.
 	Advance(i int) int
 
@@ -18,9 +18,9 @@ type FontData interface {
 // Subfont consist of an image that contains N glyphs and metadata that
 // describes how to get a subimage containing the glyph for a given rune.
 type Subfont struct {
-	First rune     // first character in the subfont
-	Last  rune     // last character in the subfont
-	Data  FontData // character data
+	First rune // first character in the subfont
+	Last  rune // last character in the subfont
+	Data  Data // character data
 }
 
 // SubfontLoader is the interface that wraps the LoadSubfont method.
