@@ -2,15 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package subfont
+package font
 
 import "image"
 
 // Face is a collection of subfonts from one font with the same size, style and
 // weight.
 type Face struct {
-	Name     string        // name of the font (all faces of the font share it)
-	Style    string        // style and weight: "bold", "italic", "italic-bold"
 	Height   int16         // interline spacing (sumarizes all subfonts)
 	Ascent   int16         // height above the baseline (sumarizes all subfonts)
 	Subfonts []*Subfont    // ordered subfonts that make up the face
@@ -38,7 +36,7 @@ func (f *Face) Glyph(r rune) (img image.Image, origin image.Point, advance int) 
 }
 
 func getSubfont(f *Face, r rune) *Subfont {
-	// TODO: binary search in ordered subfonts
+	// TODO: binary search
 	for _, sf := range f.Subfonts {
 		if sf.First <= r && r <= sf.Last {
 			return sf
@@ -51,7 +49,7 @@ func getSubfont(f *Face, r rune) *Subfont {
 	if new == nil {
 		return nil
 	}
-	// TODO: binary search in ordered subfonts
+	// TODO: binary search
 	for i, sf := range f.Subfonts {
 		if new.Last < sf.First {
 			f.Subfonts = append(f.Subfonts[:i+1], f.Subfonts[i:]...)
