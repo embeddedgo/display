@@ -37,7 +37,7 @@ func TestDrawGeom(t *testing.T) {
 
 	max := a.Bounds().Max
 
-	a.SetColor(pixdisp.RGB565(0x1234))
+	a.SetColor(pixdisp.RGB16(0x1234))
 	for x := 0; x < max.X; x += 2 {
 		a.DrawPixel(image.Pt(x, 0))
 		a.DrawPixel(image.Pt(x+1, max.Y-1))

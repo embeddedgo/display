@@ -20,10 +20,11 @@ func (c RGB) RGBA() (r, g, b, a uint32) {
 	return
 }
 
-// RGB565 represents a traditional 16-bit color without the alpha channel.
-type RGB565 uint16
+// RGB16 represents a traditional 16-bit 565 RGB color without the alpha
+// channel.
+type RGB16 uint16
 
-func (c RGB565) RGBA() (r, g, b, a uint32) {
+func (c RGB16) RGBA() (r, g, b, a uint32) {
 	r = uint32(c >> 11)
 	r |= r << 13
 	g = uint32(c >> 5 & 0x3f)
