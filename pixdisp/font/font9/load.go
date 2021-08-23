@@ -5,7 +5,9 @@
 package font9
 
 import (
+	"bytes"
 	"errors"
+	"fmt"
 	"image"
 	"io"
 	"math/bits"
@@ -47,7 +49,10 @@ func readInt(r io.Reader, buf []byte) (int, error) {
 	return int(z), nil
 }
 
-func Load(r io.Reader) (font.Data, error) {
+// Load reads and parses the subfont data. If max2bit is false it supports 1, 2
+// and 8 bit alpha colors. Otherwise it also supports 4 bit alpha color and
+// converts 4 and 8 bit ones to the 2 bit format.
+func Load(r io.Reader, max2bit bool) (font.Data, error) {
 	const (
 		blen       = 128
 		compressed = "compressed\n"
@@ -66,7 +71,15 @@ func Load(r io.Reader) (font.Data, error) {
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return nil, Error{err}
 	}
-	if strings.TrimSpace(string(buf)) != "k1" {
+	var logbpp int
+	switch strings.TrimSpace(string(buf)) {
+	case "k1":
+		logbpp = 0
+	case "k2":
+		logbpp = 1
+	case "k8":
+		logbpp = 3
+	default:
 		return nil, ErrUnsupported
 	}
 	buf = buf[:cap(buf)]
@@ -78,18 +91,16 @@ func Load(r io.Reader) (font.Data, error) {
 			return nil, Error{err}
 		}
 	}
-	img := &pixdisp.ImmAlpha1{
-		Rect:   image.Rect(rc[0], rc[1], rc[2], rc[3]),
-		Stride: (rc[2] - rc[0] + 7) / 8,
-	}
+	rect := image.Rect(rc[0], rc[1], rc[2], rc[3])
+	stride := (rect.Dx() + 7>>logbpp) >> (3 - logbpp)
 
 	// decompress image
 
-	var sb strings.Builder
-	sb.Grow(img.Rect.Dy() * img.Stride)
+	var wb bytes.Buffer
+	wb.Grow(rect.Dy() * stride)
 
-	y := img.Rect.Min.Y
-	for y < img.Rect.Max.Y {
+	y := rect.Min.Y
+	for y < rect.Max.Y {
 		maxY, err := readInt(r, buf[:12])
 		if err != nil {
 			return nil, Error{err}
@@ -111,31 +122,33 @@ func Load(r io.Reader) (font.Data, error) {
 				if _, err := io.ReadFull(r, buf[1:m]); err != nil {
 					return nil, Error{err}
 				}
-				for i, b := range buf[:m] {
-					buf[i] = bits.Reverse8(b)
+				if logbpp != 3 {
+					for i, b := range buf[:m] {
+						buf[i] = bits.Reverse8(b)
+					}
 				}
-				sb.Write(buf[:m])
+				wb.Write(buf[:m])
 				n += m + 1
 			} else {
 				// backward reference
 				offset := cw&3<<8 + int(buf[1]) + 1
 				size := cw>>2 + 3
 				for size > offset {
-					src := sb.String()
+					src := wb.String()
 					start := len(src) - offset
 					size -= offset
-					sb.WriteString(src[start:])
+					wb.WriteString(src[start:])
 				}
-				src := sb.String()
+				src := wb.String()
 				start := len(src) - offset
 				end := start + size
-				sb.WriteString(src[start:end])
+				wb.WriteString(src[start:end])
 				n += 2
 			}
 		}
 		y = maxY
 	}
-	img.Pix = sb.String()
+	pix := wb.Bytes()
 
 	// parse subfont header
 
@@ -158,33 +171,33 @@ func Load(r io.Reader) (font.Data, error) {
 		return nil, Error{err}
 	}
 	// alter the image coordinates that y=0 corresponds to the baseline
-	img.Rect.Max.Y = img.Rect.Dy() - ascent
-	img.Rect.Min.Y = -ascent
+	rect.Max.Y = rect.Dy() - ascent
+	rect.Min.Y = -ascent
 
 	// read subfont info
 
-	size := n*4 + 2
-	sb.Reset()
-	sb.Grow(size)
+	var sb strings.Builder
+	sb.Grow(n*4 + 2)
 	if _, err := io.ReadFull(r, buf[:2]); err != nil {
 		return nil, Error{err}
 	}
-	sb.Write(buf[:2]) // xlo0, xhi0
-	size -= 2
-	for size > 0 {
+	sb.Write(buf[:2]) // xlo(0), xhi(0)
+	rn := n * 6
+	for rn > 0 {
 		const max = blen / 6 * 6
-		m := size
+		m := rn
 		if m > max {
 			m = max
 		}
-		if _, err := io.ReadFull(r, buf[:m]); err != nil {
+		_, err := io.ReadFull(r, buf[:m])
+		if err != nil {
 			return nil, Error{err}
 		}
 		for i := 0; i < m; i += 6 {
-			// skip top_n, bottom_n, write left_n, width_n, xlo_n+1, xhi_n+1
+			// skip top(n),bottom(k), write left(k),width(k),xlo(k+1),xhi(k+1)
 			sb.Write(buf[i+2 : i+6])
 		}
-		size -= m
+		rn -= m
 	}
 	info := sb.String()
 	fixed := true
@@ -200,6 +213,28 @@ func Load(r io.Reader) (font.Data, error) {
 		if w != w0 || int8(info[i+2]) != left0 || info[i+3] != adv0 {
 			fixed = false
 			break
+		}
+	}
+
+	var img Image
+	switch logbpp {
+	case 0:
+		img = &pixdisp.Alpha1{
+			Rect:   rect,
+			Stride: stride,
+			Pix:    pix,
+		}
+	case 1:
+		img = &pixdisp.Alpha2{
+			Rect:   rect,
+			Stride: stride,
+			Pix:    pix,
+		}
+	default: // 3
+		img = &image.Alpha{
+			Rect:   rect,
+			Stride: stride,
+			Pix:    pix,
 		}
 	}
 	if fixed {

@@ -74,9 +74,9 @@ func main() {
 	fontSize = filepath.Ext(fontSize)
 	fontFace := fontName
 	if len(fontSize) == 2 {
-		fontFace += "_0" + fontSize[1:]
+		fontFace += "0" + fontSize[1:]
 	} else if len(fontSize) > 2 {
-		fontFace += "_" + fontSize[1:]
+		fontFace +=  fontSize[1:]
 	}
 
 	var fontHeight, fontAscent uint64
@@ -149,6 +149,7 @@ func main() {
 			}
 		}
 		subfont := filepath.Join(dir, split[len(split)-1])
+		fmt.Println("subfont:", subfont)
 		sf, err := os.Open(subfont)
 		if os.IsNotExist(err) {
 			sf, err = os.Open(subfont + ".0")
@@ -166,20 +167,24 @@ func main() {
 			}
 		}
 
-		data, err := font9.Load(sf)
+		data, err := font9.Load(sf, false)
 		dieErr(err)
 
-		var img *pixdisp.Alpha1
+		var img image.Image
 		switch d := data.(type) {
 		case *font9.Variable:
+			printImg(d.Bits, "variable")
 			optimizeVariable(d)
+			printImg(d.Bits, "variable opt")
 			img = d.Bits.(*pixdisp.Alpha1)
 			printSubfontHeader(w, name, first, last, 16+len(d.Info)+32+len(img.Pix))
 			fmt.Fprintf(w, "	Data: &font9.Variable{\n")
 			fmt.Fprintf(w, "		Info: info%s, // %d bytes\n", name, len(d.Info))
 			fmt.Fprintf(w, "		Bits: &pixdisp.ImmAlpha1{\n")
 		case *font9.Fixed:
+			printImg(d.Bits, "fixed")
 			optimizeFixed(d)
+			printImg(d.Bits, "fixed opt")
 			img = d.Bits.(*pixdisp.Alpha1)
 			printSubfontHeader(w, name, first, last, 4+8+32+len(img.Pix))
 			fmt.Fprintf(w, "	Data: &font9.Fixed{\n")
@@ -233,10 +238,10 @@ func optimizeVariable(d *font9.Variable) {
 
 	// remove empty columns
 
-	r := d.Bits.Bounds()
+	dst := d.Bits
+	r := dst.Bounds()
 	r.Max.X = r.Dx()
 	r.Min.X = 0
-	dst := pixdisp.NewAlpha1(r)
 	var info strings.Builder
 	for i := 0; i < d.Num(); i++ {
 		img, origin, advance := d.Glyph(i)
@@ -340,11 +345,7 @@ func printImg(img image.Image, descr ...interface{}) {
 	for y := 0; y < h; y++ {
 		for x := 0; x < w; x++ {
 			_, _, _, a := img.At(min.X+x, min.Y+y).RGBA()
-			if a == 0 {
-				fmt.Print(" ")
-			} else {
-				fmt.Print("#")
-			}
+			fmt.Printf("%c", " .+#"[a>>14])
 		}
 		fmt.Println()
 	}
