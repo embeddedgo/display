@@ -7,7 +7,6 @@ package font9
 import (
 	"bytes"
 	"errors"
-	"fmt"
 	"image"
 	"io"
 	"math/bits"
@@ -49,10 +48,9 @@ func readInt(r io.Reader, buf []byte) (int, error) {
 	return int(z), nil
 }
 
-// Load reads and parses the subfont data. If max2bit is false it supports 1, 2
-// and 8 bit alpha colors. Otherwise it also supports 4 bit alpha color and
-// converts 4 and 8 bit ones to the 2 bit format.
-func Load(r io.Reader, max2bit bool) (font.Data, error) {
+// Load reads and parses the subfont data. It supports 1, 2, 4 and 8 bit alpha
+// colors.
+func Load(r io.Reader) (font.Data, error) {
 	const (
 		blen       = 128
 		compressed = "compressed\n"
@@ -71,12 +69,14 @@ func Load(r io.Reader, max2bit bool) (font.Data, error) {
 	if _, err := io.ReadFull(r, buf); err != nil {
 		return nil, Error{err}
 	}
-	var logbpp int
+	var logbpp uint
 	switch strings.TrimSpace(string(buf)) {
 	case "k1":
 		logbpp = 0
 	case "k2":
 		logbpp = 1
+	case "k4":
+		logbpp = 2
 	case "k8":
 		logbpp = 3
 	default:
@@ -217,22 +217,16 @@ func Load(r io.Reader, max2bit bool) (font.Data, error) {
 	}
 
 	var img Image
-	switch logbpp {
-	case 0:
-		img = &pixdisp.Alpha1{
-			Rect:   rect,
-			Stride: stride,
-			Pix:    pix,
-		}
-	case 1:
-		img = &pixdisp.Alpha2{
-			Rect:   rect,
-			Stride: stride,
-			Pix:    pix,
-		}
-	default: // 3
+	if logbpp == 3 {
 		img = &image.Alpha{
 			Rect:   rect,
+			Stride: stride,
+			Pix:    pix,
+		}
+	} else {
+		img = &pixdisp.AlphaN{
+			Rect:   rect,
+			LogN:   uint8(logbpp),
 			Stride: stride,
 			Pix:    pix,
 		}
