@@ -8,6 +8,8 @@ import (
 	"bytes"
 	"errors"
 	"image"
+	"image/color"
+	"image/draw"
 	"io"
 	"math/bits"
 	"strconv"
@@ -148,7 +150,6 @@ func Load(r io.Reader) (font.Data, error) {
 		}
 		y = maxY
 	}
-	pix := wb.Bytes()
 
 	// parse subfont header
 
@@ -170,9 +171,26 @@ func Load(r io.Reader) (font.Data, error) {
 	if err != nil {
 		return nil, Error{err}
 	}
-	// alter the image coordinates that y=0 corresponds to the baseline
+
+	// alter the image coordinates that the y=0 corresponds to the baseline
 	rect.Max.Y = rect.Dy() - ascent
 	rect.Min.Y = -ascent
+
+	var img draw.Image
+	if logbpp == 3 {
+		img = &image.Alpha{
+			Rect:   rect,
+			Stride: stride,
+			Pix:    wb.Bytes(),
+		}
+	} else {
+		img = &pixdisp.AlphaN{
+			Rect:   rect,
+			LogN:   uint8(logbpp),
+			Stride: stride,
+			Pix:    wb.Bytes(),
+		}
+	}
 
 	// read subfont info
 
@@ -194,7 +212,21 @@ func Load(r io.Reader) (font.Data, error) {
 			return nil, Error{err}
 		}
 		for i := 0; i < m; i += 6 {
-			// skip top(n),bottom(k), write left(k),width(k),xlo(k+1),xhi(k+1)
+			// skip top(n),bottom(k), ensure blank lines
+			s := sb.String()
+			x0 := int(s[len(s)-2]) | int(s[len(s)-1])<<8
+			x1 := int(buf[i+4]) | int(buf[i+5])<<8
+			top := rect.Min.Y + int(buf[i])
+			bottom := rect.Min.Y + int(buf[i+1])
+			for x := x0; x < x1; x++ {
+				for y := rect.Min.Y; y < top; y++ {
+					img.Set(x, y, color.Alpha{})
+				}
+				for y := bottom; y < rect.Max.Y; y++ {
+					img.Set(x, y, color.Alpha{})
+				}
+			}
+			// write left(k),width(k),xlo(k+1),xhi(k+1)
 			sb.Write(buf[i+2 : i+6])
 		}
 		rn -= m
@@ -215,27 +247,11 @@ func Load(r io.Reader) (font.Data, error) {
 			break
 		}
 	}
-
-	var img Image
-	if logbpp == 3 {
-		img = &image.Alpha{
-			Rect:   rect,
-			Stride: stride,
-			Pix:    pix,
-		}
-	} else {
-		img = &pixdisp.AlphaN{
-			Rect:   rect,
-			LogN:   uint8(logbpp),
-			Stride: stride,
-			Pix:    pix,
-		}
-	}
 	if fixed {
 		if w0 == 0 {
 			return nil, ErrInvalid
 		}
-		return &Fixed{Adv: adv0, Width: uint8(w0), Bits: img}, nil
+		return &Fixed{Adv: adv0, Width: uint8(w0), Bits: img.(Image)}, nil
 	}
-	return &Variable{Info: info, Bits: img}, nil
+	return &Variable{Info: info, Bits: img.(Image)}, nil
 }

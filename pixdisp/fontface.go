@@ -13,10 +13,13 @@ type FontFace interface {
 	// above the baseline.
 	Size() (height, ascent int)
 
-	// Advance returns the glyph advance for the given rune.
+	// Advance returns the glyph advance for the given rune. The advance
+	// determines the x-distance on the baseline between the origin point of the
+	// current character and the origin point of the next character.
 	Advance(r rune) int
 
 	// Glyph returns the data of the glyph for the given rune. The returned
-	// image is valid until the next Glyph call.
+	// image is valid until the next Glyph call. The origin point is given in
+	// the img coordinates, can be (and usually is) outside of the glyph image.
 	Glyph(r rune) (img image.Image, origin image.Point, advance int)
 }

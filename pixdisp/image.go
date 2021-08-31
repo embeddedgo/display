@@ -97,7 +97,7 @@ func (p *AlphaN) At(x, y int) color.Color {
 // the pixel at (x, y) and the index to the bits in that element that
 // determines the pixel value.
 func (p *AlphaN) PixOffset(x, y int) (offset int, shift uint) {
-	x += int(p.Shift) - p.Rect.Min.X
+	x += int(p.Shift)>>p.LogN - p.Rect.Min.X
 	y -= p.Rect.Min.Y
 	cs := 3 - p.LogN
 	col := x >> cs
@@ -210,7 +210,7 @@ func (p *ImmAlphaN) At(x, y int) color.Color {
 // the pixel at (x, y) and the index to the bits in that element that
 // determines the pixel value.
 func (p *ImmAlphaN) PixOffset(x, y int) (offset int, shift uint) {
-	x += int(p.Shift) - p.Rect.Min.X
+	x += int(p.Shift)>>p.LogN - p.Rect.Min.X
 	y -= p.Rect.Min.Y
 	cs := 3 - p.LogN
 	col := x >> cs

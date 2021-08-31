@@ -13,6 +13,7 @@ import (
 	"bufio"
 	"fmt"
 	"image"
+	"image/color"
 	"image/draw"
 	"io"
 	"os"
@@ -118,7 +119,7 @@ func main() {
 	fmt.Fprintf(wd, "	\"image\"\n\n")
 	fmt.Fprintf(wd, "	\"github.com/embeddedgo/display/pixdisp\"\n")
 	fmt.Fprintf(wd, "	\"github.com/embeddedgo/display/pixdisp/font/font9\"\n")
-	fmt.Fprintf(wd, ")\n\n")
+	fmt.Fprintf(wd, ")\n")
 
 	dataMap := make(map[string]string)
 
@@ -170,10 +171,12 @@ func handleData(wd, ws io.Writer, name string) string {
 	if os.IsNotExist(err) {
 		df, err = os.Open(name + ".0")
 	}
-	dieErr(err)
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		return ""
+	}
 
 	dirSplit := strings.Split(dir, "/")
-
 	nameSplit := strings.Split(name, "/")
 
 	var names []string
@@ -302,7 +305,8 @@ func optimizeVariable(d *font9.Variable) {
 	left:
 		for sr.Min.X < sr.Max.X {
 			for y := sr.Min.Y; y < sr.Max.Y; y++ {
-				if _, _, _, a := src.At(sr.Min.X, y).RGBA(); a != 0 {
+				c := pixdisp.AlphaNModel(bpp).Convert(src.At(sr.Min.X, y))
+				if c.(color.Alpha).A != 0 {
 					break left
 				}
 			}
@@ -311,14 +315,19 @@ func optimizeVariable(d *font9.Variable) {
 	right:
 		for sr.Max.X > sr.Min.X {
 			for y := sr.Min.Y; y < sr.Max.Y; y++ {
-				if _, _, _, a := src.At(sr.Max.X-1, y).RGBA(); a != 0 {
+				c := pixdisp.AlphaNModel(bpp).Convert(src.At(sr.Max.X-1, y))
+				if c.(color.Alpha).A != 0 {
 					break right
 				}
 			}
 			sr.Max.X--
 		}
+		//printImg(src.SubImage(sr), i)
+		//fmt.Println("left:", sr.Min.X-origin.X, "advance:", advance)
 		draw.Draw(dst, r, src.SubImage(sr), sr.Min, draw.Src)
-		info.WriteByte(uint8(origin.X - sr.Min.X))
+		info.WriteByte(uint8(r.Min.X))
+		info.WriteByte(uint8(r.Min.X >> 8))
+		info.WriteByte(uint8(sr.Min.X - origin.X))
 		info.WriteByte(uint8(advance))
 		r.Min.X += sr.Dx()
 	}
@@ -339,12 +348,19 @@ func optimizeFixed(d *font9.Fixed) {
 	sr := src.Bounds()
 	sw := int(d.Width)
 	left := 0
+	bpp := 2 // support at most 2 bpp
+	if img, ok := src.(*pixdisp.AlphaN); ok {
+		if img.LogN == 0 {
+			bpp = 1
+		}
+	}
 left:
 	for {
 		for i := 0; i < d.Num(); i++ {
 			x := sr.Min.X + i*sw + left
 			for y := sr.Min.Y; y < sr.Max.Y; y++ {
-				if _, _, _, a := src.At(x, y).RGBA(); a != 0 {
+				c := pixdisp.AlphaNModel(bpp).Convert(src.At(x, y))
+				if c.(color.Alpha).A != 0 {
 					break left
 				}
 			}
@@ -357,7 +373,8 @@ right:
 		for i := 1; i <= d.Num(); i++ {
 			x := sr.Min.X + i*sw - right - 1
 			for y := sr.Min.Y; y < sr.Max.Y; y++ {
-				if _, _, _, a := src.At(x, y).RGBA(); a != 0 {
+				c := pixdisp.AlphaNModel(bpp).Convert(src.At(x, y))
+				if c.(color.Alpha).A != 0 {
 					break right
 				}
 			}
@@ -368,12 +385,6 @@ right:
 	r := sr
 	r.Min.X = 0
 	r.Max.X = w * d.Num()
-	bpp := 2 // support at most 2 bpp
-	if img, ok := d.Bits.(*pixdisp.AlphaN); ok {
-		if img.LogN == 0 {
-			bpp = 1
-		}
-	}
 	dst := pixdisp.NewAlphaN(r, bpp)
 	r.Max.X = r.Min.X + w
 	for i := 0; i < d.Num(); i++ {
@@ -419,7 +430,10 @@ func printSubfont(w io.Writer, first, last rune, offset int, name string) {
 
 func printBits(w io.Writer, name string, img *pixdisp.AlphaN) {
 	fmt.Fprintf(w, "	Bits: &pixdisp.ImmAlphaN{\n")
-	fmt.Fprintf(w, "		Rect:   image.Rectangle{Max: image.Point{X: %d, Y: %d}},\n", img.Rect.Dx(), img.Rect.Dy())
+	fmt.Fprintf(w, "		Rect: image.Rectangle{\n")
+	fmt.Fprintf(w, "			Min: image.Point{X: %d, Y: %d},\n", img.Rect.Min.X, img.Rect.Min.Y)
+	fmt.Fprintf(w, "			Max: image.Point{X: %d, Y: %d},\n", img.Rect.Max.X, img.Rect.Max.Y)
+	fmt.Fprintf(w, "		},\n")
 	fmt.Fprintf(w, "		LogN:   %d, // %d bpp\n", img.LogN, 1<<img.LogN)
 	fmt.Fprintf(w, "		Stride: %d,\n", img.Stride)
 	fmt.Fprintf(w, "		Pix:    pix%s, // %d bytes\n", name, len(img.Pix))

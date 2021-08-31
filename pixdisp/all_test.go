@@ -5,6 +5,7 @@
 package pixdisp_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -15,6 +16,8 @@ import (
 
 	"github.com/embeddedgo/display/pixdisp"
 	"github.com/embeddedgo/display/pixdisp/drivers/imgdrv"
+	"github.com/embeddedgo/display/pixdisp/font"
+	"github.com/embeddedgo/display/pixdisp/font/font9/dejavu18"
 )
 
 var dir = filepath.Join(os.TempDir(), "pixdisp_test")
@@ -80,7 +83,7 @@ func TestDrawImage(t *testing.T) {
 	a.SetColor(pixdisp.RGB{0, 0, 128})
 	a.Fill(a.Bounds())
 
-	img := pixdisp.NewMono(image.Rect(0, 0, 11, 11))
+	img := pixdisp.NewAlphaN(image.Rect(0, 0, 11, 11), 1)
 	img.Set(0, 10, color.Alpha{1})
 	img.Set(2, 8, color.Gray{1})
 	img.Set(4, 6, color.Gray16{1})
@@ -92,8 +95,7 @@ func TestDrawImage(t *testing.T) {
 	a.Draw(disp.Bounds(), img, image.Pt(0, 0), draw.Over)
 	a.Draw(disp.Bounds().Add(image.Pt(20, 25)), img, image.Pt(0, 0), draw.Over)
 
-	imm := pixdisp.NewImmMono(img.Bounds(), string(img.Pix))
-	img = &pixdisp.Mono{}
+	imm := pixdisp.NewImmAlphaN(img.Bounds(), 1, string(img.Pix))
 
 	a.DrawMask(disp.Bounds().Add(image.Pt(5, 5)),
 		&image.Uniform{pixdisp.RGB{255, 0, 0}}, image.Pt(0, 0), // source
@@ -106,10 +108,37 @@ func TestDrawImage(t *testing.T) {
 		draw.Over,
 	)
 
-	imm = imm.SubImage(image.Rect(2, 2, 11, 11)).(*pixdisp.ImmMono)
+	imm = imm.SubImage(image.Rect(2, 2, 11, 11)).(*pixdisp.ImmAlphaN)
 	a.Draw(disp.Bounds().Add(image.Pt(16, 16)), imm, image.Pt(2, 2), draw.Src)
 
 	f, err := os.OpenFile(filepath.Join(dir, "image.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, screen))
+	failErr(t, f.Close())
+}
+
+func TestFont(t *testing.T) {
+	os.Mkdir(dir, 0755)
+
+	screen := image.NewNRGBA(image.Rect(0, 0, 400, 400))
+	disp := pixdisp.NewDisplay(imgdrv.New(screen))
+
+	a := disp.NewArea(disp.Bounds().Inset(5))
+	a.SetColor(color.Gray{0})
+	a.Fill(a.Bounds())
+
+	face := font.Face{
+		Height: dejavu18.Height,
+		Ascent: dejavu18.Ascent,
+		Subfonts: []*font.Subfont{
+			&dejavu18.X0000_0100,
+		},
+	}
+	img, origin, advance := face.Glyph('!')
+	fmt.Println("glyph:", img.Bounds(), origin, advance)
+	a.Draw(a.Bounds(), img, img.Bounds().Min, draw.Over)
+
+	f, err := os.OpenFile(filepath.Join(dir, "font.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
 	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())

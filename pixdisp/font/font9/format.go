@@ -17,7 +17,7 @@ type Fixed struct {
 
 // Advance implements subfont.Data interface
 func (d *Fixed) Advance(i int) int {
-	return int(d.Width)
+	return int(d.Adv)
 }
 
 // Glyph implements subfont.Data interface
@@ -31,7 +31,7 @@ func (d *Fixed) Glyph(i int) (img image.Image, origin image.Point, advance int) 
 	return
 }
 
-// Num returns the number of glyphs provided by d.
+// Num returns the number of characters covered by d.
 func (d *Fixed) Num() int {
 	return (d.Bits.Bounds().Dx() + int(d.Width) - 1) / int(d.Width)
 }
@@ -60,15 +60,15 @@ func (d *Variable) Advance(i int) int {
 func (d *Variable) Glyph(i int) (img image.Image, origin image.Point, advance int) {
 	r := d.Bits.Bounds()
 	info := d.Info[i*4:]
-	r.Max.X = r.Min.X + (int(info[4]) | int(info[5])<<8)
-	r.Min.X = r.Min.X + (int(info[0]) | int(info[1])<<8)
+	r.Min.X = int(info[0]) | int(info[1])<<8
+	r.Max.X = int(info[4]) | int(info[5])<<8
 	img = d.Bits.SubImage(r)
-	origin = image.Point{r.Min.X + int(int8(info[2])), 0}
+	origin = image.Point{r.Min.X - int(int8(info[2])), 0}
 	advance = int(info[3])
 	return
 }
 
-// Num returns the number of glyphs provided by d.
+// Num returns the number of characters covered by d.
 func (d *Variable) Num() int {
 	return len(d.Info) / 4
 }
