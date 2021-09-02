@@ -5,7 +5,6 @@
 package pixdisp_test
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -17,7 +16,9 @@ import (
 	"github.com/embeddedgo/display/pixdisp"
 	"github.com/embeddedgo/display/pixdisp/drivers/imgdrv"
 	"github.com/embeddedgo/display/pixdisp/font"
-	"github.com/embeddedgo/display/pixdisp/font/font9/dejavu18"
+	"github.com/embeddedgo/display/pixdisp/font/font9/anonpro11"
+	"github.com/embeddedgo/display/pixdisp/font/font9/dejavu12"
+	"github.com/embeddedgo/display/pixdisp/font/font9/vga"
 )
 
 var dir = filepath.Join(os.TempDir(), "pixdisp_test")
@@ -117,26 +118,64 @@ func TestDrawImage(t *testing.T) {
 	failErr(t, f.Close())
 }
 
+var (
+	Dejavu12 = &font.Face{
+		Height: dejavu12.Height,
+		Ascent: dejavu12.Ascent,
+		Subfonts: []*font.Subfont{
+			&dejavu12.X0000_0100,
+		},
+	}
+	AnonPro11 = &font.Face{
+		Height: anonpro11.Height,
+		Ascent: anonpro11.Ascent,
+		Subfonts: []*font.Subfont{
+			&anonpro11.X0000_0100,
+		},
+	}
+	VGA = &font.Face{
+		Height: vga.Height,
+		Ascent: vga.Ascent,
+		Subfonts: []*font.Subfont{
+			&vga.X0000_007f,
+		},
+	}
+)
+
+const AkermanianSteppes = `
+Wpłynąłem na suchego przestwór oceanu,
+Wóz nurza się w zieloność i jak łódka brodzi,
+Śród fali łąk szumiących, śród kwiatów powodzi,
+Omijam koralowe ostrowy burzanu.
+
+Już mrok zapada, nigdzie drogi ni kurhanu;
+Patrzę w niebo, gwiazd szukam, przewodniczek łodzi;
+Tam z dala błyszczy obłok - tam jutrzenka wschodzi;
+To błyszczy Dniestr, to weszła lampa Akermanu.
+
+Stójmy! - jak cicho! - słyszę ciągnące żurawie,
+Których by nie dościgły źrenice sokoła;
+Słyszę, kędy się motyl kołysa na trawie,
+
+Kędy wąż śliską piersią dotyka się zioła.
+W takiej ciszy - tak ucho natężam ciekawie,
+Że słyszałbym głos z Litwy. - Jedźmy, nikt nie woła.
+`
+
 func TestFont(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 400, 400))
+	screen := image.NewNRGBA(image.Rect(0, 0, 480, 800))
 	disp := pixdisp.NewDisplay(imgdrv.New(screen))
 
-	a := disp.NewArea(disp.Bounds().Inset(5))
-	a.SetColor(color.Gray{0})
+	a := disp.NewArea(disp.Bounds())
+	a.SetColor(pixdisp.RGB{250, 250, 200})
 	a.Fill(a.Bounds())
+	a.SetBounds(a.Bounds().Inset(4))
+	a.SetColorRGB(0, 0, 100)
 
-	face := font.Face{
-		Height: dejavu18.Height,
-		Ascent: dejavu18.Ascent,
-		Subfonts: []*font.Subfont{
-			&dejavu18.X0000_0100,
-		},
-	}
-	img, origin, advance := face.Glyph('!')
-	fmt.Println("glyph:", img.Bounds(), origin, advance)
-	a.Draw(a.Bounds(), img, img.Bounds().Min, draw.Over)
+	w := a.TextWriter(Dejavu12)
+	w.WriteString(AkermanianSteppes)
 
 	f, err := os.OpenFile(filepath.Join(dir, "font.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)

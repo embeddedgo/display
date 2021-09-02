@@ -6,8 +6,8 @@ package pixdisp
 
 import "image"
 
-// FontFace is an interface used by TextWriter to render text. FontFace
-// represents the specific size, style and weight of a font.
+// FontFace is an interface used to render text. FontFace represents the
+// specific size, style and weight of a font.
 type FontFace interface {
 	// Size returns the font height (interline spacing) and the ascent (height
 	// above the baseline.

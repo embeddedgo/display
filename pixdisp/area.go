@@ -45,6 +45,11 @@ func (a *Area) Bounds() image.Rectangle {
 	return image.Rectangle{Max: image.Point{int(a.width), int(a.height)}}
 }
 
+func (a *Area) SetBounds(r image.Rectangle) {
+	a.rect = r.Canon()
+	a.updateBounds()
+}
+
 // SetColor sets the color used by drawing methods.
 func (a *Area) SetColor(c color.Color) {
 	a.color = c
@@ -53,4 +58,14 @@ func (a *Area) SetColor(c color.Color) {
 // SetColorRGB is a convenient wrapper over SetColor(RGB{r, g, b}).
 func (a *Area) SetColorRGB(r, g, b uint8) {
 	a.color = RGB{r, g, b}
+}
+
+func (a *Area) TextWriter(f FontFace) *TextWriter {
+	_, ascent := f.Size()
+	return &TextWriter{
+		Area:  a,
+		Face:  f,
+		Color: a.color,
+		Pos:   image.Point{0, ascent},
+	}
 }

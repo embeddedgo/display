@@ -2,51 +2,74 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// +build ignore
-
 package pixdisp
 
 import (
 	"image"
 	"image/color"
+	"image/draw"
+	"unicode/utf8"
 )
 
-type Font struct {
-}
+// WrapMode determines what the TextWriter does when the written text does not
+// fit in the area.
+type WrapMode uint8
 
-// TextWriter allows to write a text on the display.
+const (
+	WrapNewLine WrapMode = iota
+	WrapSameLine
+	NoWrap
+)
+
+// TextWriter allows to write a text on the area. The Area, Face and Color
+// fields must be set before use it.
 type TextWriter struct {
-	area  *Area
-	font  *Font
-	color uint16
-	pos   image.Point
-}
-
-func (a *Area) TextWriter(f *Font) TextWriter {
-	return TextWriter{area: a, font: f}
-}
-
-func (w *TextWriter) SetPos(p image.Point) {
-	w.pos = p
-}
-
-func (w *TextWriter) Pos() image.Point {
-	return w.pos
-}
-
-func (w *TextWriter) SetColorRGB(r, g, b byte) {
-	w.color = uint16(r)>>3<<11 | uint16(g)>>2<<5 | uint16(b)>>3
-}
-
-func (w *TextWriter) SetColor(c color.Color) {
-	r, g, b, _ := c.RGBA()
-	w.color = uint16(r>>11<<11 | g>>10<<5 | b>>11)
-}
-
-func (w *TextWriter) WriteString(s string) (int, error) {
-	return 0, nil
+	Area  *Area
+	Face  FontFace
+	Color color.Color
+	Pos   image.Point
+	Wrap  WrapMode
 }
 
 func (w *TextWriter) Write(s []byte) (int, error) {
+	for len(s) > 0 {
+		r, size := utf8.DecodeRune(s)
+		drawRune(w, r)
+		s = s[size:]
+	}
 	return 0, nil
+}
+
+func (w *TextWriter) WriteString(s string) (int, error) {
+	for _, r := range s {
+		drawRune(w, r)
+	}
+	return 0, nil
+}
+
+func drawRune(w *TextWriter, r rune) {
+	mask, origin, advance := w.Face.Glyph(r)
+	if mask == nil {
+		mask, origin, advance = w.Face.Glyph(0)
+		if mask == nil {
+			return
+		}
+	}
+	nx := w.Pos.X + advance
+	if w.Wrap != NoWrap && (nx > w.Area.width || r == '\n') {
+		if w.Wrap == WrapNewLine {
+			h, _ := w.Face.Size()
+			w.Pos.Y += h
+		}
+		w.Pos.X = 0
+		nx = advance
+		if r == '\n' {
+			return
+		}
+	}
+	img := &image.Uniform{w.Color}
+	mr := mask.Bounds()
+	dr := mr.Add(w.Pos.Sub(origin))
+	w.Area.DrawMask(dr, img, image.Point{}, mask, mr.Min, draw.Over)
+	w.Pos.X = nx
 }
