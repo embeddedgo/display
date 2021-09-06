@@ -43,19 +43,19 @@ func TestDrawGeom(t *testing.T) {
 
 	a.SetColor(pixdisp.RGB16(0x1234))
 	for x := 0; x < max.X; x += 2 {
-		a.DrawPixel(image.Pt(x, 0))
-		a.DrawPixel(image.Pt(x+1, max.Y-1))
+		a.DrawPoint(image.Pt(x, 0), 0)
+		a.DrawPoint(image.Pt(x+1, max.Y-1), 0)
 	}
 	for y := 2; y < max.Y; y += 2 {
-		a.DrawPixel(image.Pt(0, y))
-		a.DrawPixel(image.Pt(max.X-1, y-1))
+		a.DrawPoint(image.Pt(0, y), 0)
+		a.DrawPoint(image.Pt(max.X-1, y-1), 0)
 	}
 
 	x := max.X / 2
 	for r := 0; r < 19; r++ {
 		y := 3 + (r+2)*r
 		a.SetColorRGB(0, 100, 200)
-		a.FillCircle(image.Pt(x, y), r)
+		a.DrawPoint(image.Pt(x, y), r)
 		a.SetColor(color.RGBA{100, 50, 0, 255})
 		a.DrawCircle(image.Pt(x, y), r)
 	}

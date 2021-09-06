@@ -55,13 +55,6 @@ func vline(a *Area, x0, y0, y1 int) {
 	}
 }
 
-// DrawPixel is a faster counterpart of
-// a.Fill(image.Rect(p.X, p.Y, p.X+1, p.Y+1)).
-func (a *Area) DrawPixel(p image.Point) {
-	setColor(a)
-	drawPixel(a, p)
-}
-
 // Fill fills the given rectangle.
 func (a *Area) Fill(r image.Rectangle) {
 	setColor(a)
