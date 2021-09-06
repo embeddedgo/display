@@ -38,16 +38,20 @@ func (a *Area) updateBounds() {
 	a.swapWH = a.disp.swapWH
 }
 
+func (a *Area) Rect() image.Rectangle {
+	return a.rect
+}
+
+func (a *Area) SetRect(r image.Rectangle) {
+	a.rect = r.Canon()
+	a.updateBounds()
+}
+
 func (a *Area) Bounds() image.Rectangle {
 	if a.swapWH != a.disp.swapWH {
 		a.updateBounds()
 	}
 	return image.Rectangle{Max: image.Point{int(a.width), int(a.height)}}
-}
-
-func (a *Area) SetBounds(r image.Rectangle) {
-	a.rect = r.Canon()
-	a.updateBounds()
 }
 
 // SetColor sets the color used by drawing methods.

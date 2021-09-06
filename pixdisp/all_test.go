@@ -171,7 +171,7 @@ func TestFont(t *testing.T) {
 	a := disp.NewArea(disp.Bounds())
 	a.SetColor(pixdisp.RGB{250, 250, 200})
 	a.Fill(a.Bounds())
-	a.SetBounds(a.Bounds().Inset(4))
+	a.SetRect(a.Rect().Inset(4))
 	a.SetColorRGB(0, 0, 100)
 
 	w := a.TextWriter(Dejavu12)
