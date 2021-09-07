@@ -4,7 +4,9 @@
 
 package pixdisp
 
-import "image"
+import (
+	"image"
+)
 
 func abs(x int) int {
 	if x < 0 {
@@ -99,6 +101,74 @@ func (a *Area) DrawLine_(p0, p1 image.Point) {
 		if e2 < dp.X {
 			e += dp.X
 			p0.Y += sy
+		}
+	}
+}
+*/
+
+/*
+func max(a, b int) int {
+	if a >= b {
+		return a
+	}
+	return b
+}
+
+func setPixelColor(a *Area, x, y, c int) {
+	a.SetColor(color.Alpha{uint8(255 - c)})
+	a.DrawPoint(image.Point{x, y}, 0)
+}
+
+
+func (a *Area) PlotLine(x0, y0, x1, y1 int, wd float32) {
+	dx := abs(x1 - x0)
+	sx := -1
+	if x0 < x1 {
+		sx = 1
+	}
+	dy := abs(y1 - y0)
+	sy := -1
+	if y0 < y1 {
+		sy = 1
+	}
+	err := dx - dy
+	var e2, x2, y2 int
+	ed := float32(1)
+	if dx+dy != 0 {
+		ed = float32(math.Sqrt(float64(dx*dx + dy*dy)))
+	}
+	wd = (wd + 1) / 2
+	for {
+		setPixelColor(a, x0, y0, max(0, int(255*(float32(abs(err-dx+dy))/ed-wd+1))))
+		e2 = err
+		x2 = x0
+		if 2*e2 >= -dx {
+			e2 += dy
+			y2 = y0
+			for float32(e2) < ed*wd && (y1 != y2 || dx > dy) {
+				y2 += sy
+				setPixelColor(a, x0, y2, max(0, int(255*(float32(abs(e2))/ed-wd+1))))
+				e2 += dx
+			}
+			if x0 == x1 {
+				break
+			}
+			e2 = err
+			err -= dy
+			x0 += sx
+		}
+		if 2*e2 <= dy {
+			e2 = dx - e2
+			for float32(e2) < ed*wd && (x1 != x2 || dx < dy) {
+				x2 += sx
+				setPixelColor(a, x2, y0, max(0, int(255*(float32(abs(e2))/ed-wd+1))))
+				e2 += dy
+			}
+			if y0 == y1 {
+				break
+			}
+			err += dx
+			y0 += sy
 		}
 	}
 }

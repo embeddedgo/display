@@ -14,7 +14,7 @@ import (
 	"testing"
 
 	"github.com/embeddedgo/display/pixdisp"
-	"github.com/embeddedgo/display/pixdisp/drivers/imgdrv"
+	"github.com/embeddedgo/display/pixdisp/driver/imgdrv"
 	"github.com/embeddedgo/display/pixdisp/font"
 	"github.com/embeddedgo/display/pixdisp/font/font9/anonpro11"
 	"github.com/embeddedgo/display/pixdisp/font/font9/dejavu12"
@@ -108,6 +108,10 @@ func TestDrawImage(t *testing.T) {
 		imm, image.Pt(0, 0), // mask
 		draw.Over,
 	)
+
+	//width := float32(7)
+	//a.PlotLine(0, 0, a.Bounds().Max.X, a.Bounds().Max.Y/2, width)
+	//a.PlotLine(0, a.Bounds().Max.Y-4, a.Bounds().Max.X, a.Bounds().Max.Y-4, width)
 
 	imm = imm.SubImage(image.Rect(2, 2, 11, 11)).(*pixdisp.ImmAlphaN)
 	a.Draw(disp.Bounds().Add(image.Pt(16, 16)), imm, image.Pt(2, 2), draw.Src)

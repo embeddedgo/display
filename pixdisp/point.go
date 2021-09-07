@@ -11,6 +11,7 @@ import "image"
 
 // DrawPoint draws a point with a given radius.
 func (a *Area) DrawPoint(p image.Point, r int) {
+	setColor(a)
 	if r <= 0 {
 		if r == 0 {
 			drawPixel(a, p)
@@ -18,7 +19,6 @@ func (a *Area) DrawPoint(p image.Point, r int) {
 		return
 	}
 	// Fill the four sides.
-	setColor(a)
 	x, y, e := -r, 0, 2*(1-r)
 	for x+y < 0 {
 		ny := y + 1

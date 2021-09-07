@@ -30,18 +30,17 @@ type Driver interface {
 	// SetColor sets the color used by Fill method.
 	SetColor(c color.Color)
 
-	// Fill helps to increase prformance when drawing filled rectangles. Any
-	// geometric shape is drawed using finite number of filed rectangles so it
-	// is heavily used operation which is worth optimizing.
+	// Fill helps to increase prformance when drawing filled rectangles which
+	// are heavily used in drawing various geometric shapes.
 	Fill(r image.Rectangle)
 
-	// Flush allows to flush the drivers internal buffers. Drivers is allowed to
-	// implement any kind of buffering if the direct drawing to the display is
-	// problematic or inefficient.
+	// Flush allows to flush the drivers internal buffers. Drivers are allowed
+	// to implement any kind of buffering if the direct drawing to the display
+	// is problematic or inefficient.
 	Flush()
 
 	// Err returns the saved error and clears it if the clear is true. If an
-	// error has occured it is recommended that the Driver avoid any further
-	// operation until the error is cleared.
+	// error has occured it is recommended that the Driver avoids any further
+	// operations until the error is cleared.
 	Err(clear bool) error
 }
