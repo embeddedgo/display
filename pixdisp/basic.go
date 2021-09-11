@@ -22,11 +22,14 @@ func rawFill(a *Area, r image.Rectangle) {
 }
 
 func hline(a *Area, x0, y0, x1 int) {
-	x1 += 1
 	r := a.Bounds()
 	if y0 < r.Min.Y || y0 >= r.Max.Y {
 		return
 	}
+	if x1 < x0 {
+		x1, x0 = x0, x1
+	}
+	x1 += 1
 	if x0 < r.Min.X {
 		x0 = r.Min.X
 	}
@@ -39,11 +42,14 @@ func hline(a *Area, x0, y0, x1 int) {
 }
 
 func vline(a *Area, x0, y0, y1 int) {
-	y1 += 1
 	r := a.Bounds()
 	if x0 < r.Min.X || x0 >= r.Max.X {
 		return
 	}
+	if y1 < y0 {
+		y1, y0 = y0, y1
+	}
+	y1 += 1
 	if y0 < r.Min.Y {
 		y0 = r.Min.Y
 	}
@@ -64,28 +70,9 @@ func (a *Area) Fill(r image.Rectangle) {
 	}
 }
 
-// FillRect draws a filled rectangle for the given diagonal.
-func (a *Area) FillRect(p0, p1 image.Point) {
-	a.Fill(image.Rectangle{p0, p1.Add(image.Point{1, 1})})
-}
-
-// DrawRect draws a rectangle for the given diagonal.
-//func (a *Area) DrawRect(p0, p1 image.Point) {
-//	a.Fill(image.Rectangle{p0, p1.Add(image.Point{1, 1})})
-//}
-
-// Draw works like draw.Draw with dst set to the image representing the whole
-// area.
-func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, op draw.Op) {
-	r = r.Canon().Intersect(a.Bounds())
-	if !r.Empty() {
-		a.disp.drv.Draw(r.Add(a.P0()), src, sp, nil, image.Point{}, op)
-	}
-}
-
-// DrawMask works like draw.DrawMask with dst set to the image representing the
+// Draw works like draw.DrawMask with dst set to the image representing the
 // whole area.
-func (a *Area) DrawMask(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	r = r.Canon().Intersect(a.Bounds())
 	if !r.Empty() {
 		a.disp.drv.Draw(r.Add(a.P0()), src, sp, mask, mp, op)

@@ -47,6 +47,10 @@ func (w *TextWriter) WriteString(s string) (int, error) {
 	return 0, nil
 }
 
+func (w *TextWriter) Bounds(s string) image.Rectangle {
+	panic("not implemented")
+}
+
 func drawRune(w *TextWriter, r rune) {
 	mask, origin, advance := w.Face.Glyph(r)
 	if mask == nil {
@@ -70,6 +74,6 @@ func drawRune(w *TextWriter, r rune) {
 	img := &image.Uniform{w.Color}
 	mr := mask.Bounds()
 	dr := mr.Add(w.Pos.Sub(origin))
-	w.Area.DrawMask(dr, img, image.Point{}, mask, mr.Min, draw.Over)
+	w.Area.Draw(dr, img, image.Point{}, mask, mr.Min, draw.Over)
 	w.Pos.X = nx
 }

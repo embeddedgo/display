@@ -64,6 +64,16 @@ func (a *Area) SetColorRGB(r, g, b uint8) {
 	a.color = RGB{r, g, b}
 }
 
+func (a *Area) Color() color.Color {
+	return a.color
+}
+
+// TextWriter returns a ready to use TextWriter initialized as below:
+//	w := new(TextWriter)
+//	w.Area = a
+//	w.Face = f
+//	w.Color = a.Color()
+//	_, w.Pos.Y = f.Size() // ascent
 func (a *Area) TextWriter(f FontFace) *TextWriter {
 	_, ascent := f.Size()
 	return &TextWriter{

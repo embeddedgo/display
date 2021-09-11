@@ -6,9 +6,6 @@ package pixdisp
 
 import "image"
 
-// The following code uses algorithm described by Alois Zingl in
-// "A Rasterizing Algorithm for Drawing Curves".
-
 // DrawPoint draws a point with a given radius.
 func (a *Area) DrawPoint(p image.Point, r int) {
 	setColor(a)
@@ -18,7 +15,8 @@ func (a *Area) DrawPoint(p image.Point, r int) {
 		}
 		return
 	}
-	// Fill the four sides.
+	// based on Alois Zingl algorithm
+	// fill the four sides of the circle
 	x, y, e := -r, 0, 2*(1-r)
 	for x+y < 0 {
 		ny := y + 1
@@ -36,6 +34,13 @@ func (a *Area) DrawPoint(p image.Point, r int) {
 		y = ny
 		e = ne
 	}
-	// Fill the center.
-	a.Fill(image.Rectangle{p.Sub(image.Point{x - 1, x - 1}), p.Add(image.Point{x, x})})
+	// fill the center rectangle
+	rect := image.Rectangle{
+		p.Sub(image.Point{x - 1, x - 1}),
+		p.Add(image.Point{x, x}),
+	}
+	rect = rect.Canon().Intersect(a.Bounds())
+	if !rect.Empty() {
+		rawFill(a, rect)
+	}
 }

@@ -32,7 +32,7 @@ func failErr(t *testing.T, err error) {
 func TestDrawGeom(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 91, 400))
+	screen := image.NewNRGBA(image.Rect(0, 0, 200, 400))
 	disp := pixdisp.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds().Inset(5))
@@ -52,16 +52,22 @@ func TestDrawGeom(t *testing.T) {
 	}
 
 	x := max.X / 2
+	xl := max.X / 4
+	xr := max.X * 3 / 4
 	for r := 0; r < 19; r++ {
 		y := 3 + (r+2)*r
 		a.SetColorRGB(0, 100, 200)
 		a.DrawPoint(image.Pt(x, y), r)
+		a.FillEllipse(image.Pt(xl, y), r, r/2)
+		a.FillEllipse(image.Pt(xr, y), r/2, r)
 		a.SetColor(color.RGBA{100, 50, 0, 255})
-		a.DrawCircle(image.Pt(x, y), r)
+		a.DrawEllipse(image.Pt(x, y), r, r)
+		a.DrawEllipse(image.Pt(xl, y), r, r/2)
+		a.DrawEllipse(image.Pt(xr, y), r/2, r)
 	}
 
 	a.SetColorRGB(250, 100, 0)
-	for i := 0; i < 17; i++ {
+	for i := 0; i < 20; i++ {
 		x := 2*i + 4
 		y := i*i + 2
 		a.DrawLine(image.Pt(2, y), image.Pt(x, 2))
@@ -93,28 +99,24 @@ func TestDrawImage(t *testing.T) {
 	img.Set(10, 0, color.RGBA64{0, 0, 0, 1})
 	img.SetAlpha(4, 4, color.Alpha{1})
 
-	a.Draw(disp.Bounds(), img, image.Pt(0, 0), draw.Over)
-	a.Draw(disp.Bounds().Add(image.Pt(20, 25)), img, image.Pt(0, 0), draw.Over)
+	a.Draw(disp.Bounds(), img, image.Point{}, nil, image.Point{}, draw.Over)
+	a.Draw(disp.Bounds().Add(image.Pt(20, 25)), img, image.Point{}, nil, image.Point{}, draw.Over)
 
 	imm := pixdisp.NewImmAlphaN(img.Bounds(), 1, string(img.Pix))
 
-	a.DrawMask(disp.Bounds().Add(image.Pt(5, 5)),
-		&image.Uniform{pixdisp.RGB{255, 0, 0}}, image.Pt(0, 0), // source
-		imm, image.Pt(0, 0), // mask
+	a.Draw(disp.Bounds().Add(image.Pt(5, 5)),
+		&image.Uniform{pixdisp.RGB{255, 0, 0}}, image.Point{}, // source
+		imm, image.Point{}, // mask
 		draw.Over,
 	)
-	a.DrawMask(disp.Bounds().Add(image.Pt(10, 10)),
-		&image.Uniform{color.NRGBA{255, 0, 0, 150}}, image.Pt(0, 0), // source
-		imm, image.Pt(0, 0), // mask
+	a.Draw(disp.Bounds().Add(image.Pt(10, 10)),
+		&image.Uniform{color.NRGBA{255, 0, 0, 150}}, image.Point{}, // source
+		imm, image.Point{}, // mask
 		draw.Over,
 	)
-
-	//width := float32(7)
-	//a.PlotLine(0, 0, a.Bounds().Max.X, a.Bounds().Max.Y/2, width)
-	//a.PlotLine(0, a.Bounds().Max.Y-4, a.Bounds().Max.X, a.Bounds().Max.Y-4, width)
 
 	imm = imm.SubImage(image.Rect(2, 2, 11, 11)).(*pixdisp.ImmAlphaN)
-	a.Draw(disp.Bounds().Add(image.Pt(16, 16)), imm, image.Pt(2, 2), draw.Src)
+	a.Draw(disp.Bounds().Add(image.Pt(16, 16)), imm, image.Pt(2, 2), nil, image.Point{}, draw.Src)
 
 	f, err := os.OpenFile(filepath.Join(dir, "image.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
@@ -128,6 +130,7 @@ var (
 		Ascent: dejavu12.Ascent,
 		Subfonts: []*font.Subfont{
 			&dejavu12.X0000_0100,
+			&dejavu12.X0101_0201,
 		},
 	}
 	AnonPro11 = &font.Face{
@@ -135,6 +138,7 @@ var (
 		Ascent: anonpro11.Ascent,
 		Subfonts: []*font.Subfont{
 			&anonpro11.X0000_0100,
+			&anonpro11.X0101_0201,
 		},
 	}
 	VGA = &font.Face{
@@ -142,6 +146,7 @@ var (
 		Ascent: vga.Ascent,
 		Subfonts: []*font.Subfont{
 			&vga.X0000_007f,
+			&vga.X00a0_021f,
 		},
 	}
 )
@@ -169,7 +174,7 @@ W takiej ciszy - tak ucho natężam ciekawie,
 func TestFont(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 480, 800))
+	screen := image.NewNRGBA(image.Rect(0, 0, 440, 770))
 	disp := pixdisp.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
@@ -179,6 +184,12 @@ func TestFont(t *testing.T) {
 	a.SetColorRGB(0, 0, 100)
 
 	w := a.TextWriter(Dejavu12)
+	w.WriteString(AkermanianSteppes)
+
+	w.Face = AnonPro11
+	w.WriteString(AkermanianSteppes)
+
+	w.Face = VGA
 	w.WriteString(AkermanianSteppes)
 
 	f, err := os.OpenFile(filepath.Join(dir, "font.png"), os.O_WRONLY|os.O_CREATE, 0755)
