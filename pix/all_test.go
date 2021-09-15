@@ -90,7 +90,7 @@ func TestDrawImage(t *testing.T) {
 	a.SetColor(pix.RGB{0, 0, 128})
 	a.Fill(a.Bounds())
 
-	img := pix.NewAlphaN(image.Rect(0, 0, 11, 11), 1)
+	img := pix.NewImgAlphaN(image.Rect(0, 0, 11, 11), 1)
 	img.Set(0, 10, color.Alpha{1})
 	img.Set(2, 8, color.Gray{1})
 	img.Set(4, 6, color.Gray16{1})

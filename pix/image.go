@@ -10,11 +10,12 @@ import (
 )
 
 const (
-	Alpha1Model AlphaNModel = 1
-	Alpha2Model AlphaNModel = 2
-	Alpha4Model AlphaNModel = 4
+	Alpha1Model AlphaNModel = 1 // 2 levels of transparency
+	Alpha2Model AlphaNModel = 2 // 4 levels of transparency
+	Alpha4Model AlphaNModel = 4 // 16 levels of transparency
 )
 
+// AlphaNModel is a color model for n-bit transparency
 type AlphaNModel uint8
 
 func (m AlphaNModel) Convert(c color.Color) color.Color {
@@ -36,9 +37,9 @@ func (m AlphaNModel) Convert(c color.Color) color.Color {
 	return color.Alpha{uint8(alpha)}
 }
 
-// AlphaN is an in-memory image whose At method returns color.Alpha with 1, 2 or
-// 4 bit precision.
-type AlphaN struct {
+// ImgAlphaN is an in-memory image whose At method returns color.Alpha with
+// 1, 2 or 4 bit precision.
+type ImgAlphaN struct {
 	Rect   image.Rectangle
 	Stride int
 	LogN   uint8
@@ -46,12 +47,12 @@ type AlphaN struct {
 	Pix    []uint8
 }
 
-// NewAlphaN returns a new AlphaN image with the given bounds and number of bits
-// per pixel.
-func NewAlphaN(r image.Rectangle, n int) *AlphaN {
-	p := new(AlphaN)
+// NewImgAlphaN returns a new ImgAlphaN image with the given bounds and number
+// of bits per pixel.
+func NewImgAlphaN(r image.Rectangle, nbpp int) *ImgAlphaN {
+	p := new(ImgAlphaN)
 	p.Rect = r
-	switch n {
+	switch nbpp {
 	case 1:
 		p.LogN = 0
 	case 2:
@@ -66,10 +67,10 @@ func NewAlphaN(r image.Rectangle, n int) *AlphaN {
 	return p
 }
 
-func (p *AlphaN) ColorModel() color.Model { return AlphaNModel(1 << p.LogN) }
-func (p *AlphaN) Bounds() image.Rectangle { return p.Rect }
+func (p *ImgAlphaN) ColorModel() color.Model { return AlphaNModel(1 << p.LogN) }
+func (p *ImgAlphaN) Bounds() image.Rectangle { return p.Rect }
 
-func (p *AlphaN) AlphaAt(x, y int) color.Alpha {
+func (p *ImgAlphaN) AlphaAt(x, y int) color.Alpha {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return color.Alpha{}
 	}
@@ -89,14 +90,14 @@ func (p *AlphaN) AlphaAt(x, y int) color.Alpha {
 	return color.Alpha{uint8(a)}
 }
 
-func (p *AlphaN) At(x, y int) color.Color {
+func (p *ImgAlphaN) At(x, y int) color.Color {
 	return p.AlphaAt(x, y)
 }
 
 // PixOffset returns the index of the first element of Pix that corresponds to
 // the pixel at (x, y) and the index to the bits in that element that
 // determines the pixel value.
-func (p *AlphaN) PixOffset(x, y int) (offset int, shift uint) {
+func (p *ImgAlphaN) PixOffset(x, y int) (offset int, shift uint) {
 	x += int(p.Shift)>>p.LogN - p.Rect.Min.X
 	y -= p.Rect.Min.Y
 	cs := 3 - p.LogN
@@ -106,7 +107,7 @@ func (p *AlphaN) PixOffset(x, y int) (offset int, shift uint) {
 	return
 }
 
-func (p *AlphaN) Set(x, y int, c color.Color) {
+func (p *ImgAlphaN) Set(x, y int, c color.Color) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
 	}
@@ -122,7 +123,7 @@ func (p *AlphaN) Set(x, y int, c color.Color) {
 	p.Pix[i] = p.Pix[i]&^(0xff>>rshift<<lshift) | uint8(alpha>>rshift<<lshift)
 }
 
-func (p *AlphaN) SetAlpha(x, y int, c color.Alpha) {
+func (p *ImgAlphaN) SetAlpha(x, y int, c color.Alpha) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
 	}
@@ -133,16 +134,16 @@ func (p *AlphaN) SetAlpha(x, y int, c color.Alpha) {
 
 // SubImage returns an image representing the portion of the image p visible
 // through r. The returned value shares pixels with the original image.
-func (p *AlphaN) SubImage(r image.Rectangle) image.Image {
+func (p *ImgAlphaN) SubImage(r image.Rectangle) image.Image {
 	r = r.Intersect(p.Rect)
 	// If r1 and r2 are Rectangles, r1.Intersect(r2) is not guaranteed to be
 	// inside either r1 or r2 if the intersection is empty. Without explicitly
 	// checking for this, the Pix[i:] expression below can panic.
 	if r.Empty() {
-		return &AlphaN{}
+		return &ImgAlphaN{}
 	}
 	i, shift := p.PixOffset(r.Min.X, r.Min.Y)
-	return &AlphaN{
+	return &ImgAlphaN{
 		Rect:   r,
 		LogN:   p.LogN,
 		Shift:  uint8(shift),
@@ -151,7 +152,7 @@ func (p *AlphaN) SubImage(r image.Rectangle) image.Image {
 	}
 }
 
-// ImmAlphaN is immutable counterpart of AlphaN.
+// ImmAlphaN is immutable counterpart of ImgAlphaN.
 type ImmAlphaN struct {
 	Rect   image.Rectangle
 	Stride int
@@ -161,10 +162,10 @@ type ImmAlphaN struct {
 }
 
 // NewImmAlphaN returns a new ImmAlpha image with the given bounds and content.
-func NewImmAlphaN(r image.Rectangle, n int, bits string) *ImmAlphaN {
+func NewImmAlphaN(r image.Rectangle, nbpp int, bits string) *ImmAlphaN {
 	p := new(ImmAlphaN)
 	p.Rect = r
-	switch n {
+	switch nbpp {
 	case 1:
 		p.LogN = 0
 	case 2:
@@ -227,7 +228,7 @@ func (p *ImmAlphaN) SubImage(r image.Rectangle) image.Image {
 	// inside either r1 or r2 if the intersection is empty. Without explicitly
 	// checking for this, the Pix[i:] expression below can panic.
 	if r.Empty() {
-		return &AlphaN{}
+		return &ImmAlphaN{}
 	}
 	i, shift := p.PixOffset(r.Min.X, r.Min.Y)
 	return &ImmAlphaN{

@@ -4,7 +4,7 @@
 
 package pix
 
-// RGBA represents a traditional 24-bit color without the alpha channel.
+// RGB represents a traditional 24-bit color without the alpha channel.
 type RGB struct {
 	R, G, B uint8
 }

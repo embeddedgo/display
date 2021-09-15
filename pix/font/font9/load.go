@@ -184,7 +184,7 @@ func Load(r io.Reader) (font.Data, error) {
 			Pix:    wb.Bytes(),
 		}
 	} else {
-		img = &pix.AlphaN{
+		img = &pix.ImgAlphaN{
 			Rect:   rect,
 			LogN:   uint8(logbpp),
 			Stride: stride,
