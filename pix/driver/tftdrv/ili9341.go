@@ -7,6 +7,7 @@ package tftdrv
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"time"
 
 	"github.com/embeddedgo/display/pix"
@@ -41,12 +42,12 @@ const (
 
 // MADCTL arguments
 const (
-	MH  = 1 << 2 // Horizontal refresh order.
-	BGR = 1 << 3 // RGB-BGR order.
-	ML  = 1 << 4 // Vertical refresh order.
-	MV  = 1 << 5 // Row/column exchange.
-	MX  = 1 << 6 // Column address order.
-	MY  = 1 << 7 // Row address order.
+	MH  = 1 << 2 // horizontal refresh order
+	BGR = 1 << 3 // BGR color filter panel
+	ML  = 1 << 4 // vertical refresh order
+	MV  = 1 << 5 // row/column exchange
+	MX  = 1 << 6 // column address order
+	MY  = 1 << 7 // row address order
 )
 
 // PIXSET arguments
@@ -146,11 +147,12 @@ func (d *ILI9341) Dim() (width, height int) {
 	return 200, 320
 }
 
-//func (d *ILI9341) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op)
+func (d *ILI9341) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+}
 
 func (d *ILI9341) SetColor(c color.Color) {
-	if rgb565, ok := c.(pix.RGB565); ok {
-		d.r = uint16(rgb565)
+	if rgb16, ok := c.(pix.RGB16); ok {
+		d.r = uint16(rgb16)
 		d.a = 0xffff
 		return
 	}
