@@ -177,4 +177,7 @@ func (d *Driver) Fill(r image.Rectangle) {
 }
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+	if op == draw.Src {
+
+	}
 }

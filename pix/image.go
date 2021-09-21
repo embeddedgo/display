@@ -37,20 +37,44 @@ func (m AlphaNModel) Convert(c color.Color) color.Color {
 	return color.Alpha{uint8(alpha)}
 }
 
-// ImgAlphaN is an in-memory image whose At method returns color.Alpha with
-// 1, 2 or 4 bit precision.
-type ImgAlphaN struct {
-	Rect   image.Rectangle
-	Stride int
-	LogN   uint8
-	Shift  uint8
-	Pix    []uint8
+var (
+	RGBModel   = color.ModelFunc(rgbModel)
+	RGB16Model = color.ModelFunc(rgb16Model)
+)
+
+func rgbModel(c color.Color) color.Color {
+	if _, ok := c.(RGB); ok {
+		return c
+	}
+	r, g, b, _ := c.RGBA()
+	return RGB{uint8(r >> 8), uint8(g >> 8), uint8(b >> 8)}
 }
 
-// NewImgAlphaN returns a new ImgAlphaN image with the given bounds and number
+func rgb16Model(c color.Color) color.Color {
+	if _, ok := c.(RGB16); ok {
+		return c
+	}
+	r, g, b, _ := c.RGBA()
+	r >>= 11
+	g >>= 10
+	b >>= 11
+	return RGB16(r<<11 | g<<5 | b)
+}
+
+// ImageAlphaN is an in-memory image whose At method returns color.Alpha with
+// 1, 2 or 4 bit precision.
+type ImageAlphaN struct {
+	Rect   image.Rectangle // image bounds
+	Stride int             // Pix stride (in bytes) between vertically adjacent pixels
+	LogN   uint8           // 1<<LogN is the number of bits per pixel
+	Shift  uint8           // the bit offest in Pix[0] to the first pixel
+	Pix    []uint8         // the image pixels
+}
+
+// NewImageAlphaN returns a new ImageAlphaN image with the given bounds and number
 // of bits per pixel.
-func NewImgAlphaN(r image.Rectangle, nbpp int) *ImgAlphaN {
-	p := new(ImgAlphaN)
+func NewImageAlphaN(r image.Rectangle, nbpp int) *ImageAlphaN {
+	p := new(ImageAlphaN)
 	p.Rect = r
 	switch nbpp {
 	case 1:
@@ -67,10 +91,10 @@ func NewImgAlphaN(r image.Rectangle, nbpp int) *ImgAlphaN {
 	return p
 }
 
-func (p *ImgAlphaN) ColorModel() color.Model { return AlphaNModel(1 << p.LogN) }
-func (p *ImgAlphaN) Bounds() image.Rectangle { return p.Rect }
+func (p *ImageAlphaN) ColorModel() color.Model { return AlphaNModel(1 << p.LogN) }
+func (p *ImageAlphaN) Bounds() image.Rectangle { return p.Rect }
 
-func (p *ImgAlphaN) AlphaAt(x, y int) color.Alpha {
+func (p *ImageAlphaN) AlphaAt(x, y int) color.Alpha {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return color.Alpha{}
 	}
@@ -90,14 +114,14 @@ func (p *ImgAlphaN) AlphaAt(x, y int) color.Alpha {
 	return color.Alpha{uint8(a)}
 }
 
-func (p *ImgAlphaN) At(x, y int) color.Color {
+func (p *ImageAlphaN) At(x, y int) color.Color {
 	return p.AlphaAt(x, y)
 }
 
 // PixOffset returns the index of the first element of Pix that corresponds to
 // the pixel at (x, y) and the index to the bits in that element that
 // determines the pixel value.
-func (p *ImgAlphaN) PixOffset(x, y int) (offset int, shift uint) {
+func (p *ImageAlphaN) PixOffset(x, y int) (offset int, shift uint) {
 	x += int(p.Shift)>>p.LogN - p.Rect.Min.X
 	y -= p.Rect.Min.Y
 	cs := 3 - p.LogN
@@ -107,7 +131,7 @@ func (p *ImgAlphaN) PixOffset(x, y int) (offset int, shift uint) {
 	return
 }
 
-func (p *ImgAlphaN) Set(x, y int, c color.Color) {
+func (p *ImageAlphaN) Set(x, y int, c color.Color) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
 	}
@@ -123,7 +147,7 @@ func (p *ImgAlphaN) Set(x, y int, c color.Color) {
 	p.Pix[i] = p.Pix[i]&^(0xff>>rshift<<lshift) | uint8(alpha>>rshift<<lshift)
 }
 
-func (p *ImgAlphaN) SetAlpha(x, y int, c color.Alpha) {
+func (p *ImageAlphaN) SetAlpha(x, y int, c color.Alpha) {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return
 	}
@@ -134,16 +158,16 @@ func (p *ImgAlphaN) SetAlpha(x, y int, c color.Alpha) {
 
 // SubImage returns an image representing the portion of the image p visible
 // through r. The returned value shares pixels with the original image.
-func (p *ImgAlphaN) SubImage(r image.Rectangle) image.Image {
+func (p *ImageAlphaN) SubImage(r image.Rectangle) image.Image {
 	r = r.Intersect(p.Rect)
 	// If r1 and r2 are Rectangles, r1.Intersect(r2) is not guaranteed to be
 	// inside either r1 or r2 if the intersection is empty. Without explicitly
 	// checking for this, the Pix[i:] expression below can panic.
 	if r.Empty() {
-		return &ImgAlphaN{}
+		return &ImageAlphaN{}
 	}
 	i, shift := p.PixOffset(r.Min.X, r.Min.Y)
-	return &ImgAlphaN{
+	return &ImageAlphaN{
 		Rect:   r,
 		LogN:   p.LogN,
 		Shift:  uint8(shift),
@@ -152,7 +176,7 @@ func (p *ImgAlphaN) SubImage(r image.Rectangle) image.Image {
 	}
 }
 
-// ImmAlphaN is immutable counterpart of ImgAlphaN.
+// ImmAlphaN is an immutable counterpart of ImageAlphaN.
 type ImmAlphaN struct {
 	Rect   image.Rectangle
 	Stride int
@@ -240,7 +264,7 @@ func (p *ImmAlphaN) SubImage(r image.Rectangle) image.Image {
 	}
 }
 
-// ImmAlpha is immutable counterpart of image.Alpha.
+// ImmAlpha is an immutable counterpart of image.Alpha.
 type ImmAlpha struct {
 	Rect   image.Rectangle
 	Stride int
@@ -295,5 +319,277 @@ func (p *ImmAlpha) SubImage(r image.Rectangle) image.Image {
 		Rect:   r,
 		Stride: p.Stride,
 		Pix:    p.Pix[i:],
+	}
+}
+
+// ImageRGB is an in-memory image whose At method returns RGB values.
+type ImageRGB struct {
+	Rect   image.Rectangle // image bounds
+	Stride int             // Pix stride (in bytes) between vertically adjacent pixels
+	Pix    []uint8         // the image pixels
+}
+
+// NewImageRGB returns a new ImageRGB image with the given bounds.
+func NewImageRGB(r image.Rectangle) *ImageRGB {
+	return &ImageRGB{
+		Rect:   r,
+		Stride: 3 * r.Dx(),
+		Pix:    make([]uint8, 3*r.Dx()*r.Dy()),
+	}
+}
+
+func (p *ImageRGB) ColorModel() color.Model { return RGBModel }
+func (p *ImageRGB) Bounds() image.Rectangle { return p.Rect }
+func (p *ImageRGB) Opaque() bool            { return true }
+
+func (p *ImageRGB) At(x, y int) color.Color {
+	return p.RGBAt(x, y)
+}
+
+func (p *ImageRGB) RGBAt(x, y int) RGB {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return RGB{}
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+3 : i+3] // Small cap improves performance, see https://golang.org/issue/27857
+	return RGB{s[0], s[1], s[2]}
+}
+
+// PixOffset returns the index of the first element of Pix that corresponds to
+// the pixel at (x, y).
+func (p *ImageRGB) PixOffset(x, y int) int {
+	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*3
+}
+
+func (p *ImageRGB) Set(x, y int, c color.Color) {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return
+	}
+	i := p.PixOffset(x, y)
+	c1 := RGBModel.Convert(c).(RGB)
+	s := p.Pix[i : i+3 : i+3] // Small cap improves performance, see https://golang.org/issue/27857
+	s[0] = c1.R
+	s[1] = c1.G
+	s[2] = c1.B
+}
+
+func (p *ImageRGB) SetRGB(x, y int, c RGB) {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+3 : i+3] // Small cap improves performance, see https://golang.org/issue/27857
+	s[0] = c.R
+	s[1] = c.G
+	s[2] = c.B
+}
+
+// SubImage returns an image representing the portion of the image p visible
+// through r. The returned value shares pixels with the original image.
+func (p *ImageRGB) SubImage(r image.Rectangle) image.Image {
+	r = r.Intersect(p.Rect)
+	// If r1 and r2 are Rectangles, r1.Intersect(r2) is not guaranteed to be inside
+	// either r1 or r2 if the intersection is empty. Without explicitly checking for
+	// this, the Pix[i:] expression below can panic.
+	if r.Empty() {
+		return &ImageRGB{}
+	}
+	i := p.PixOffset(r.Min.X, r.Min.Y)
+	return &ImageRGB{
+		Pix:    p.Pix[i:],
+		Stride: p.Stride,
+		Rect:   r,
+	}
+}
+
+// ImmRGB is an immutable counterpart of ImageRGB.
+type ImmRGB struct {
+	Rect   image.Rectangle // image bounds
+	Stride int             // Pix stride (in bytes) between vertically adjacent pixels
+	Pix    string          // the image pixels
+}
+
+// NewImmRGB returns a new ImmRGB image with the given bounds and content
+func NewImmRGB(r image.Rectangle, bits string) *ImmRGB {
+	return &ImmRGB{
+		Rect:   r,
+		Stride: 3 * r.Dx(),
+		Pix:    bits,
+	}
+}
+
+func (p *ImmRGB) ColorModel() color.Model { return RGBModel }
+func (p *ImmRGB) Bounds() image.Rectangle { return p.Rect }
+func (p *ImmRGB) Opaque() bool            { return true }
+
+func (p *ImmRGB) At(x, y int) color.Color {
+	return p.RGBAt(x, y)
+}
+
+func (p *ImmRGB) RGBAt(x, y int) RGB {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return RGB{}
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+3] // Small cap improves performance, see https://golang.org/issue/27857
+	return RGB{s[0], s[1], s[2]}
+}
+
+// PixOffset returns the index of the first element of Pix that corresponds to
+// the pixel at (x, y).
+func (p *ImmRGB) PixOffset(x, y int) int {
+	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*3
+}
+
+// SubImage returns an image representing the portion of the image p visible
+// through r. The returned value shares pixels with the original image.
+func (p *ImmRGB) SubImage(r image.Rectangle) image.Image {
+	r = r.Intersect(p.Rect)
+	// If r1 and r2 are Rectangles, r1.Intersect(r2) is not guaranteed to be inside
+	// either r1 or r2 if the intersection is empty. Without explicitly checking for
+	// this, the Pix[i:] expression below can panic.
+	if r.Empty() {
+		return &ImmRGB{}
+	}
+	i := p.PixOffset(r.Min.X, r.Min.Y)
+	return &ImmRGB{
+		Pix:    p.Pix[i:],
+		Stride: p.Stride,
+		Rect:   r,
+	}
+}
+
+// ImageRGB16 is an in-memory image whose At method returns RGB16 values.
+type ImageRGB16 struct {
+	Rect   image.Rectangle // image bounds
+	Stride int             // Pix stride (in bytes) between vertically adjacent pixels
+	Pix    []uint8         // the image pixels
+}
+
+// NewImageRGB16 returns a new ImageRGB16 image with the given bounds.
+func NewImageRGB16(r image.Rectangle) *ImageRGB16 {
+	return &ImageRGB16{
+		Rect:   r,
+		Stride: 2 * r.Dx(),
+		Pix:    make([]uint8, 2*r.Dx()*r.Dy()),
+	}
+}
+
+func (p *ImageRGB16) ColorModel() color.Model { return RGB16Model }
+func (p *ImageRGB16) Bounds() image.Rectangle { return p.Rect }
+func (p *ImageRGB16) Opaque() bool            { return true }
+
+func (p *ImageRGB16) At(x, y int) color.Color {
+	return p.RGB16At(x, y)
+}
+
+func (p *ImageRGB16) RGB16At(x, y int) RGB16 {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return 0
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+2 : i+2] // Small cap improves performance, see https://golang.org/issue/27857
+	return RGB16(uint(s[0])<<8 | uint(s[1]))
+}
+
+// PixOffset returns the index of the first element of Pix that corresponds to
+// the pixel at (x, y).
+func (p *ImageRGB16) PixOffset(x, y int) int {
+	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*2
+}
+
+func (p *ImageRGB16) Set(x, y int, c color.Color) {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return
+	}
+	i := p.PixOffset(x, y)
+	c1 := RGB16Model.Convert(c).(RGB16)
+	s := p.Pix[i : i+2 : i+2] // Small cap improves performance, see https://golang.org/issue/27857
+	s[0] = uint8(c1 >> 8)
+	s[1] = uint8(c1)
+}
+
+func (p *ImageRGB16) SetRGB16(x, y int, c RGB16) {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+2 : i+2] // Small cap improves performance, see https://golang.org/issue/27857
+	s[0] = uint8(c >> 8)
+	s[1] = uint8(c)
+}
+
+// SubImage returns an image representing the portion of the image p visible
+// through r. The returned value shares pixels with the original image.
+func (p *ImageRGB16) SubImage(r image.Rectangle) image.Image {
+	r = r.Intersect(p.Rect)
+	// If r1 and r2 are Rectangles, r1.Intersect(r2) is not guaranteed to be inside
+	// either r1 or r2 if the intersection is empty. Without explicitly checking for
+	// this, the Pix[i:] expression below can panic.
+	if r.Empty() {
+		return &ImageRGB16{}
+	}
+	i := p.PixOffset(r.Min.X, r.Min.Y)
+	return &ImageRGB{
+		Pix:    p.Pix[i:],
+		Stride: p.Stride,
+		Rect:   r,
+	}
+}
+
+// ImmRGB16 is an immutable counterpart of ImageRGB16.
+type ImmRGB16 struct {
+	Rect   image.Rectangle // image bounds
+	Stride int             // Pix stride (in bytes) between vertically adjacent pixels
+	Pix    string          // the image pixels
+}
+
+// NewImmRGB16 returns a new ImmRGB16 image with the given bounds and content.
+func NewImmRGB16(r image.Rectangle, bits string) *ImmRGB16 {
+	return &ImmRGB16{
+		Rect:   r,
+		Stride: 2 * r.Dx(),
+		Pix:    bits,
+	}
+}
+
+func (p *ImmRGB16) ColorModel() color.Model { return RGB16Model }
+func (p *ImmRGB16) Bounds() image.Rectangle { return p.Rect }
+func (p *ImmRGB16) Opaque() bool            { return true }
+
+func (p *ImmRGB16) At(x, y int) color.Color {
+	return p.RGB16At(x, y)
+}
+
+func (p *ImmRGB16) RGB16At(x, y int) RGB16 {
+	if !(image.Point{x, y}.In(p.Rect)) {
+		return 0
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+2] // Small cap improves performance, see https://golang.org/issue/27857
+	return RGB16(uint(s[0])<<8 | uint(s[1]))
+}
+
+// PixOffset returns the index of the first element of Pix that corresponds to
+// the pixel at (x, y).
+func (p *ImmRGB16) PixOffset(x, y int) int {
+	return (y-p.Rect.Min.Y)*p.Stride + (x-p.Rect.Min.X)*2
+}
+
+// SubImage returns an image representing the portion of the image p visible
+// through r. The returned value shares pixels with the original image.
+func (p *ImmRGB16) SubImage(r image.Rectangle) image.Image {
+	r = r.Intersect(p.Rect)
+	// If r1 and r2 are Rectangles, r1.Intersect(r2) is not guaranteed to be inside
+	// either r1 or r2 if the intersection is empty. Without explicitly checking for
+	// this, the Pix[i:] expression below can panic.
+	if r.Empty() {
+		return &ImmRGB16{}
+	}
+	i := p.PixOffset(r.Min.X, r.Min.Y)
+	return &ImmRGB16{
+		Pix:    p.Pix[i:],
+		Stride: p.Stride,
+		Rect:   r,
 	}
 }

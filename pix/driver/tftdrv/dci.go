@@ -25,14 +25,14 @@ type RDCI interface {
 }
 
 // ByteWriter is an optional interface that may be implemented by DCI or RDCI
-// to speed up drawing with gray colors.
+// to speed up drawing using gray colors.
 //
 // WriteByteN writes n times the byte to the display controller.
 type ByteNWriter interface {
 	WriteByteN(b byte, n int)
 }
 
-// WriteWordsDCI is an optional interface that may be implemented by a DCI or
+// WordNWriter is an optional interface that may be implemented by a DCI or
 // RDCI to improve drawing pertformance in case of 16-bit pixel format.
 //
 // WriteWordN writes n times the 16-bit word to the display controller.
@@ -40,6 +40,9 @@ type WordNWriter interface {
 	WriteWordN(w uint16, n int)
 }
 
+// WordsWriter is an optional interface that may be implemented by a DCI or
+// RDCI to improve drawing pertformance in case of 16-bit pixel format.
+//
 // WriteWords writes the len(p) bytes from p to the display controller.
 type WordsWriter interface {
 	WriteWords(p []uint16)
