@@ -21,9 +21,8 @@ func New(img draw.Image) *Driver {
 	return &Driver{img: img}
 }
 
-func (d *Driver) Dim() (width, height int) {
-	r := d.img.Bounds()
-	return r.Dx(), r.Dy()
+func (d *Driver) Size() image.Point {
+	return d.img.Bounds().Size()
 }
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {

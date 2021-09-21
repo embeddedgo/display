@@ -12,8 +12,8 @@ import (
 
 // Driver lists the operations expected from a display driver.
 type Driver interface {
-	// Dim returns the display dimensions.
-	Dim() (width, height int)
+	// Size returns the display dimensions.
+	Size() image.Point
 
 	// Draw works like draw.DrawMask with dst set to the image representing the
 	// whole display.

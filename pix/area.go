@@ -16,7 +16,6 @@ type Area struct {
 	p0     image.Point
 	width  int
 	height int
-	swapWH bool
 }
 
 func setColor(a *Area) {
@@ -30,27 +29,19 @@ func (a *Area) P0() image.Point {
 	return a.p0
 }
 
-func (a *Area) updateBounds() {
-	wh := a.rect.Intersect(a.disp.Bounds())
-	a.p0 = wh.Min
-	a.width = wh.Dx()
-	a.height = wh.Dy()
-	a.swapWH = a.disp.swapWH
-}
-
 func (a *Area) Rect() image.Rectangle {
 	return a.rect
 }
 
 func (a *Area) SetRect(r image.Rectangle) {
-	a.rect = r.Canon()
-	a.updateBounds()
+	a.rect = r
+	wh := r.Intersect(a.disp.Bounds())
+	a.p0 = wh.Min
+	a.width = wh.Dx()
+	a.height = wh.Dy()
 }
 
 func (a *Area) Bounds() image.Rectangle {
-	if a.swapWH != a.disp.swapWH {
-		a.updateBounds()
-	}
 	return image.Rectangle{Max: image.Point{int(a.width), int(a.height)}}
 }
 

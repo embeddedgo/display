@@ -24,8 +24,16 @@ type RDCI interface {
 	ReadBytes(p []byte)
 }
 
-// ByteWriter is an optional interface that may be implemented by DCI or RDCI
-// to speed up drawing using gray colors.
+// StringWriter is an optional interface that may be implemented by DCI to
+// speed up drawing of immutable images.
+//
+// WriteString writes the len(s) bytes from s to the display controller.
+type StringWriter interface {
+	WriteString(s string)
+}
+
+// ByteWriter is an optional interface that may be implemented by DCI to speed
+// up drawing using gray colors.
 //
 // WriteByteN writes n times the byte to the display controller.
 type ByteNWriter interface {

@@ -13,7 +13,6 @@ import (
 type Display struct {
 	drv       Driver
 	lastColor color.Color
-	swapWH    bool
 }
 
 // NewDisplay returns a new itialized display.
@@ -41,15 +40,11 @@ func (d *Display) Err(clear bool) error {
 
 // Bounds returns the bounds of the display
 func (d *Display) Bounds() image.Rectangle {
-	width, height := d.drv.Dim()
-	if d.swapWH {
-		return image.Rectangle{Max: image.Point{height, width}}
-	}
-	return image.Rectangle{Max: image.Point{width, height}}
+	return image.Rectangle{Max: d.drv.Size()}
 }
 
 func (d *Display) NewArea(r image.Rectangle) *Area {
-	a := &Area{disp: d, color: color.Alpha{255}, rect: r.Canon()}
-	a.updateBounds()
+	a := &Area{disp: d, color: color.Alpha{255}}
+	a.SetRect(r)
 	return a
 }

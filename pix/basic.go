@@ -64,16 +64,22 @@ func vline(a *Area, x0, y0, y1 int) {
 // Fill fills the given rectangle.
 func (a *Area) Fill(r image.Rectangle) {
 	setColor(a)
-	r = r.Canon().Intersect(a.Bounds())
+	r = r.Intersect(a.Bounds())
 	if !r.Empty() {
 		rawFill(a, r)
 	}
 }
 
-// Draw works like draw.DrawMask with dst set to the image representing the
+// Draw works like draw.Draw with dst set to the image representing the whole
+// area.
+func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, op draw.Op) {
+	a.DrawMask(r, src, sp, nil, image.Point{}, op)
+}
+
+// DrawMask works like draw.DrawMask with dst set to the image representing the
 // whole area.
-func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	r = r.Canon().Intersect(a.Bounds())
+func (a *Area) DrawMask(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+	r = r.Intersect(a.Bounds())
 	if !r.Empty() {
 		a.disp.drv.Draw(r.Add(a.P0()), src, sp, mask, mp, op)
 	}

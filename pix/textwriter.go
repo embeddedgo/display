@@ -80,6 +80,6 @@ func drawRune(w *TextWriter, r rune) {
 	img := &image.Uniform{w.Color}
 	mr := mask.Bounds()
 	dr := mr.Add(w.Pos.Sub(origin))
-	w.Area.Draw(dr, img, image.Point{}, mask, mr.Min, draw.Over)
+	w.Area.DrawMask(dr, img, image.Point{}, mask, mr.Min, draw.Over)
 	w.Pos.X = nx
 }

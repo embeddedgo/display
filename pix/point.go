@@ -4,7 +4,9 @@
 
 package pix
 
-import "image"
+import (
+	"image"
+)
 
 // DrawPoint draws a point with a given radius.
 func (a *Area) DrawPoint(p image.Point, r int) {
@@ -36,10 +38,10 @@ func (a *Area) DrawPoint(p image.Point, r int) {
 	}
 	// fill the center rectangle
 	rect := image.Rectangle{
-		p.Sub(image.Point{x - 1, x - 1}),
 		p.Add(image.Point{x, x}),
+		p.Sub(image.Point{x - 1, x - 1}),
 	}
-	rect = rect.Canon().Intersect(a.Bounds())
+	rect = rect.Intersect(a.Bounds())
 	if !rect.Empty() {
 		rawFill(a, rect)
 	}

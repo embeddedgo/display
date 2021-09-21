@@ -13,6 +13,7 @@ const (
 	Alpha1Model AlphaNModel = 1 // 2 levels of transparency
 	Alpha2Model AlphaNModel = 2 // 4 levels of transparency
 	Alpha4Model AlphaNModel = 4 // 16 levels of transparency
+	Alpha8Model AlphaNModel = 8 // 256 levels of transparency
 )
 
 // AlphaNModel is a color model for n-bit transparency
@@ -61,57 +62,72 @@ func rgb16Model(c color.Color) color.Color {
 	return RGB16(r<<11 | g<<5 | b)
 }
 
+func logNStride(r image.Rectangle, nbpp int) (logN uint8, stride int) {
+	switch nbpp {
+	case 1:
+		logN = 0
+	case 2:
+		logN = 1
+	case 4:
+		logN = 2
+	case 8:
+		logN = 3
+	default:
+		panic("unsupported bpp")
+	}
+	stride = (r.Dx() + 7>>logN) >> (3 - logN)
+	return
+}
+
+func alphaLogN(a uint, logN uint8) color.Alpha {
+	if logN == 0 {
+		a = -(a & 1)
+	} else {
+		if logN == 1 {
+			a &= 3
+			a |= a << 2
+		} else if logN < 3 {
+			a &= 15
+		}
+		a |= a << 4
+	}
+	return color.Alpha{uint8(a)}
+}
+
 // ImageAlphaN is an in-memory image whose At method returns color.Alpha with
-// 1, 2 or 4 bit precision.
+// 1, 2, 4 or 8 bit precision.
 type ImageAlphaN struct {
 	Rect   image.Rectangle // image bounds
-	Stride int             // Pix stride (in bytes) between vertically adjacent pixels
+	Stride int             // stride (in bytes) between vertically adjacent pixels
 	LogN   uint8           // 1<<LogN is the number of bits per pixel
 	Shift  uint8           // the bit offest in Pix[0] to the first pixel
 	Pix    []uint8         // the image pixels
 }
 
-// NewImageAlphaN returns a new ImageAlphaN image with the given bounds and number
-// of bits per pixel.
+// NewImageAlphaN returns a new ImageAlphaN image with the given bounds and
+// number of bits per pixel.
 func NewImageAlphaN(r image.Rectangle, nbpp int) *ImageAlphaN {
 	p := new(ImageAlphaN)
 	p.Rect = r
-	switch nbpp {
-	case 1:
-		p.LogN = 0
-	case 2:
-		p.LogN = 1
-	case 4:
-		p.LogN = 2
-	default:
-		panic("unsupported bpp")
-	}
-	p.Stride = (r.Dx() + 7>>p.LogN) >> (3 - p.LogN)
+	p.LogN, p.Stride = logNStride(r, nbpp)
 	p.Pix = make([]uint8, p.Stride*r.Dy())
 	return p
 }
 
-func (p *ImageAlphaN) ColorModel() color.Model { return AlphaNModel(1 << p.LogN) }
-func (p *ImageAlphaN) Bounds() image.Rectangle { return p.Rect }
+func (p *ImageAlphaN) ColorModel() color.Model {
+	return AlphaNModel(1 << p.LogN)
+}
+
+func (p *ImageAlphaN) Bounds() image.Rectangle {
+	return p.Rect
+}
 
 func (p *ImageAlphaN) AlphaAt(x, y int) color.Alpha {
 	if !(image.Point{x, y}.In(p.Rect)) {
 		return color.Alpha{}
 	}
 	i, s := p.PixOffset(x, y)
-	a := uint(p.Pix[i]) >> s
-	if p.LogN == 0 {
-		a = -(a & 1)
-	} else {
-		if p.LogN == 1 {
-			a &= 3
-			a |= a << 2
-		} else {
-			a &= 15
-		}
-		a |= a << 4
-	}
-	return color.Alpha{uint8(a)}
+	return alphaLogN(uint(p.Pix[i])>>s, p.LogN)
 }
 
 func (p *ImageAlphaN) At(x, y int) color.Color {
@@ -178,28 +194,18 @@ func (p *ImageAlphaN) SubImage(r image.Rectangle) image.Image {
 
 // ImmAlphaN is an immutable counterpart of ImageAlphaN.
 type ImmAlphaN struct {
-	Rect   image.Rectangle
-	Stride int
-	LogN   uint8
-	Shift  uint8
-	Pix    string
+	Rect   image.Rectangle // image bounds
+	Stride int             // stride (in bytes) between vertically adjacent pixels
+	LogN   uint8           // 1<<LogN is the number of bits per pixel
+	Shift  uint8           // the bit offest in Pix[0] to the first pixel
+	Pix    string          // the image pixels
 }
 
 // NewImmAlphaN returns a new ImmAlpha image with the given bounds and content.
 func NewImmAlphaN(r image.Rectangle, nbpp int, bits string) *ImmAlphaN {
 	p := new(ImmAlphaN)
 	p.Rect = r
-	switch nbpp {
-	case 1:
-		p.LogN = 0
-	case 2:
-		p.LogN = 1
-	case 4:
-		p.LogN = 2
-	default:
-		panic("unsupported bpp")
-	}
-	p.Stride = (r.Dx() + 7>>p.LogN) >> (3 - p.LogN)
+	p.LogN, p.Stride = logNStride(r, nbpp)
 	p.Pix = bits
 	return p
 }
@@ -212,19 +218,7 @@ func (p *ImmAlphaN) AlphaAt(x, y int) color.Alpha {
 		return color.Alpha{}
 	}
 	i, s := p.PixOffset(x, y)
-	a := uint(p.Pix[i]) >> s
-	if p.LogN == 0 {
-		a = -(a & 1)
-	} else {
-		if p.LogN == 1 {
-			a &= 3
-			a |= a << 2
-		} else {
-			a &= 15
-		}
-		a |= a << 4
-	}
-	return color.Alpha{uint8(a)}
+	return alphaLogN(uint(p.Pix[i])>>s, p.LogN)
 }
 
 func (p *ImmAlphaN) At(x, y int) color.Color {
@@ -264,68 +258,10 @@ func (p *ImmAlphaN) SubImage(r image.Rectangle) image.Image {
 	}
 }
 
-// ImmAlpha is an immutable counterpart of image.Alpha.
-type ImmAlpha struct {
-	Rect   image.Rectangle
-	Stride int
-	Pix    string
-}
-
-// NewImmAlpha returns a new ImmAlpha image with the given bounds and content.
-func NewImmAlpha(r image.Rectangle, bits string) *ImmAlpha {
-	return &ImmAlpha{
-		Rect:   r,
-		Stride: r.Dx(),
-		Pix:    bits,
-	}
-}
-
-func (p *ImmAlpha) ColorModel() color.Model { return color.AlphaModel }
-func (p *ImmAlpha) Bounds() image.Rectangle { return p.Rect }
-
-func (p *ImmAlpha) AlphaAt(x, y int) color.Alpha {
-	if !(image.Point{x, y}.In(p.Rect)) {
-		return color.Alpha{}
-	}
-	i := p.PixOffset(x, y)
-	return color.Alpha{p.Pix[i]}
-}
-
-func (p *ImmAlpha) At(x, y int) color.Color {
-	return p.AlphaAt(x, y)
-}
-
-// PixOffset returns the index of the first element of Pix that corresponds to
-// the pixel at (x, y) and the index to bits in that element that determines the
-// pixel value.
-func (p *ImmAlpha) PixOffset(x, y int) int {
-	x -= p.Rect.Min.X
-	y -= p.Rect.Min.Y
-	return y*p.Stride + x
-}
-
-// SubImage returns an image representing the portion of the image p visible
-// through r. The returned value shares pixels with the original image.
-func (p *ImmAlpha) SubImage(r image.Rectangle) image.Image {
-	r = r.Intersect(p.Rect)
-	// If r1 and r2 are Rectangles, r1.Intersect(r2) is not guaranteed to be
-	// inside either r1 or r2 if the intersection is empty. Without explicitly
-	// checking for this, the Pix[i:] expression below can panic.
-	if r.Empty() {
-		return &ImmAlpha{}
-	}
-	i := p.PixOffset(r.Min.X, r.Min.Y)
-	return &ImmAlpha{
-		Rect:   r,
-		Stride: p.Stride,
-		Pix:    p.Pix[i:],
-	}
-}
-
 // ImageRGB is an in-memory image whose At method returns RGB values.
 type ImageRGB struct {
 	Rect   image.Rectangle // image bounds
-	Stride int             // Pix stride (in bytes) between vertically adjacent pixels
+	Stride int             // stride (in bytes) between vertically adjacent pixels
 	Pix    []uint8         // the image pixels
 }
 
@@ -405,7 +341,7 @@ func (p *ImageRGB) SubImage(r image.Rectangle) image.Image {
 // ImmRGB is an immutable counterpart of ImageRGB.
 type ImmRGB struct {
 	Rect   image.Rectangle // image bounds
-	Stride int             // Pix stride (in bytes) between vertically adjacent pixels
+	Stride int             // stride (in bytes) between vertically adjacent pixels
 	Pix    string          // the image pixels
 }
 
