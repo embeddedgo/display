@@ -9,13 +9,14 @@ import (
 	"image/color"
 )
 
+// Area is the drawing area on the display. It has its own coordinates with the
+// (0, 0) origin regardless of its position on the display.
 type Area struct {
-	disp   *Display
-	color  color.Color
-	rect   image.Rectangle
-	p0     image.Point
-	width  int
-	height int
+	disp    *Display
+	color   color.Color
+	p0      image.Point
+	visible image.Rectangle
+	size    image.Point
 }
 
 func setColor(a *Area) {
@@ -25,24 +26,18 @@ func setColor(a *Area) {
 	}
 }
 
-func (a *Area) P0() image.Point {
-	return a.p0
-}
-
 func (a *Area) Rect() image.Rectangle {
-	return a.rect
+	return image.Rectangle{a.p0, a.p0.Add(a.size)}
 }
 
 func (a *Area) SetRect(r image.Rectangle) {
-	a.rect = r
-	wh := r.Intersect(a.disp.Bounds())
-	a.p0 = wh.Min
-	a.width = wh.Dx()
-	a.height = wh.Dy()
+	a.p0 = r.Min
+	a.size = r.Size()
+	a.visible = r.Intersect(a.disp.Bounds())
 }
 
 func (a *Area) Bounds() image.Rectangle {
-	return image.Rectangle{Max: image.Point{int(a.width), int(a.height)}}
+	return image.Rectangle{Max: a.size}
 }
 
 // SetColor sets the color used by drawing methods.

@@ -19,8 +19,10 @@ type Driver interface {
 	// whole display.
 	//
 	// The draw.Over operator can be implemented in a limited way but it must
-	// at least do not modify a display pixel if the corresponding masked
-	// source pixel is transparent.
+	// at least support one-bit transparency.
+	//
+	// Draw can assume that r is a non-empty rectangle that fits entirely on the
+	// display and is entirely covered by src and mask.
 	//
 	// Draw is actually the only operation required from a display controller.
 	// The Fill operation below can be easily implemented by drawing an uniform

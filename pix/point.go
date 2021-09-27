@@ -41,8 +41,8 @@ func (a *Area) DrawPoint(p image.Point, r int) {
 		p.Add(image.Point{x, x}),
 		p.Sub(image.Point{x - 1, x - 1}),
 	}
-	rect = rect.Intersect(a.Bounds())
+	rect = rect.Add(a.p0).Intersect(a.visible)
 	if !rect.Empty() {
-		rawFill(a, rect)
+		a.disp.drv.Fill(rect)
 	}
 }

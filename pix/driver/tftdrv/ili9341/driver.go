@@ -182,19 +182,6 @@ func (d *Driver) Fill(r image.Rectangle) {
 }
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	// clip r, update sp, mp
-	orig := r.Min
-	r = r.Intersect(image.Rectangle{Max: d.Size()})
-	r = r.Intersect(src.Bounds().Add(orig.Sub(sp)))
-	if mask != nil {
-		r = r.Intersect(mask.Bounds().Add(orig.Sub(mp)))
-	}
-	delta := r.Min.Sub(orig)
-	sp = sp.Add(delta)
-	if mask != nil {
-		mp = mp.Add(delta)
-	}
-
 	var (
 		bpix   []byte
 		spix   string
@@ -233,7 +220,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 				height := r.Dy()
 				if len(bpix) != 0 {
 					if width == stride {
-						// write the entire src directly
+						// write the entire src
 						d.dci.WriteBytes(bpix[:height*stride])
 						return
 					}
@@ -250,7 +237,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 					}
 				} else if w, ok := d.dci.(tftdrv.StringWriter); ok {
 					if width == stride {
-						// write the entire src directly
+						// write the entire src
 						w.WriteString(spix[:height*stride])
 						return
 					}
@@ -267,6 +254,38 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 					}
 				}
 				// buffered write
+				i := 0
+				start := 0
+				stop := width
+				max := height * stride
+				for {
+					for {
+						var n int
+						if bpix != nil {
+							n = copy(d.rgb[i:], bpix[start:stop])
+						} else {
+							n = copy(d.rgb[i:], spix[start:stop])
+						}
+						i += n
+						start += n
+						if i == len(d.rgb) {
+							d.dci.WriteBytes(d.rgb[:])
+							i = 0
+						}
+						if start == stop {
+							break
+						}
+					}
+					stop += stride
+					if stop > max {
+						break
+					}
+					start = stop - width
+				}
+				if i != 0 {
+					d.dci.WriteBytes(d.rgb[:i])
+				}
+				return
 			}
 		}
 	}
