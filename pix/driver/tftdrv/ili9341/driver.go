@@ -19,7 +19,7 @@ type Driver struct {
 	rgb16 int32
 	pf    [1]byte
 	xarg  [4]byte
-	rgb   [13 * 3]uint8
+	rgb   [25 * 3]uint8
 	w, h  uint16
 }
 
@@ -77,6 +77,12 @@ func (d *Driver) SetMADCTL(madctl byte) {
 	d.dci.WriteBytes(d.xarg[:1])
 }
 
+const (
+	transparent = -1
+	initRGB24   = -2
+	fullRGB24   = -3
+)
+
 func (d *Driver) SetColor(c color.Color) {
 	switch cc := c.(type) {
 	case pix.RGB16:
@@ -93,7 +99,7 @@ func (d *Driver) SetColor(c color.Color) {
 		d.rgb[2] = cc.B
 	case color.RGBA:
 		if cc.A>>7 == 0 {
-			d.rgb16 = -1 // transparent color, only 1-bit transparency supported
+			d.rgb16 = transparent // only 1-bit transparency supported
 			return
 		}
 		d.rgb[0] = cc.R
@@ -102,19 +108,14 @@ func (d *Driver) SetColor(c color.Color) {
 	default:
 		r, g, b, a := c.RGBA()
 		if a>>15 == 0 {
-			d.rgb16 = -1 // transparent color, only 1-bit transparency supported
+			d.rgb16 = transparent // only 1-bit transparency supported
 			return
 		}
 		d.rgb[0] = uint8(r >> 8)
 		d.rgb[1] = uint8(g >> 8)
 		d.rgb[2] = uint8(b >> 8)
 	}
-	for i := 3; i < len(d.rgb); i += 3 {
-		d.rgb[i] = d.rgb[0]
-		d.rgb[i+1] = d.rgb[1]
-		d.rgb[i+2] = d.rgb[2]
-	}
-	d.rgb16 = -2
+	d.rgb16 = initRGB24
 }
 
 func pixset(d *Driver, pf byte) {
@@ -143,8 +144,8 @@ func capaset(d *Driver, r image.Rectangle) {
 }
 
 func (d *Driver) Fill(r image.Rectangle) {
-	if d.rgb16 == -1 {
-		return // transparent color
+	if d.rgb16 == transparent {
+		return
 	}
 	n := r.Dx() * r.Dy()
 	if n == 0 {
@@ -166,6 +167,14 @@ func (d *Driver) Fill(r image.Rectangle) {
 		if w, ok := d.dci.(tftdrv.ByteNWriter); ok {
 			w.WriteByteN(d.rgb[0], n)
 			return
+		}
+	}
+	if d.rgb16 == initRGB24 {
+		d.rgb16 = fullRGB24
+		for i := 3; i < len(d.rgb); i += 3 {
+			d.rgb[i+0] = d.rgb[0]
+			d.rgb[i+1] = d.rgb[1]
+			d.rgb[i+2] = d.rgb[2]
 		}
 	}
 	m := len(d.rgb)
@@ -204,7 +213,12 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		spix = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		stride = img.Stride
 	}
-
+	buf := d.rgb[:]
+	if d.rgb16 <= initRGB24 {
+		d.rgb16 = initRGB24
+		buf = d.rgb[3:]
+	}
+	i := 0
 	if op == draw.Src {
 		if mask == nil {
 			capaset(d, r)
@@ -224,7 +238,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 						d.dci.WriteBytes(bpix[:height*stride])
 						return
 					}
-					if width*2 > len(d.rgb) {
+					if width*2 > len(buf) {
 						// write line by line directly from src
 						for {
 							d.dci.WriteBytes(bpix[:width])
@@ -241,7 +255,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 						w.WriteString(spix[:height*stride])
 						return
 					}
-					if width*2 > len(d.rgb) {
+					if width*2 > len(buf) {
 						// write line by line directly from src
 						for {
 							w.WriteString(spix[:width])
@@ -254,7 +268,6 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 					}
 				}
 				// buffered write
-				i := 0
 				start := 0
 				stop := width
 				max := height * stride
@@ -262,14 +275,14 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 					for {
 						var n int
 						if bpix != nil {
-							n = copy(d.rgb[i:], bpix[start:stop])
+							n = copy(buf[i:], bpix[start:stop])
 						} else {
-							n = copy(d.rgb[i:], spix[start:stop])
+							n = copy(buf[i:], spix[start:stop])
 						}
 						i += n
 						start += n
-						if i == len(d.rgb) {
-							d.dci.WriteBytes(d.rgb[:])
+						if i == len(buf) {
+							d.dci.WriteBytes(buf)
 							i = 0
 						}
 						if start == stop {
@@ -282,11 +295,27 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 					}
 					start = stop - width
 				}
-				if i != 0 {
-					d.dci.WriteBytes(d.rgb[:i])
+			} else {
+				r = r.Add(sp.Sub(r.Min))
+				for y := r.Min.Y; y < r.Max.Y; y++ {
+					for x := r.Min.X; x < r.Max.X; x++ {
+						r, g, b, _ := src.At(x, y).RGBA()
+						buf[i+0] = uint8(r >> 8)
+						buf[i+1] = uint8(g >> 8)
+						buf[i+2] = uint8(b >> 8)
+						i += 3
+						if i == len(buf) {
+							d.dci.WriteBytes(buf)
+							i = 0
+						}
+					}
 				}
-				return
 			}
 		}
 	}
+	if i != 0 {
+		d.dci.WriteBytes(buf[:i])
+	}
+	return
+
 }

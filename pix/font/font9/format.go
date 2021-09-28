@@ -59,7 +59,8 @@ func (d *Variable) Advance(i int) int {
 // Glyph implements subfont.Data interface
 func (d *Variable) Glyph(i int) (img image.Image, origin image.Point, advance int) {
 	r := d.Bits.Bounds()
-	info := d.Info[i*4:]
+	i *= 4
+	info := d.Info[i : i+6]
 	r.Min.X = int(info[0]) | int(info[1])<<8
 	r.Max.X = int(info[4]) | int(info[5])<<8
 	img = d.Bits.SubImage(r)
