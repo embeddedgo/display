@@ -195,23 +195,29 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		bpix   []byte
 		spix   string
 		stride int
+		ps     int
 	)
-	pf := byte(PF18)
 	switch img := src.(type) {
 	case *pix.ImageRGB16:
 		bpix = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		stride = img.Stride
-		pf = PF16
+		ps = 2
 	case *pix.ImmRGB16:
 		spix = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		stride = img.Stride
-		pf = PF16
+		ps = 2
 	case *pix.ImageRGB:
 		bpix = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		stride = img.Stride
+		ps = 3
 	case *pix.ImmRGB:
 		spix = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		stride = img.Stride
+		ps = 3
+	case *image.RGBA:
+		bpix = img.Pix[img.PixOffset(sp.X, sp.Y):]
+		stride = img.Stride
+		ps = 4
 	}
 	buf := d.rgb[:]
 	if d.rgb16 <= initRGB24 {
@@ -222,78 +228,84 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 	if op == draw.Src {
 		if mask == nil {
 			capaset(d, r)
+			pf := byte(PF18)
+			if ps == 2 {
+				pf = PF16
+			}
 			pixset(d, pf)
 			d.dci.Cmd(RAMWR)
 			if stride != 0 {
-				width := r.Dx()
-				if pf == PF16 {
-					width *= 2
-				} else {
-					width *= 3
-				}
+				width := r.Dx() * ps
 				height := r.Dy()
-				if len(bpix) != 0 {
-					if width == stride {
-						// write the entire src
-						d.dci.WriteBytes(bpix[:height*stride])
-						return
-					}
-					if width*2 > len(buf) {
-						// write line by line directly from src
-						for {
-							d.dci.WriteBytes(bpix[:width])
-							if height--; height == 0 {
-								break
-							}
-							bpix = bpix[stride:]
+				if ps != 4 {
+					// RGB or RGB16
+					if len(bpix) != 0 {
+						if width == stride {
+							// write the entire src
+							d.dci.WriteBytes(bpix[:height*stride])
+							return
 						}
-						return
-					}
-				} else if w, ok := d.dci.(tftdrv.StringWriter); ok {
-					if width == stride {
-						// write the entire src
-						w.WriteString(spix[:height*stride])
-						return
-					}
-					if width*2 > len(buf) {
-						// write line by line directly from src
-						for {
-							w.WriteString(spix[:width])
-							if height--; height == 0 {
-								break
+						if width*2 > len(buf) {
+							// write line by line directly from src
+							for {
+								d.dci.WriteBytes(bpix[:width])
+								if height--; height == 0 {
+									break
+								}
+								bpix = bpix[stride:]
 							}
-							spix = spix[stride:]
+							return
 						}
-						return
+					} else if w, ok := d.dci.(tftdrv.StringWriter); ok {
+						if width == stride {
+							// write the entire src
+							w.WriteString(spix[:height*stride])
+							return
+						}
+						if width*2 > len(buf) {
+							// write line by line directly from src
+							for {
+								w.WriteString(spix[:width])
+								if height--; height == 0 {
+									break
+								}
+								spix = spix[stride:]
+							}
+							return
+						}
 					}
 				}
 				// buffered write
-				start := 0
-				stop := width
+				j := 0
+				k := width
 				max := height * stride
 				for {
-					for {
-						var n int
-						if bpix != nil {
-							n = copy(buf[i:], bpix[start:stop])
-						} else {
-							n = copy(buf[i:], spix[start:stop])
-						}
-						i += n
-						start += n
-						if i == len(buf) {
-							d.dci.WriteBytes(buf)
-							i = 0
-						}
-						if start == stop {
+					var r, g, b uint8
+					if bpix != nil {
+						r = bpix[j+0]
+						g = bpix[j+1]
+						b = bpix[j+2]
+					} else {
+						r = spix[j+0]
+						g = spix[j+1]
+						b = spix[j+2]
+					}
+					buf[i+0] = r
+					buf[i+1] = g
+					buf[i+2] = b
+					i += 3
+					j += ps
+					if i == len(buf) {
+						d.dci.WriteBytes(buf)
+						i = 0
+					}
+					if j == k {
+						k += stride
+						if k > max {
 							break
 						}
+						j = k - width
 					}
-					stop += stride
-					if stop > max {
-						break
-					}
-					start = stop - width
 				}
 			} else {
 				r = r.Add(sp.Sub(r.Min))
