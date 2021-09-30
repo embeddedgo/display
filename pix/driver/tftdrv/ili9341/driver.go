@@ -16,11 +16,11 @@ import (
 
 type Driver struct {
 	dci   tftdrv.DCI
-	rgb16 int32
-	pf    [1]byte
 	xarg  [4]byte
-	rgb   [25 * 3]uint8
+	pf    [1]byte
 	w, h  uint16
+	rgb16 int32
+	buf   [24 * 3]uint8 // must be multiple of two and three
 }
 
 func New(dci tftdrv.DCI) *Driver {
@@ -78,9 +78,12 @@ func (d *Driver) SetMADCTL(madctl byte) {
 }
 
 const (
+	// do not reorder the constants below
 	transparent = -1
-	initRGB24   = -2
-	fullRGB24   = -3
+	initRGB16   = -2
+	fullRGB16   = -3
+	initRGB24   = -4
+	fullRGB24   = -5
 )
 
 func (d *Driver) SetColor(c color.Color) {
@@ -88,32 +91,33 @@ func (d *Driver) SetColor(c color.Color) {
 	case pix.RGB16:
 		if _, ok := d.dci.(tftdrv.WordNWriter); ok {
 			d.rgb16 = int32(cc)
-			return
+		} else {
+			d.buf[0] = uint8(cc >> 8)
+			d.buf[1] = uint8(cc)
+			d.rgb16 = initRGB16
 		}
-		d.rgb[0] = uint8(cc >> 11)
-		d.rgb[1] = uint8(cc >> 5 & 0x3f)
-		d.rgb[2] = uint8(cc & 0x1f)
+		return
 	case pix.RGB:
-		d.rgb[0] = cc.R
-		d.rgb[1] = cc.G
-		d.rgb[2] = cc.B
+		d.buf[0] = cc.R
+		d.buf[1] = cc.G
+		d.buf[2] = cc.B
 	case color.RGBA:
 		if cc.A>>7 == 0 {
 			d.rgb16 = transparent // only 1-bit transparency supported
 			return
 		}
-		d.rgb[0] = cc.R
-		d.rgb[1] = cc.G
-		d.rgb[2] = cc.B
+		d.buf[0] = cc.R
+		d.buf[1] = cc.G
+		d.buf[2] = cc.B
 	default:
 		r, g, b, a := c.RGBA()
 		if a>>15 == 0 {
 			d.rgb16 = transparent // only 1-bit transparency supported
 			return
 		}
-		d.rgb[0] = uint8(r >> 8)
-		d.rgb[1] = uint8(g >> 8)
-		d.rgb[2] = uint8(b >> 8)
+		d.buf[0] = uint8(r >> 8)
+		d.buf[1] = uint8(g >> 8)
+		d.buf[2] = uint8(b >> 8)
 	}
 	d.rgb16 = initRGB24
 }
@@ -153,7 +157,7 @@ func (d *Driver) Fill(r image.Rectangle) {
 	}
 	capaset(d, r)
 	pf := byte(PF18)
-	if d.rgb16 >= 0 {
+	if d.rgb16 >= fullRGB16 {
 		pf = PF16
 	}
 	pixset(d, pf)
@@ -162,27 +166,44 @@ func (d *Driver) Fill(r image.Rectangle) {
 		d.dci.(tftdrv.WordNWriter).WriteWordN(uint16(d.rgb16), n)
 		return
 	}
-	n *= 3
-	if d.rgb[0] == d.rgb[1] && d.rgb[1] == d.rgb[2] {
-		if w, ok := d.dci.(tftdrv.ByteNWriter); ok {
-			w.WriteByteN(d.rgb[0], n)
-			return
+	if d.rgb16 >= fullRGB16 {
+		n *= 2
+		if d.buf[0] == d.buf[1] {
+			if w, ok := d.dci.(tftdrv.ByteNWriter); ok {
+				w.WriteByteN(d.buf[0], n)
+				return
+			}
+		}
+		if d.rgb16 == initRGB16 {
+			d.rgb16 = fullRGB16
+			for i := 2; i < len(d.rgb); i += 2 {
+				d.buf[i+0] = d.buf[0]
+				d.buf[i+1] = d.buf[1]
+			}
+		}
+	} else {
+		n *= 3
+		if d.buf[0] == d.buf[1] && d.buf[1] == d.buf[2] {
+			if w, ok := d.dci.(tftdrv.ByteNWriter); ok {
+				w.WriteByteN(d.buf[0], n)
+				return
+			}
+		}
+		if d.rgb16 == initRGB24 {
+			d.rgb16 = fullRGB24
+			for i := 3; i < len(d.rgb); i += 3 {
+				d.buf[i+0] = d.buf[0]
+				d.buf[i+1] = d.buf[1]
+				d.buf[i+2] = d.buf[2]
+			}
 		}
 	}
-	if d.rgb16 == initRGB24 {
-		d.rgb16 = fullRGB24
-		for i := 3; i < len(d.rgb); i += 3 {
-			d.rgb[i+0] = d.rgb[0]
-			d.rgb[i+1] = d.rgb[1]
-			d.rgb[i+2] = d.rgb[2]
-		}
-	}
-	m := len(d.rgb)
+	m := len(d.buf)
 	for {
 		if m > n {
 			m = n
 		}
-		d.dci.WriteBytes(d.rgb[:m])
+		d.dci.WriteBytes(d.buf[:m])
 		n -= m
 		if n == 0 {
 			break
@@ -192,84 +213,93 @@ func (d *Driver) Fill(r image.Rectangle) {
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	var (
-		bpix   []byte
-		spix   string
-		stride int
-		ps     int
+		srcBytes   []byte
+		srcString  string
+		srcStride  int
+		srcPixSize int
 	)
 	switch img := src.(type) {
 	case *pix.ImageRGB16:
-		bpix = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		stride = img.Stride
-		ps = 2
+		srcBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
+		srcStride = img.Stride
+		srcPixSize = 2
 	case *pix.ImmRGB16:
-		spix = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		stride = img.Stride
-		ps = 2
+		srcString = img.Pix[img.PixOffset(sp.X, sp.Y):]
+		srcStride = img.Stride
+		srcPixSize = 2
 	case *pix.ImageRGB:
-		bpix = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		stride = img.Stride
-		ps = 3
+		srcBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
+		srcStride = img.Stride
+		srcPixSize = 3
 	case *pix.ImmRGB:
-		spix = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		stride = img.Stride
-		ps = 3
+		srcString = img.Pix[img.PixOffset(sp.X, sp.Y):]
+		srcStride = img.Stride
+		srcPixSize = 3
 	case *image.RGBA:
-		bpix = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		stride = img.Stride
-		ps = 4
+		srcBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
+		srcStride = img.Stride
+		srcPixSize = 4
 	}
-	buf := d.rgb[:]
+	buf := d.buf[:]
 	if d.rgb16 <= initRGB24 {
-		d.rgb16 = initRGB24
-		buf = d.rgb[3:]
+		if d.rgb16 == initRGB24 {
+			d.rgb16 = initRGB24
+		}
+		buf = d.buf[3:]
+	} else if d.rgb16 <= initRGB16 {
+		if d.rgb16 == initRGB16 {
+			d.rgb16 = initRGB16
+		}
+		buf = d.buf[2:]
 	}
+---------------------------------- tu koniec
 	i := 0
 	if op == draw.Src {
+		capaset(d, r)
+		pf := byte(PF18)
+		if srcPixSize == 2 {
+			pf = PF16
+		}
+		pixset(d, pf)
+		d.dci.Cmd(RAMWR)
 		if mask == nil {
-			capaset(d, r)
-			pf := byte(PF18)
-			if ps == 2 {
-				pf = PF16
-			}
-			pixset(d, pf)
-			d.dci.Cmd(RAMWR)
-			if stride != 0 {
-				width := r.Dx() * ps
+			if srcPixSize != 0 {
+				// known image type
+				width := r.Dx() * srcPixSize
 				height := r.Dy()
-				if ps != 4 {
+				if srcPixSize != 4 {
 					// RGB or RGB16
-					if len(bpix) != 0 {
-						if width == stride {
+					if len(srcBytes) != 0 {
+						if width == srcStride {
 							// write the entire src
-							d.dci.WriteBytes(bpix[:height*stride])
+							d.dci.WriteBytes(srcBytes[:height*srcStride])
 							return
 						}
-						if width*2 > len(buf) {
+						if width*4 > len(buf)*3 {
 							// write line by line directly from src
 							for {
-								d.dci.WriteBytes(bpix[:width])
+								d.dci.WriteBytes(srcBytes[:width])
 								if height--; height == 0 {
 									break
 								}
-								bpix = bpix[stride:]
+								srcBytes = srcBytes[srcStride:]
 							}
 							return
 						}
 					} else if w, ok := d.dci.(tftdrv.StringWriter); ok {
-						if width == stride {
+						if width == srcStride {
 							// write the entire src
-							w.WriteString(spix[:height*stride])
+							w.WriteString(srcString[:height*srcStride])
 							return
 						}
-						if width*2 > len(buf) {
+						if width*4 > len(buf)*3 {
 							// write line by line directly from src
 							for {
-								w.WriteString(spix[:width])
+								w.WriteString(srcString[:width])
 								if height--; height == 0 {
 									break
 								}
-								spix = spix[stride:]
+								srcString = srcString[srcStride:]
 							}
 							return
 						}
@@ -278,29 +308,29 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 				// buffered write
 				j := 0
 				k := width
-				max := height * stride
+				max := height * srcStride
 				for {
 					var r, g, b uint8
-					if bpix != nil {
-						r = bpix[j+0]
-						g = bpix[j+1]
-						b = bpix[j+2]
+					if srcBytes != nil {
+						r = srcBytes[j+0]
+						g = srcBytes[j+1]
+						b = srcBytes[j+2]
 					} else {
-						r = spix[j+0]
-						g = spix[j+1]
-						b = spix[j+2]
+						r = srcString[j+0]
+						g = srcString[j+1]
+						b = srcString[j+2]
 					}
 					buf[i+0] = r
 					buf[i+1] = g
 					buf[i+2] = b
 					i += 3
-					j += ps
+					j += srcPixSize
 					if i == len(buf) {
 						d.dci.WriteBytes(buf)
 						i = 0
 					}
 					if j == k {
-						k += stride
+						k += srcStride
 						if k > max {
 							break
 						}
@@ -308,6 +338,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 					}
 				}
 			} else {
+				// unknown image type
 				r = r.Add(sp.Sub(r.Min))
 				for y := r.Min.Y; y < r.Max.Y; y++ {
 					for x := r.Min.X; x < r.Max.X; x++ {
@@ -323,6 +354,39 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 					}
 				}
 			}
+		} else {
+			// mask != nil
+			var (
+				maskBytes   []byte
+				maskString  string
+				maskShift   uint
+				maskStride  int
+				maskPixBitN uint
+			)
+			switch img := mask.(type) {
+			case *pix.ImageAlphaN:
+				offset, shift := img.PixOffset(sp.X, sp.Y)
+				maskBytes = img.Pix[offset:]
+				maskShift = shift
+				maskStride = img.Stride
+				maskPixBitN = 1 << img.LogN
+			case *pix.ImmAlphaN:
+				offset, shift := img.PixOffset(sp.X, sp.Y)
+				maskString = img.Pix[offset:]
+				maskShift = shift
+				maskStride = img.Stride
+				maskPixBitN = 1 << img.LogN
+			case *image.Alpha:
+				maskBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
+				maskStride = img.Stride
+				maskPixBitN = 8
+			}
+
+			_ = maskBytes
+			_ = maskString
+			_ = maskShift
+			_ = maskStride
+			_ = maskPixBitN
 		}
 	}
 	if i != 0 {
