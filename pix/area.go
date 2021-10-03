@@ -45,9 +45,9 @@ func (a *Area) SetColor(c color.Color) {
 	a.color = c
 }
 
-// SetColorRGB is a convenient wrapper over SetColor(RGB{r, g, b}).
+// SetColorRGB is a convenient equivalent of SetColor(color.RGBA{r, g, b, 255}).
 func (a *Area) SetColorRGB(r, g, b uint8) {
-	a.color = RGB{r, g, b}
+	a.color = color.RGBA{r, g, b, 255}
 }
 
 func (a *Area) Color() color.Color {

@@ -41,7 +41,7 @@ func TestDrawGeom(t *testing.T) {
 
 	max := a.Bounds().Max
 
-	a.SetColor(pix.RGB16(0x1234))
+	a.SetColorRGB(24, 46, 68)
 	for x := 0; x < max.X; x += 2 {
 		a.DrawPoint(image.Pt(x, 0), 0)
 		a.DrawPoint(image.Pt(x+1, max.Y-1), 0)
@@ -87,10 +87,10 @@ func TestDrawImage(t *testing.T) {
 	disp := pix.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds().Inset(4))
-	a.SetColor(pix.RGB{0, 0, 128})
+	a.SetColorRGB(0, 0, 128)
 	a.Fill(a.Bounds())
 
-	img := pix.NewImageAlphaN(image.Rect(0, 0, 11, 11), 1)
+	img := pix.NewAlphaN(image.Rect(0, 0, 11, 11), 1)
 	img.Set(0, 10, color.Alpha{1})
 	img.Set(2, 8, color.Gray{1})
 	img.Set(4, 6, color.Gray16{1})
@@ -105,7 +105,7 @@ func TestDrawImage(t *testing.T) {
 	imm := pix.NewImmAlphaN(img.Bounds(), 1, string(img.Pix))
 
 	a.Draw(disp.Bounds().Add(image.Pt(5, 5)),
-		&image.Uniform{pix.RGB{255, 0, 0}}, image.Point{}, // source
+		&image.Uniform{color.RGBA{255, 0, 0, 255}}, image.Point{}, // source
 		imm, image.Point{}, // mask
 		draw.Over,
 	)
@@ -178,7 +178,7 @@ func TestFont(t *testing.T) {
 	disp := pix.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
-	a.SetColor(pix.RGB{250, 250, 200})
+	a.SetColorRGB(250, 250, 200)
 	a.Fill(a.Bounds())
 	a.SetRect(a.Rect().Inset(4))
 	a.SetColorRGB(0, 0, 100)
