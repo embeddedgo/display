@@ -10,8 +10,8 @@ import (
 	"image/draw"
 	"time"
 
-	"github.com/embeddedgo/display/pix"
-	"github.com/embeddedgo/display/pix/driver/tftdrv"
+	"github.com/embeddedgo/display/pixd"
+	"github.com/embeddedgo/display/pixd/driver/tftdrv"
 )
 
 type Driver struct {
@@ -83,10 +83,13 @@ func (d *Driver) SetMADCTL(madctl byte) {
 
 const (
 	transparent = 0
-	fastByte    = 0 << 6
-	fastWord    = 1 << 6
-	bufInit     = 2 << 6
-	bufFull     = 3 << 6
+
+	osize    = 4
+	otype    = 6 // the Fill method relies on the type field is two ms-bits
+	fastByte = 0
+	fastWord = 1
+	bufInit  = 2 // the Draw method relies on one bit difference to bufFull
+	bufFull  = 3 // the Fill methods relies on both bits set
 )
 
 func (d *Driver) SetColor(c color.Color) {
@@ -97,9 +100,9 @@ func (d *Driver) SetColor(c color.Color) {
 			d.cinfo = transparent // only 1-bit transparency supported
 			return
 		}
-		r = cc.R
-		g = cc.G
-		b = cc.B
+		r = uint32(cc.R)
+		g = uint32(cc.G)
+		b = uint32(cc.B)
 	default:
 		var a uint32
 		r, g, b, a = c.RGBA()
@@ -115,23 +118,23 @@ func (d *Driver) SetColor(c color.Color) {
 	r &^= 3
 	g &^= 3
 	b &^= 3
-	if r&4 == 0 && b&4 == 0 {
+	if r&7 == 0 && b&7 == 0 {
 		rgb565 := r<<8 | g<<3 | b>>3
+		if _, ok := d.dci.(tftdrv.WordNWriter); ok {
+			d.cinfo = fastWord<<otype | 1<<osize | MCU16
+			d.cfast = uint16(rgb565)
+			return
+		}
 		h := rgb565 >> 8
-		l := rgb565 && 0xff
+		l := rgb565 & 0xff
 		if h == l {
 			if _, ok := d.dci.(tftdrv.ByteNWriter); ok {
-				d.cinfo = fastByte | 2<<4 | MCU16
+				d.cinfo = fastByte<<otype | 2<<osize | MCU16
 				d.cfast = uint16(h)
 				return
 			}
 		}
-		if _, ok := d.dci.(tftdrv.WordNWriter); ok {
-			d.cinfo = fastWord | 2<<4 | MCU16
-			d.cfast = uint16(rgb565)
-			return
-		}
-		d.cinfo = bufInit | 2<<4 | MCU16
+		d.cinfo = bufInit<<otype | 2<<osize | MCU16
 		d.buf[0] = byte(h)
 		d.buf[1] = byte(l)
 		return
@@ -139,18 +142,17 @@ func (d *Driver) SetColor(c color.Color) {
 	if r == g && g == b {
 		if _, ok := d.dci.(tftdrv.ByteNWriter); ok {
 			d.cfast = uint16(r)
-			d.cinfo = fastByte | 3<<4 | MCU18
+			d.cinfo = fastByte<<otype | 3<<osize | MCU18
 			return
 		}
 	}
-	d.cinfo = bufInit | 3<<4 | MCU18
+	d.cinfo = bufInit<<otype | 3<<osize | MCU18
 	d.buf[0] = uint8(r)
 	d.buf[1] = uint8(g)
 	d.buf[2] = uint8(b)
 }
 
-func pixset(d *Driver) {
-	pf = d.cinfo & 0xf
+func pixset(d *Driver, pf byte) {
 	if d.pf[0] != pf {
 		d.pf[0] = pf
 		d.dci.Cmd(PIXSET)
@@ -176,7 +178,7 @@ func capaset(d *Driver, r image.Rectangle) {
 }
 
 func (d *Driver) Fill(r image.Rectangle) {
-	if d.rgb16 == transparent {
+	if d.cinfo == transparent {
 		return
 	}
 	n := r.Dx() * r.Dy()
@@ -184,41 +186,24 @@ func (d *Driver) Fill(r image.Rectangle) {
 		return
 	}
 	capaset(d, r)
-	pixset(d)
+	pixset(d, d.cinfo&0xf)
 	d.dci.Cmd(RAMWR)
 
-	if d.rgb16 >= 0 {
-		d.dci.(tftdrv.WordNWriter).WriteWordN(uint16(d.rgb16), n)
+	pixSize := int(d.cinfo>>osize) & 3
+	n *= pixSize
+	switch d.cinfo >> otype {
+	case fastWord:
+		d.dci.(tftdrv.WordNWriter).WriteWordN(d.cfast, n)
 		return
-	}
-	if d.rgb16 >= fullRGB16 {
-		n *= 2
-		if d.buf[0] == d.buf[1] {
-			if w, ok := d.dci.(tftdrv.ByteNWriter); ok {
-				w.WriteByteN(d.buf[0], n)
-				return
-			}
-		}
-		if d.rgb16 == initRGB16 {
-			d.rgb16 = fullRGB16
-			for i := 2; i < len(d.rgb); i += 2 {
-				d.buf[i+0] = d.buf[0]
-				d.buf[i+1] = d.buf[1]
-			}
-		}
-	} else {
-		n *= 3
-		if d.buf[0] == d.buf[1] && d.buf[1] == d.buf[2] {
-			if w, ok := d.dci.(tftdrv.ByteNWriter); ok {
-				w.WriteByteN(d.buf[0], n)
-				return
-			}
-		}
-		if d.rgb16 == initRGB24 {
-			d.rgb16 = fullRGB24
-			for i := 3; i < len(d.rgb); i += 3 {
-				d.buf[i+0] = d.buf[0]
-				d.buf[i+1] = d.buf[1]
+	case fastByte:
+		d.dci.(tftdrv.ByteNWriter).WriteByteN(byte(d.cfast), n)
+		return
+	case bufInit:
+		d.cinfo |= bufFull << otype
+		for i := pixSize; i < len(d.buf); i += pixSize {
+			d.buf[i+0] = d.buf[0]
+			d.buf[i+1] = d.buf[1]
+			if pixSize == 3 {
 				d.buf[i+2] = d.buf[2]
 			}
 		}
@@ -244,19 +229,19 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		srcPixSize int
 	)
 	switch img := src.(type) {
-	case *pix.ImageRGB16:
+	case *pixd.RGB16:
 		srcBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		srcStride = img.Stride
 		srcPixSize = 2
-	case *pix.ImmRGB16:
+	case *pixd.ImmRGB16:
 		srcString = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		srcStride = img.Stride
 		srcPixSize = 2
-	case *pix.ImageRGB:
+	case *pixd.RGB:
 		srcBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		srcStride = img.Stride
 		srcPixSize = 3
-	case *pix.ImmRGB:
+	case *pixd.ImmRGB:
 		srcString = img.Pix[img.PixOffset(sp.X, sp.Y):]
 		srcStride = img.Stride
 		srcPixSize = 3
@@ -266,23 +251,16 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		srcPixSize = 4
 	}
 	buf := d.buf[:]
-	if d.rgb16 <= initRGB24 {
-		if d.rgb16 == initRGB24 {
-			d.rgb16 = initRGB24
-		}
-		buf = d.buf[3:]
-	} else if d.rgb16 <= initRGB16 {
-		if d.rgb16 == initRGB16 {
-			d.rgb16 = initRGB16
-		}
-		buf = d.buf[2:]
+	if d.cinfo&(bufInit<<otype) != 0 {
+		d.cinfo &^= (bufFull ^ bufInit) << otype // clear full bit
+		buf = d.buf[d.cinfo>>osize&3:]
 	}
 	i := 0
 	if op == draw.Src {
 		capaset(d, r)
-		pf := byte(PF18)
+		pf := byte(MCU18)
 		if srcPixSize == 2 {
-			pf = PF16
+			pf = MCU16
 		}
 		pixset(d, pf)
 		d.dci.Cmd(RAMWR)
@@ -388,13 +366,13 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 				maskPixBitN uint
 			)
 			switch img := mask.(type) {
-			case *pix.ImageAlphaN:
+			case *pixd.AlphaN:
 				offset, shift := img.PixOffset(sp.X, sp.Y)
 				maskBytes = img.Pix[offset:]
 				maskShift = shift
 				maskStride = img.Stride
 				maskPixBitN = 1 << img.LogN
-			case *pix.ImmAlphaN:
+			case *pixd.ImmAlphaN:
 				offset, shift := img.PixOffset(sp.X, sp.Y)
 				maskString = img.Pix[offset:]
 				maskShift = shift
