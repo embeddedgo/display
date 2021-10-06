@@ -10,8 +10,8 @@ import (
 	"image/draw"
 	"time"
 
-	"github.com/embeddedgo/display/pixd"
 	"github.com/embeddedgo/display/pixd/driver/tftdrv"
+	"github.com/embeddedgo/display/pixd/driver/tftdrv/internal"
 )
 
 type Driver struct {
@@ -229,262 +229,18 @@ func (d *Driver) getBuf() []byte {
 	return d.buf[:]
 }
 
-type fastImage struct {
-	p       []byte
-	s       string
-	stride  int
-	pixSize int
-}
-
-func fastImageAtPoint(img image.Image, pt image.Point) (out fastImage) {
-	switch img := img.(type) {
-	case *pixd.RGB16:
-		out.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
-		out.stride = img.Stride
-		out.pixSize = 2
-	case *pixd.ImmRGB16:
-		out.s = img.Pix[img.PixOffset(pt.X, pt.Y):]
-		out.stride = img.Stride
-		out.pixSize = 2
-	case *pixd.RGB:
-		out.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
-		out.stride = img.Stride
-		out.pixSize = 3
-	case *pixd.ImmRGB:
-		out.s = img.Pix[img.PixOffset(pt.X, pt.Y):]
-		out.stride = img.Stride
-		out.pixSize = 3
-	case *image.RGBA:
-		out.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
-		out.stride = img.Stride
-		out.pixSize = 4
-	}
-	return
-}
-
-type gram struct {
-	dci     tftdrv.DCI
-	size    image.Point
-	pixSize int
-}
-
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	fsrc := fastImageAtPoint(src, sp)
+	sip := internal.ImageAtPoint(src, sp)
 	if op == draw.Src {
 		capaset(d, r)
-		dst := gram{d.dci, r.Size(), 3}
+		dst := internal.GRAM{d.dci, r.Size(), 3}
 		pf := byte(MCU18)
-		if mask == nil && fsrc.pixSize == 2 {
+		if mask == nil && sip.PixSize == 2 {
 			pf = MCU16
-			dst.pixSize = 2
+			dst.PixSize = 2
 		}
 		pixset(d, pf)
 		d.dci.Cmd(RAMWR)
-		drawSrc(dst, src, sp, fsrc, mask, mp, d.getBuf, len(d.buf)*3/4)
+		internal.DrawSrc(dst, src, sp, sip, mask, mp, d.getBuf, len(d.buf)*3/4)
 	}
 }
-
-func drawSrc(dst gram, src image.Image, sp image.Point, fsrc fastImage, mask image.Image, mp image.Point, getBuf func() []byte, minChunk int) {
-	if fsrc.pixSize != 0 {
-		// source is some kind of RGB image
-		width := dst.size.X * fsrc.pixSize
-		height := dst.size.Y
-		if fsrc.pixSize == dst.pixSize {
-			// can write srgb directly to the display
-			if len(fsrc.p) != 0 {
-				if width == fsrc.stride {
-					// write the entire srgb
-					dst.dci.WriteBytes(fsrc.p[:height*fsrc.stride])
-					print("P")
-					return
-				}
-				if width >= minChunk {
-					// write line by line directly from srgb
-					for {
-						dst.dci.WriteBytes(fsrc.p[:width])
-						if height--; height == 0 {
-							break
-						}
-						fsrc.p = fsrc.p[fsrc.stride:]
-					}
-					print("p")
-					return
-				}
-			} else if w, ok := dst.dci.(tftdrv.StringWriter); ok {
-				if width == fsrc.stride {
-					// write the entire src
-					w.WriteString(fsrc.s[:height*fsrc.stride])
-					print("S")
-					return
-				}
-				if width > minChunk {
-					// write line by line directly from src
-					for {
-						w.WriteString(fsrc.s[:width])
-						if height--; height == 0 {
-							break
-						}
-						fsrc.s = fsrc.s[fsrc.stride:]
-					}
-					return
-					print("s")
-				}
-			}
-		}
-		print("b")
-		/*
-			// buffered write
-			buf.p = getBuf(d)
-			j := 0
-			k := width
-			max := height * srgb.stride
-			dstPixSize := srgb.pixSize
-			if dstPixSize > 3 {
-				dstPixSize = 3
-			}
-			for {
-				if srgb.p != nil {
-					buf.p[buf.i+0] = srgb.p[j+0]
-					buf.p[buf.i+1] = srgb.p[j+1]
-					if dstPixSize == 3 {
-						buf.p[buf.i+2] = srgb.p[j+2]
-					}
-				} else {
-					buf.p[buf.i+0] = srgb.s[j+0]
-					buf.p[buf.i+1] = srgb.s[j+1]
-					if dstPixSize == 3 {
-						buf.p[buf.i+2] = srgb.s[j+2]
-					}
-				}
-				buf.i += dstPixSize
-				j += srgb.pixSize
-				if buf.i == len(buf.p) {
-					d.dci.WriteBytes(buf.p)
-					buf.i = 0
-				}
-				if j == k {
-					k += srgb.stride
-					if k > max {
-						break
-					}
-					j = k - width
-				}
-			}
-		*/
-	}
-}
-
-/*
-	var buf struct {
-		p []byte
-		i int
-	}
-
-		if mask == nil {
-			if srgb.pixSize != 0 {
-				// known image type
-				width := r.Dx() * srgb.pixSize
-				height := r.Dy()
-				if srgb.pixSize != 4 {
-					// RGB or RGB16
-					if len(srgb.p) != 0 {
-						if width == srgb.stride {
-							// write the entire src
-							d.dci.WriteBytes(srgb.p[:height*srgb.stride])
-							return
-						}
-						if width*4 > len(d.buf)*3 {
-							// write line by line directly from src
-							for {
-								d.dci.WriteBytes(srgb.p[:width])
-								if height--; height == 0 {
-									break
-								}
-								srgb.p = srgb.p[srgb.stride:]
-							}
-							return
-						}
-					} else if w, ok := d.dci.(tftdrv.StringWriter); ok {
-						if width == srgb.stride {
-							// write the entire src
-							w.WriteString(srgb.s[:height*srgb.stride])
-							return
-						}
-						if width*4 > len(d.buf)*3 {
-							// write line by line directly from src
-							for {
-								w.WriteString(srgb.s[:width])
-								if height--; height == 0 {
-									break
-								}
-								srgb.s = srgb.s[srgb.stride:]
-							}
-							return
-						}
-					}
-				}
-				// buffered write
-				buf.p = getBuf(d)
-				j := 0
-				k := width
-				max := height * srgb.stride
-				dstPixSize := srgb.pixSize
-				if dstPixSize > 3 {
-					dstPixSize = 3
-				}
-				for {
-					if srgb.p != nil {
-						buf.p[buf.i+0] = srgb.p[j+0]
-						buf.p[buf.i+1] = srgb.p[j+1]
-						if dstPixSize == 3 {
-							buf.p[buf.i+2] = srgb.p[j+2]
-						}
-					} else {
-						buf.p[buf.i+0] = srgb.s[j+0]
-						buf.p[buf.i+1] = srgb.s[j+1]
-						if dstPixSize == 3 {
-							buf.p[buf.i+2] = srgb.s[j+2]
-						}
-					}
-					buf.i += dstPixSize
-					j += srgb.pixSize
-					if buf.i == len(buf.p) {
-						d.dci.WriteBytes(buf.p)
-						buf.i = 0
-					}
-					if j == k {
-						k += srgb.stride
-						if k > max {
-							break
-						}
-						j = k - width
-					}
-				}
-			} else {
-				// unknown image type
-				buf.p = getBuf(d)
-				r = r.Add(sp.Sub(r.Min))
-				for y := r.Min.Y; y < r.Max.Y; y++ {
-					for x := r.Min.X; x < r.Max.X; x++ {
-						r, g, b, _ := src.At(x, y).RGBA()
-						buf.p[buf.i+0] = uint8(r >> 8)
-						buf.p[buf.i+1] = uint8(g >> 8)
-						buf.p[buf.i+2] = uint8(b >> 8)
-						buf.i += 3
-						if buf.i == len(buf.p) {
-							d.dci.WriteBytes(buf.p)
-							buf.i = 0
-						}
-					}
-				}
-			}
-
-	if buf.i != 0 {
-		d.dci.WriteBytes(buf.p[:buf.i])
-	}
-	return
-
-   text    data     bss     dec     hex filename
- 756892    2740   20032  779664   be590 ili9341.elf
-
-*/
