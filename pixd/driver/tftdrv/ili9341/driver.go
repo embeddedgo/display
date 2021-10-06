@@ -18,10 +18,10 @@ type Driver struct {
 	dci   tftdrv.DCI
 	xarg  [4]byte
 	pf    [1]byte
-	w, h  uint16
 	cinfo byte
 	cfast uint16
-	buf   [24 * 3]uint8 // must be multiple of two and three
+	w, h  uint16
+	buf   [32 * 3]byte // must be multiple of two and three
 }
 
 // Max. SPI clock speed: write: 100 ns (10 MHz), read: 150 ns (6.7 MHz).
@@ -85,11 +85,11 @@ const (
 	transparent = 0
 
 	osize    = 4
-	otype    = 6 // the Fill method relies on the type field is two ms-bits
+	otype    = 6 // Fill relies on the type field takes up two MSbits
 	fastByte = 0
 	fastWord = 1
-	bufInit  = 2 // the Draw method relies on one bit difference to bufFull
-	bufFull  = 3 // the Fill methods relies on both bits set
+	bufInit  = 2 // getBuf relies on the one bit difference to the bufFull
+	bufFull  = 3 // Fill relies on the both bits set
 )
 
 func (d *Driver) SetColor(c color.Color) {
@@ -221,118 +221,239 @@ func (d *Driver) Fill(r image.Rectangle) {
 	}
 }
 
-func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	var (
-		srcBytes   []byte
-		srcString  string
-		srcStride  int
-		srcPixSize int
-	)
-	switch img := src.(type) {
-	case *pixd.RGB16:
-		srcBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		srcStride = img.Stride
-		srcPixSize = 2
-	case *pixd.ImmRGB16:
-		srcString = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		srcStride = img.Stride
-		srcPixSize = 2
-	case *pixd.RGB:
-		srcBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		srcStride = img.Stride
-		srcPixSize = 3
-	case *pixd.ImmRGB:
-		srcString = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		srcStride = img.Stride
-		srcPixSize = 3
-	case *image.RGBA:
-		srcBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
-		srcStride = img.Stride
-		srcPixSize = 4
-	}
-	buf := d.buf[:]
+func (d *Driver) getBuf() []byte {
 	if d.cinfo&(bufInit<<otype) != 0 {
-		d.cinfo &^= (bufFull ^ bufInit) << otype // clear full bit
-		buf = d.buf[d.cinfo>>osize&3:]
+		d.cinfo &^= (bufFull ^ bufInit) << otype // inform Fill about dirty buf
+		return d.buf[d.cinfo>>osize&3:]
 	}
-	i := 0
+	return d.buf[:]
+}
+
+type fastImage struct {
+	p       []byte
+	s       string
+	stride  int
+	pixSize int
+}
+
+func fastImageAtPoint(img image.Image, pt image.Point) (out fastImage) {
+	switch img := img.(type) {
+	case *pixd.RGB16:
+		out.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
+		out.stride = img.Stride
+		out.pixSize = 2
+	case *pixd.ImmRGB16:
+		out.s = img.Pix[img.PixOffset(pt.X, pt.Y):]
+		out.stride = img.Stride
+		out.pixSize = 2
+	case *pixd.RGB:
+		out.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
+		out.stride = img.Stride
+		out.pixSize = 3
+	case *pixd.ImmRGB:
+		out.s = img.Pix[img.PixOffset(pt.X, pt.Y):]
+		out.stride = img.Stride
+		out.pixSize = 3
+	case *image.RGBA:
+		out.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
+		out.stride = img.Stride
+		out.pixSize = 4
+	}
+	return
+}
+
+type gram struct {
+	dci     tftdrv.DCI
+	size    image.Point
+	pixSize int
+}
+
+func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+	fsrc := fastImageAtPoint(src, sp)
 	if op == draw.Src {
 		capaset(d, r)
+		dst := gram{d.dci, r.Size(), 3}
 		pf := byte(MCU18)
-		if srcPixSize == 2 {
+		if mask == nil && fsrc.pixSize == 2 {
 			pf = MCU16
+			dst.pixSize = 2
 		}
 		pixset(d, pf)
 		d.dci.Cmd(RAMWR)
+		drawSrc(dst, src, sp, fsrc, mask, mp, d.getBuf, len(d.buf)*3/4)
+	}
+}
+
+func drawSrc(dst gram, src image.Image, sp image.Point, fsrc fastImage, mask image.Image, mp image.Point, getBuf func() []byte, minChunk int) {
+	if fsrc.pixSize != 0 {
+		// source is some kind of RGB image
+		width := dst.size.X * fsrc.pixSize
+		height := dst.size.Y
+		if fsrc.pixSize == dst.pixSize {
+			// can write srgb directly to the display
+			if len(fsrc.p) != 0 {
+				if width == fsrc.stride {
+					// write the entire srgb
+					dst.dci.WriteBytes(fsrc.p[:height*fsrc.stride])
+					print("P")
+					return
+				}
+				if width >= minChunk {
+					// write line by line directly from srgb
+					for {
+						dst.dci.WriteBytes(fsrc.p[:width])
+						if height--; height == 0 {
+							break
+						}
+						fsrc.p = fsrc.p[fsrc.stride:]
+					}
+					print("p")
+					return
+				}
+			} else if w, ok := dst.dci.(tftdrv.StringWriter); ok {
+				if width == fsrc.stride {
+					// write the entire src
+					w.WriteString(fsrc.s[:height*fsrc.stride])
+					print("S")
+					return
+				}
+				if width > minChunk {
+					// write line by line directly from src
+					for {
+						w.WriteString(fsrc.s[:width])
+						if height--; height == 0 {
+							break
+						}
+						fsrc.s = fsrc.s[fsrc.stride:]
+					}
+					return
+					print("s")
+				}
+			}
+		}
+		print("b")
+		/*
+			// buffered write
+			buf.p = getBuf(d)
+			j := 0
+			k := width
+			max := height * srgb.stride
+			dstPixSize := srgb.pixSize
+			if dstPixSize > 3 {
+				dstPixSize = 3
+			}
+			for {
+				if srgb.p != nil {
+					buf.p[buf.i+0] = srgb.p[j+0]
+					buf.p[buf.i+1] = srgb.p[j+1]
+					if dstPixSize == 3 {
+						buf.p[buf.i+2] = srgb.p[j+2]
+					}
+				} else {
+					buf.p[buf.i+0] = srgb.s[j+0]
+					buf.p[buf.i+1] = srgb.s[j+1]
+					if dstPixSize == 3 {
+						buf.p[buf.i+2] = srgb.s[j+2]
+					}
+				}
+				buf.i += dstPixSize
+				j += srgb.pixSize
+				if buf.i == len(buf.p) {
+					d.dci.WriteBytes(buf.p)
+					buf.i = 0
+				}
+				if j == k {
+					k += srgb.stride
+					if k > max {
+						break
+					}
+					j = k - width
+				}
+			}
+		*/
+	}
+}
+
+/*
+	var buf struct {
+		p []byte
+		i int
+	}
+
 		if mask == nil {
-			if srcPixSize != 0 {
+			if srgb.pixSize != 0 {
 				// known image type
-				width := r.Dx() * srcPixSize
+				width := r.Dx() * srgb.pixSize
 				height := r.Dy()
-				if srcPixSize != 4 {
+				if srgb.pixSize != 4 {
 					// RGB or RGB16
-					if len(srcBytes) != 0 {
-						if width == srcStride {
+					if len(srgb.p) != 0 {
+						if width == srgb.stride {
 							// write the entire src
-							d.dci.WriteBytes(srcBytes[:height*srcStride])
+							d.dci.WriteBytes(srgb.p[:height*srgb.stride])
 							return
 						}
-						if width*4 > len(buf)*3 {
+						if width*4 > len(d.buf)*3 {
 							// write line by line directly from src
 							for {
-								d.dci.WriteBytes(srcBytes[:width])
+								d.dci.WriteBytes(srgb.p[:width])
 								if height--; height == 0 {
 									break
 								}
-								srcBytes = srcBytes[srcStride:]
+								srgb.p = srgb.p[srgb.stride:]
 							}
 							return
 						}
 					} else if w, ok := d.dci.(tftdrv.StringWriter); ok {
-						if width == srcStride {
+						if width == srgb.stride {
 							// write the entire src
-							w.WriteString(srcString[:height*srcStride])
+							w.WriteString(srgb.s[:height*srgb.stride])
 							return
 						}
-						if width*4 > len(buf)*3 {
+						if width*4 > len(d.buf)*3 {
 							// write line by line directly from src
 							for {
-								w.WriteString(srcString[:width])
+								w.WriteString(srgb.s[:width])
 								if height--; height == 0 {
 									break
 								}
-								srcString = srcString[srcStride:]
+								srgb.s = srgb.s[srgb.stride:]
 							}
 							return
 						}
 					}
 				}
 				// buffered write
+				buf.p = getBuf(d)
 				j := 0
 				k := width
-				max := height * srcStride
+				max := height * srgb.stride
+				dstPixSize := srgb.pixSize
+				if dstPixSize > 3 {
+					dstPixSize = 3
+				}
 				for {
-					var r, g, b uint8
-					if srcBytes != nil {
-						r = srcBytes[j+0]
-						g = srcBytes[j+1]
-						b = srcBytes[j+2]
+					if srgb.p != nil {
+						buf.p[buf.i+0] = srgb.p[j+0]
+						buf.p[buf.i+1] = srgb.p[j+1]
+						if dstPixSize == 3 {
+							buf.p[buf.i+2] = srgb.p[j+2]
+						}
 					} else {
-						r = srcString[j+0]
-						g = srcString[j+1]
-						b = srcString[j+2]
+						buf.p[buf.i+0] = srgb.s[j+0]
+						buf.p[buf.i+1] = srgb.s[j+1]
+						if dstPixSize == 3 {
+							buf.p[buf.i+2] = srgb.s[j+2]
+						}
 					}
-					buf[i+0] = r
-					buf[i+1] = g
-					buf[i+2] = b
-					i += 3
-					j += srcPixSize
-					if i == len(buf) {
-						d.dci.WriteBytes(buf)
-						i = 0
+					buf.i += dstPixSize
+					j += srgb.pixSize
+					if buf.i == len(buf.p) {
+						d.dci.WriteBytes(buf.p)
+						buf.i = 0
 					}
 					if j == k {
-						k += srcStride
+						k += srgb.stride
 						if k > max {
 							break
 						}
@@ -341,59 +462,29 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 				}
 			} else {
 				// unknown image type
+				buf.p = getBuf(d)
 				r = r.Add(sp.Sub(r.Min))
 				for y := r.Min.Y; y < r.Max.Y; y++ {
 					for x := r.Min.X; x < r.Max.X; x++ {
 						r, g, b, _ := src.At(x, y).RGBA()
-						buf[i+0] = uint8(r >> 8)
-						buf[i+1] = uint8(g >> 8)
-						buf[i+2] = uint8(b >> 8)
-						i += 3
-						if i == len(buf) {
-							d.dci.WriteBytes(buf)
-							i = 0
+						buf.p[buf.i+0] = uint8(r >> 8)
+						buf.p[buf.i+1] = uint8(g >> 8)
+						buf.p[buf.i+2] = uint8(b >> 8)
+						buf.i += 3
+						if buf.i == len(buf.p) {
+							d.dci.WriteBytes(buf.p)
+							buf.i = 0
 						}
 					}
 				}
 			}
-		} else {
-			// mask != nil
-			var (
-				maskBytes   []byte
-				maskString  string
-				maskShift   uint
-				maskStride  int
-				maskPixBitN uint
-			)
-			switch img := mask.(type) {
-			case *pixd.AlphaN:
-				offset, shift := img.PixOffset(sp.X, sp.Y)
-				maskBytes = img.Pix[offset:]
-				maskShift = shift
-				maskStride = img.Stride
-				maskPixBitN = 1 << img.LogN
-			case *pixd.ImmAlphaN:
-				offset, shift := img.PixOffset(sp.X, sp.Y)
-				maskString = img.Pix[offset:]
-				maskShift = shift
-				maskStride = img.Stride
-				maskPixBitN = 1 << img.LogN
-			case *image.Alpha:
-				maskBytes = img.Pix[img.PixOffset(sp.X, sp.Y):]
-				maskStride = img.Stride
-				maskPixBitN = 8
-			}
 
-			_ = maskBytes
-			_ = maskString
-			_ = maskShift
-			_ = maskStride
-			_ = maskPixBitN
-		}
-	}
-	if i != 0 {
-		d.dci.WriteBytes(buf[:i])
+	if buf.i != 0 {
+		d.dci.WriteBytes(buf.p[:buf.i])
 	}
 	return
 
-}
+   text    data     bss     dec     hex filename
+ 756892    2740   20032  779664   be590 ili9341.elf
+
+*/
