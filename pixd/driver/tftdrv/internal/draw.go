@@ -54,8 +54,8 @@ type DDRAM struct {
 	PixSize int
 }
 
-// DrawSrc draws masked image to destination region of DDRAM. dst.PixSize must
-// be 3 (RGB888) or 2 (RGB565).
+// DrawSrc draws masked image to the prepared region of DDRAM. dst.PixSize must
+// be 3 (RGB 888) or 2 (RGB 565).
 func DrawSrc(dst DDRAM, src image.Image, sp image.Point, sip Image, mask image.Image, mp image.Point, getBuf func() []byte, minChunk int) {
 	var buf struct {
 		p []byte
@@ -216,5 +216,11 @@ func DrawSrc(dst DDRAM, src image.Image, sp image.Point, sip Image, mask image.I
 	}
 	if buf.i != 0 {
 		dst.DCI.WriteBytes(buf.p[:buf.i])
+	}
+}
+
+func DrawOverNoRead(dst DDRAM, src image.Image, sp image.Point, sip Image, mask image.Image, mp image.Point, buf []byte, capaset func(r image.Rectangle)) {
+	if sip.PixSize != 0 {
+
 	}
 }

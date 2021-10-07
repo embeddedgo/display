@@ -2,13 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package tftdrv defines the Display Controller Interface used by a wide array
-// of display controllers.
+// Package tftdrv defines the Display Controller Interface used to communicate
+// with graphics controllers that can be found in a wide variety of LCD and
+// OLED displays.
 //
-// The subpackages contain drivers to the specific controllers. They are
-// generally similar to each other both in terms of used DCI and the command set
-// they provide. They all seem to have two common ancestors which are Philips
-// PCF8833 and Epson S1D15G00 used in various mobile phones since 2002 (Nokia
+// The subpackages contain drivers to the specific controllers. The supported
+// controllers are generally similar to each other both in terms of used DCI and
+// the command set they provide. The de facto standard in this topic was set by
+// Philips PCF8833 and Epson S1D15G00 controllers in the early 2000s (Nokia
 // 6100, Siemens S65, etc.)
 package tftdrv
 

@@ -62,17 +62,19 @@ var initCmds = [...][]byte{
 }
 
 func (d *Driver) Init(swreset bool) {
+	if swreset {
+		d.dci.Cmd(SWRESET)
+	}
 	resetTime := time.Now()
 	time.Sleep(5 * time.Millisecond)
-	dci := d.dci
 	for _, cmd := range initCmds {
-		dci.Cmd(cmd[0])
-		dci.WriteBytes(cmd[1:])
+		d.dci.Cmd(cmd[0])
+		d.dci.WriteBytes(cmd[1:])
 	}
 	time.Sleep(resetTime.Add(120 * time.Millisecond).Sub(time.Now()))
-	dci.Cmd(SLPOUT)
+	d.dci.Cmd(SLPOUT)
 	time.Sleep(5 * time.Millisecond)
-	dci.Cmd(DISPON)
+	d.dci.Cmd(DISPON)
 }
 
 func (d *Driver) SetMADCTL(madctl byte) {
@@ -152,14 +154,6 @@ func (d *Driver) SetColor(c color.Color) {
 	d.buf[2] = uint8(b)
 }
 
-func pixset(d *Driver, pf byte) {
-	if d.pf[0] != pf {
-		d.pf[0] = pf
-		d.dci.Cmd(PIXSET)
-		d.dci.WriteBytes(d.pf[:])
-	}
-}
-
 func capaset(d *Driver, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
@@ -175,6 +169,14 @@ func capaset(d *Driver, r image.Rectangle) {
 	d.xarg[2] = uint8(r.Max.Y >> 8)
 	d.xarg[3] = uint8(r.Max.Y)
 	d.dci.WriteBytes(d.xarg[:4])
+}
+
+func pixset(d *Driver, pf byte) {
+	if d.pf[0] != pf {
+		d.pf[0] = pf
+		d.dci.Cmd(PIXSET)
+		d.dci.WriteBytes(d.pf[:])
+	}
 }
 
 func (d *Driver) Fill(r image.Rectangle) {
@@ -221,19 +223,18 @@ func (d *Driver) Fill(r image.Rectangle) {
 	}
 }
 
-func (d *Driver) getBuf() []byte {
-	if d.cinfo&(bufInit<<otype) != 0 {
-		d.cinfo &^= (bufFull ^ bufInit) << otype // inform Fill about dirty buf
-		return d.buf[d.cinfo>>osize&3:]
-	}
-	return d.buf[:]
-}
-
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	sip := internal.ImageAtPoint(src, sp)
+	dst := internal.DDRAM{d.dci, r.Size(), 3}
+	getBuf := func() []byte {
+		if d.cinfo&(bufInit<<otype) != 0 {
+			d.cinfo &^= (bufFull ^ bufInit) << otype // inform Fill about dirty buf
+			return d.buf[d.cinfo>>osize&3:]
+		}
+		return d.buf[:]
+	}
 	if op == draw.Src {
 		capaset(d, r)
-		dst := internal.DDRAM{d.dci, r.Size(), 3}
 		pf := byte(MCU18)
 		if mask == nil && sip.PixSize == 2 {
 			pf = MCU16
@@ -241,6 +242,11 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		}
 		pixset(d, pf)
 		d.dci.Cmd(RAMWR)
-		internal.DrawSrc(dst, src, sp, sip, mask, mp, d.getBuf, len(d.buf)*3/4)
+		internal.DrawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
+	} else {
+		pixset(d, MCU18)
+		capaset := func(r image.Rectangle) { capaset(d, r) }
+		internal.DrawOverNoRead(dst, src, sp, sip, mask, mp, getBuf(), capaset)
 	}
+
 }
