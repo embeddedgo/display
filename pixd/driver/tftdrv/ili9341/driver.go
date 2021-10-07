@@ -233,7 +233,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 	sip := internal.ImageAtPoint(src, sp)
 	if op == draw.Src {
 		capaset(d, r)
-		dst := internal.GRAM{d.dci, r.Size(), 3}
+		dst := internal.DDRAM{d.dci, r.Size(), 3}
 		pf := byte(MCU18)
 		if mask == nil && sip.PixSize == 2 {
 			pf = MCU16

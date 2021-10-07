@@ -2,6 +2,14 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
+// Package tftdrv defines the Display Controller Interface used by a wide array
+// of display controllers.
+//
+// The subpackages contain drivers to the specific controllers. They are
+// generally similar to each other both in terms of used DCI and the command set
+// they provide. They all seem to have two common ancestors which are Philips
+// PCF8833 and Epson S1D15G00 used in various mobile phones since 2002 (Nokia
+// 6100, Siemens S65, etc.)
 package tftdrv
 
 // DCI defines the basic Display Controller Interface.
