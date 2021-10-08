@@ -99,7 +99,7 @@ func (d *Driver) SetColor(c color.Color) {
 	switch cc := c.(type) {
 	case color.RGBA:
 		if cc.A>>7 == 0 {
-			d.cinfo = transparent // only 1-bit transparency supported
+			d.cinfo = transparent // only 1-bit transparency is supported
 			return
 		}
 		r = uint32(cc.R)
@@ -109,7 +109,7 @@ func (d *Driver) SetColor(c color.Color) {
 		var a uint32
 		r, g, b, a = c.RGBA()
 		if a>>15 == 0 {
-			d.cinfo = transparent // only 1-bit transparency supported
+			d.cinfo = transparent // only 1-bit transparency is supported
 			return
 		}
 		r >>= 8
@@ -245,8 +245,8 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		internal.DrawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	} else {
 		pixset(d, MCU18)
-		capaset := func(r image.Rectangle) { capaset(d, r) }
-		internal.DrawOverNoRead(dst, src, sp, sip, mask, mp, getBuf(), capaset)
+		wrRect := func(r image.Rectangle) { capaset(d, r); d.dci.Cmd(RAMWR) }
+		internal.DrawOverNoRead(dst, r.Min, src, sp, sip, mask, mp, getBuf(), wrRect)
 	}
 
 }

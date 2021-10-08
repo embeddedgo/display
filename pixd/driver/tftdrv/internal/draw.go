@@ -177,15 +177,15 @@ func DrawSrc(dst DDRAM, src image.Image, sp image.Point, sip Image, mask image.I
 							b = uint32(sip.s[j+2])
 						}
 					}
-					if sip.PixSize != 2 {
-						r |= r << 8
-						g |= g << 8
-						b |= b << 8
-					} else {
+					if sip.PixSize == 2 {
 						r, g, b = r>>3, r&7<<3|g>>5, g&0x1F
 						r = r<<11 | r<<6 | r<<1
 						g = g<<10 | g<<4 | g>>2
 						b = b<<11 | b<<6 | b<<1
+					} else {
+						r |= r << 8
+						g |= g << 8
+						b |= b << 8
 					}
 					j += sip.PixSize
 				} else {
@@ -219,8 +219,110 @@ func DrawSrc(dst DDRAM, src image.Image, sp image.Point, sip Image, mask image.I
 	}
 }
 
-func DrawOverNoRead(dst DDRAM, src image.Image, sp image.Point, sip Image, mask image.Image, mp image.Point, buf []byte, capaset func(r image.Rectangle)) {
-	if sip.PixSize != 0 {
-
+// DrawOverNoRead draws masked image over the prepared region of DDRAM. It can
+// not read the content of DDRAM so it reduces the alpha channel to one bit and
+// draws only opaque parts of the masked image. dst.PixSize must be 3 (RGB 888)
+// or 2 (RGB 565).
+func DrawOverNoRead(dst DDRAM, dp image.Point, src image.Image, sp image.Point, sip Image, mask image.Image, mp image.Point, buffer []byte, wrRect func(r image.Rectangle)) {
+	var buf struct {
+		p []byte
+		i int
+	}
+	buf.p = buffer
+	width := dst.Size.X
+	height := dst.Size.Y
+	for y := 0; y < height; y++ {
+		j := y * sip.stride
+		drawing := false
+		for x := 0; x < width; x++ {
+			ma := uint32(0x8000)
+			if mask != nil {
+				_, _, _, ma = mask.At(mp.X+x, mp.Y+y).RGBA()
+			}
+			if ma>>15 != 0 { // only 1-bit transparency supported
+				var r, g, b, a uint32
+				if sip.PixSize != 0 {
+					a = 0xff
+					if sip.p != nil {
+						r = uint32(sip.p[j+0])
+						g = uint32(sip.p[j+1])
+						if sip.PixSize != 2 {
+							b = uint32(sip.p[j+2])
+							if sip.PixSize == 4 {
+								a = uint32(sip.p[j+3])
+							}
+						}
+					} else {
+						r = uint32(sip.s[j+0])
+						g = uint32(sip.s[j+1])
+						if sip.PixSize != 2 {
+							b = uint32(sip.s[j+2])
+							if sip.PixSize == 4 {
+								a = uint32(sip.s[j+3])
+							}
+						}
+					}
+					a |= a << 8
+					if sip.PixSize == 2 {
+						r, g, b = r>>3, r&7<<3|g>>5, g&0x1f
+						r = r<<11 | r<<6 | r<<1
+						g = g<<10 | g<<4 | g>>2
+						b = b<<11 | b<<6 | b<<1
+					} else {
+						r |= r << 8
+						g |= g << 8
+						b |= b << 8
+					}
+					j += sip.PixSize
+				} else {
+					r, g, b, a = src.At(sp.X+x, sp.Y+y).RGBA()
+				}
+				if mask != nil {
+					a = (a * ma / 0xffff) >> 15 // we are interested in MSbit
+					if a != 0 {
+						r = r * ma / 0xffff
+						g = g * ma / 0xffff
+						b = b * ma / 0xffff
+					}
+				}
+				if a != 0 {
+					// opaque pixel, draw it
+					if !drawing {
+						drawing = true
+						if buf.i != 0 {
+							dst.DCI.WriteBytes(buf.p[:buf.i])
+							buf.i = 0
+						}
+						r := image.Rectangle{
+							image.Point{x, y},
+							image.Point{x + width, y + 1},
+						}.Add(dp)
+						wrRect(r)
+					}
+					if dst.PixSize == 2 {
+						r >>= 11
+						g >>= 10
+						b >>= 11
+						buf.p[buf.i+0] = uint8(r<<3 | g>>3)
+						buf.p[buf.i+1] = uint8(g<<5 | b)
+					} else {
+						buf.p[buf.i+0] = uint8(r >> 8)
+						buf.p[buf.i+1] = uint8(g >> 8)
+						buf.p[buf.i+2] = uint8(b >> 8)
+					}
+					buf.i += dst.PixSize
+					if buf.i == len(buf.p) {
+						dst.DCI.WriteBytes(buf.p)
+						buf.i = 0
+					}
+					continue
+				}
+			}
+			// transparent pixel, don't draw it
+			drawing = false
+		}
+	}
+	if buf.i != 0 {
+		dst.DCI.WriteBytes(buf.p[:buf.i])
 	}
 }
