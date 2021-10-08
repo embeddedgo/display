@@ -8,9 +8,9 @@
 //
 // The subpackages contain drivers to the specific controllers. The supported
 // controllers are generally similar to each other both in terms of used DCI and
-// the command set they provide. The de facto standard in this topic was set by
-// Philips PCF8833 and Epson S1D15G00 controllers in the early 2000s (Nokia
-// 6100, Siemens S65, etc.)
+// the command set they provide. The de facto standard in this topic was set in
+// the early 2000s by Philips PCF8833 and Epson S1D15G00 controllers used in
+// first mobile phones with color display like Nokia 6100 or Siemens S65.
 package tftdrv
 
 // DCI defines the basic Display Controller Interface.
@@ -42,15 +42,16 @@ type StringWriter interface {
 }
 
 // ByteNWriter is an optional interface that may be implemented by DCI to speed
-// up drawing using gray colors.
+// up drawing some colors (gray colors in case of 18/24-bit pixel format and
+// some other in case of 16-bit pixel format).
 //
 // WriteByteN writes n times the byte to the display controller.
 type ByteNWriter interface {
 	WriteByteN(b byte, n int)
 }
 
-// WordNWriter is an optional interface that may be implemented by a DCI or
-// RDCI to improve drawing pertformance in case of 16-bit pixel format.
+// WordNWriter is an optional interface that may be implemented by a DCI to
+// improve drawing pertformance in case of 16-bit pixel format.
 //
 // WriteWordN writes n times the 16-bit word to the display controller.
 type WordNWriter interface {
