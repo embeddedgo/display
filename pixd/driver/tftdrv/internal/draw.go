@@ -223,7 +223,7 @@ func DrawSrc(dst DDRAM, src image.Image, sp image.Point, sip Image, mask image.I
 // not read the content of DDRAM so it reduces the alpha channel to one bit and
 // draws only opaque parts of the masked image. dst.PixSize must be 3 (RGB 888)
 // or 2 (RGB 565).
-func DrawOverNoRead(dst DDRAM, dp image.Point, src image.Image, sp image.Point, sip Image, mask image.Image, mp image.Point, buffer []byte, wrRect func(r image.Rectangle)) {
+func DrawOverNoRead(dst DDRAM, dmin image.Point, src image.Image, sp image.Point, sip Image, mask image.Image, mp image.Point, buffer []byte, startWrite func(r image.Rectangle)) {
 	var buf struct {
 		p []byte
 		i int
@@ -286,7 +286,7 @@ func DrawOverNoRead(dst DDRAM, dp image.Point, src image.Image, sp image.Point, 
 					}
 				}
 				if a != 0 {
-					// opaque pixel, draw it
+					// opaque pixel
 					if !drawing {
 						drawing = true
 						if buf.i != 0 {
@@ -296,8 +296,8 @@ func DrawOverNoRead(dst DDRAM, dp image.Point, src image.Image, sp image.Point, 
 						r := image.Rectangle{
 							image.Point{x, y},
 							image.Point{x + width, y + 1},
-						}.Add(dp)
-						wrRect(r)
+						}.Add(dmin)
+						startWrite(r)
 					}
 					if dst.PixSize == 2 {
 						r >>= 11
@@ -318,7 +318,7 @@ func DrawOverNoRead(dst DDRAM, dp image.Point, src image.Image, sp image.Point, 
 					continue
 				}
 			}
-			// transparent pixel, don't draw it
+			// transparent pixel
 			drawing = false
 		}
 	}

@@ -20,8 +20,8 @@ const (
 	DISNOR = epson.DISNOR // Set Normal Display
 	DISINV = epson.DISINV // Set Inverse Display
 	_      = 0xAB         // Set Function selection
-	SLPIN  = epson.DISOFF // Set Sleep mode OFF
-	SLPOUT = epson.DISON  // Set Sleep mode ON
+	SLPIN  = epson.DISOFF // Set Sleep mode ON
+	SLPOUT = epson.DISON  // Set Sleep mode OFF
 	_      = 0xB1         // Set Phase Length
 	_      = 0xB2         // Display Enhancement
 	_      = 0xB3         // Set Front Clock Divider / Oscillator Freq

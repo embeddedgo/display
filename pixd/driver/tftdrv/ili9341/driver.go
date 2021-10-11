@@ -8,12 +8,16 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"time"
 
 	"github.com/embeddedgo/display/pixd/driver/tftdrv"
 	"github.com/embeddedgo/display/pixd/driver/tftdrv/internal"
 )
 
+// Driver implements pixd.Driver interface with the limited support for
+// draw.Over operator. It uses write-only tftdrv.DCI so the alpha blending is
+// slow and reduced to 1-bit resolution. Use DriverOver if the full-fledged
+// Porter-Duff composition is required and the display supports reading from
+// its frame memory.
 type Driver struct {
 	dci   tftdrv.DCI
 	xarg  [4]byte
@@ -24,9 +28,7 @@ type Driver struct {
 	buf   [32 * 3]byte // must be multiple of two and three
 }
 
-// Max. SPI clock speed: write: 100 ns (10 MHz), read: 150 ns (6.7 MHz).
-// It seems that it works well even with 20 MHz clock.
-
+// New returns new Driver.
 func New(dci tftdrv.DCI) *Driver {
 	return &Driver{dci: dci, w: 240, h: 320}
 }
@@ -39,42 +41,11 @@ func (d *Driver) Size() image.Point {
 	return image.Point{int(d.w), int(d.h)}
 }
 
-var initCmds = [...][]byte{
-	{SFD, 0x03, 0x80, 0x02}, // {0xCA, 0xC3, 0x08, 0x50}
-	{PWCTRB, 0x00, 0xC1, 0x30},
-	{PONSEQ, 0x64, 0x03, 0x12, 0x81},
-	{DRVTIM, 0x85, 0x00, 0x78},
-	{PWCTRA, 0x39, 0x2C, 0x00, 0x34, 0x02},
-	{PUMPRT, 0x20},
-	{DRVTIMB, 0x00, 0x00},
-	{PWCTR1, 0x23},
-	{PWCTR2, 0x10},
-	{VMCTR1, 0x3e, 0x28},
-	{VMCTR2, 0x86},
-	{VSCRSADD, 0x00},
-	{FRMCTR1, 0x00, 0x18},
-	{DFUNCTR, 0x08, 0x82, 0x27},
-	{GAMMASET, 0x01},
-	{PGAMCTRL, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1, 0x37, 0x07, 0x10,
-		0x03, 0x0E, 0x09, 0x00},
-	{NGAMCTRL, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1, 0x48, 0x08, 0x0F,
-		0x0C, 0x31, 0x36, 0x0F},
-}
-
-func (d *Driver) Init(swreset bool) {
-	if swreset {
-		d.dci.Cmd(SWRESET)
-	}
-	resetTime := time.Now()
-	time.Sleep(5 * time.Millisecond)
-	for _, cmd := range initCmds {
-		d.dci.Cmd(cmd[0])
-		d.dci.WriteBytes(cmd[1:])
-	}
-	time.Sleep(resetTime.Add(120 * time.Millisecond).Sub(time.Now()))
-	d.dci.Cmd(SLPOUT)
-	time.Sleep(5 * time.Millisecond)
-	d.dci.Cmd(DISPON)
+// Init initializes display using provided initialization commands. The
+// initialization commands depends on the LCD pannel. See InitGFX and InitST for
+// working examples.
+func (d *Driver) Init(cmds []byte, swreset bool) {
+	initialize(d.dci, cmds, swreset)
 }
 
 func (d *Driver) SetMADCTL(madctl byte) {
@@ -82,17 +53,6 @@ func (d *Driver) SetMADCTL(madctl byte) {
 	d.xarg[0] = madctl
 	d.dci.WriteBytes(d.xarg[:1])
 }
-
-const (
-	transparent = 0
-
-	osize    = 4
-	otype    = 6 // Fill relies on the type field takes up two MSbits
-	fastByte = 0
-	fastWord = 1
-	bufInit  = 2 // getBuf relies on the one bit difference to the bufFull
-	bufFull  = 3 // Fill relies on the both bits set
-)
 
 func (d *Driver) SetColor(c color.Color) {
 	var r, g, b uint32
@@ -154,29 +114,9 @@ func (d *Driver) SetColor(c color.Color) {
 	d.buf[2] = uint8(b)
 }
 
-func capaset(d *Driver, r image.Rectangle) {
-	r.Max.X--
-	r.Max.Y--
-	d.dci.Cmd(CASET)
-	d.xarg[0] = uint8(r.Min.X >> 8)
-	d.xarg[1] = uint8(r.Min.X)
-	d.xarg[2] = uint8(r.Max.X >> 8)
-	d.xarg[3] = uint8(r.Max.X)
-	d.dci.WriteBytes(d.xarg[:4])
-	d.dci.Cmd(PASET)
-	d.xarg[0] = uint8(r.Min.Y >> 8)
-	d.xarg[1] = uint8(r.Min.Y)
-	d.xarg[2] = uint8(r.Max.Y >> 8)
-	d.xarg[3] = uint8(r.Max.Y)
-	d.dci.WriteBytes(d.xarg[:4])
-}
-
-func pixset(d *Driver, pf byte) {
-	if d.pf[0] != pf {
-		d.pf[0] = pf
-		d.dci.Cmd(PIXSET)
-		d.dci.WriteBytes(d.pf[:])
-	}
+func (d *Driver) startWrite(r image.Rectangle) {
+	capaset(d.dci, &d.xarg, r)
+	d.dci.Cmd(RAMWR)
 }
 
 func (d *Driver) Fill(r image.Rectangle) {
@@ -187,9 +127,8 @@ func (d *Driver) Fill(r image.Rectangle) {
 	if n == 0 {
 		return
 	}
-	capaset(d, r)
-	pixset(d, d.cinfo&0xf)
-	d.dci.Cmd(RAMWR)
+	pixset(d.dci, &d.pf, d.cinfo&0xf)
+	d.startWrite(r)
 
 	pixSize := int(d.cinfo>>osize) & 3
 	n *= pixSize
@@ -234,19 +173,17 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		return d.buf[:]
 	}
 	if op == draw.Src {
-		capaset(d, r)
 		pf := byte(MCU18)
 		if mask == nil && sip.PixSize == 2 {
 			pf = MCU16
 			dst.PixSize = 2
 		}
-		pixset(d, pf)
-		d.dci.Cmd(RAMWR)
+		pixset(d.dci, &d.pf, pf)
+		d.startWrite(r)
 		internal.DrawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	} else {
-		pixset(d, MCU18)
-		wrRect := func(r image.Rectangle) { capaset(d, r); d.dci.Cmd(RAMWR) }
-		internal.DrawOverNoRead(dst, r.Min, src, sp, sip, mask, mp, getBuf(), wrRect)
+		pixset(d.dci, &d.pf, MCU18)
+		internal.DrawOverNoRead(dst, r.Min, src, sp, sip, mask, mp, getBuf(), d.startWrite)
 	}
 
 }

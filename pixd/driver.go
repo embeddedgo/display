@@ -19,9 +19,9 @@ type Driver interface {
 	// whole display.
 	//
 	// The draw.Over operator can be implemented in a limited way but it must
-	// at least support one-bit transparency.
+	// at least support 1-bit transparency.
 	//
-	// Draw can assume that r is a non-empty rectangle that fits entirely on the
+	// Draw can assume the r is a non-empty rectangle that fits entirely on the
 	// display and is entirely covered by src and mask.
 	//
 	// Draw is actually the only operation required from a display controller.
@@ -33,7 +33,10 @@ type Driver interface {
 	SetColor(c color.Color)
 
 	// Fill helps to increase prformance when drawing filled rectangles which
-	// are heavily used in drawing various geometric shapes.
+	// are heavily used in drawing various geometric shapes. Fill(r) is
+	// intended to be a faster counterpart of the Draw(r, image.Uniform{c},
+	// image.Point{}, nil, image.Point{}, draw.Over) where c is the color set
+	// by SetColor.
 	Fill(r image.Rectangle)
 
 	// Flush allows to flush the drivers internal buffers. Drivers are allowed
