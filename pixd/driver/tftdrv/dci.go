@@ -21,6 +21,11 @@ type DCI interface {
 	// WriteBytes writes the len(p) bytes from p to the display controller.
 	WriteBytes(p []uint8)
 
+	// End ends the conversation with the display controller. The undelying
+	// shared communication interface can be used by another application until
+	// next command.
+	End()
+
 	// Err returns the saved error and clears it if the clear is true.
 	Err(clear bool) error
 }
