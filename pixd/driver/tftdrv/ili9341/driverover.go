@@ -135,10 +135,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	switch {
 	case typ == fastWord:
 		d.dci.(tftdrv.WordNWriter).WriteWordN(d.cfast, n)
-		print("w")
 	case typ == fastByte:
 		d.dci.(tftdrv.ByteNWriter).WriteByteN(byte(d.cfast), n)
-		print("b")
 	case d.cfast >= alphaOpaque:
 		if typ == bufInit {
 			d.cinfo |= bufFull << otype
@@ -161,8 +159,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				break
 			}
 		}
-		print("o")
 	default:
+		maxWidth := len(d.buf)/3 - 1
 		sr := uint(d.r)
 		sg := uint(d.g)
 		sb := uint(d.b)
@@ -174,20 +172,20 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				if width <= 0 {
 					break
 				}
-				if width > len(d.buf)/3 {
-					width = len(d.buf) / 3
+				if width > maxWidth {
+					width = maxWidth
 				}
 				r1 := image.Rectangle{
 					image.Point{x, y},
 					image.Point{x + width, y + 1},
 				}
 				x += width
-				width *= 3
+				width = width*3 + 1
 				capaset(d.dci, &d.xarg, r1)
 				d.dci.Cmd(RAMRD)
-				d.dci.ReadBytes(d.buf[:width])
+				d.dci.ReadBytes(d.buf[0:width])
 				d.dci.End() // required to end RAMRD (undocumented)
-				for i := 0; i < width; i += 3 {
+				for i := 1; i < width; i += 3 {
 					r := uint(d.buf[i+0])
 					g := uint(d.buf[i+1])
 					b := uint(d.buf[i+2])
@@ -200,7 +198,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				}
 				capaset(d.dci, &d.xarg, r1)
 				d.dci.Cmd(RAMWR)
-				d.dci.WriteBytes(d.buf[:width])
+				d.dci.WriteBytes(d.buf[1:width])
 			}
 		}
 	}

@@ -26,16 +26,19 @@ func setColor(a *Area) {
 	}
 }
 
+// Rect returns the area coordinates on the display.
 func (a *Area) Rect() image.Rectangle {
 	return image.Rectangle{a.p0, a.p0.Add(a.size)}
 }
 
+// SetRect chandges the rectangle occupied by the area on the display.
 func (a *Area) SetRect(r image.Rectangle) {
 	a.p0 = r.Min
 	a.size = r.Size()
 	a.visible = r.Intersect(a.disp.Bounds())
 }
 
+// Bounds return the area bounds in its own coordinate system.
 func (a *Area) Bounds() image.Rectangle {
 	return image.Rectangle{Max: a.size}
 }
@@ -45,11 +48,14 @@ func (a *Area) SetColor(c color.Color) {
 	a.color = c
 }
 
-// SetColorRGBA is equivalent of SetColor(color.RGBA{r, g, b, alpha}).
+// SetColorRGBA is equivalent of SetColor(color.RGBA{r, g, b, alpha}). Notice
+// that r, g, b must be alpha-premultiplied, they must be less than or equal to
+// alpha.
 func (a *Area) SetColorRGBA(r, g, b, alpha uint8) {
 	a.color = color.RGBA{r, g, b, alpha}
 }
 
+// Color returns the color used by drawing methods.
 func (a *Area) Color() color.Color {
 	return a.color
 }

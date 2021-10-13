@@ -8,6 +8,9 @@ import "image"
 
 // DrawEllipse draws an empty ellipse.
 func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
+	if ra < 0 || rb < 0 {
+		return
+	}
 	setColor(a)
 	// Alois Zingl algorithm
 	x := -ra
@@ -18,14 +21,14 @@ func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
 	err := dx + dy
 	bb2 := 2 * rb * rb
 	aa2 := 2 * ra * ra
-	for x <= 0 {
-		drawPixel(a, p.Add(image.Point{-x, y}))
-		drawPixel(a, p.Add(image.Point{x, y}))
-		drawPixel(a, p.Add(image.Point{x, -y}))
-		drawPixel(a, p.Add(image.Point{-x, -y}))
+	drawPixel(a, p.Add(image.Point{-x, 0}))
+	drawPixel(a, p.Add(image.Point{x, 0}))
+	for {
 		e2 = 2 * err
 		if e2 >= dx {
-			x++
+			if x++; x > 0 {
+				break
+			}
 			dx += bb2
 			err += dx
 		}
@@ -34,6 +37,10 @@ func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
 			dy += aa2
 			err += dy
 		}
+		drawPixel(a, p.Add(image.Point{-x, y}))
+		drawPixel(a, p.Add(image.Point{x, y}))
+		drawPixel(a, p.Add(image.Point{x, -y}))
+		drawPixel(a, p.Add(image.Point{-x, -y}))
 	}
 	for y < rb {
 		y++
@@ -44,6 +51,9 @@ func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
 
 // FillEllipse draws a filled ellipse.
 func (a *Area) FillEllipse(p image.Point, ra, rb int) {
+	if ra < 0 || rb < 0 {
+		return
+	}
 	setColor(a)
 	// Alois Zingl algorithm
 	x := -ra
@@ -54,12 +64,13 @@ func (a *Area) FillEllipse(p image.Point, ra, rb int) {
 	err := dx + dy
 	bb2 := 2 * rb * rb
 	aa2 := 2 * ra * ra
-	for x <= 0 {
-		hline(a, p.X-x, p.Y-y, p.X+x)
-		hline(a, p.X-x, p.Y+y, p.X+x)
+	hline(a, p.X-x, p.Y, p.X+x)
+	for {
 		e2 = 2 * err
 		if e2 >= dx {
-			x++
+			if x++; x > 0 {
+				break
+			}
 			dx += bb2
 			err += dx
 		}
@@ -67,6 +78,8 @@ func (a *Area) FillEllipse(p image.Point, ra, rb int) {
 			y++
 			dy += aa2
 			err += dy
+			hline(a, p.X-x, p.Y-y, p.X+x)
+			hline(a, p.X-x, p.Y+y, p.X+x)
 		}
 	}
 	for y < rb {
