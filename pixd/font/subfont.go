@@ -6,8 +6,8 @@ package font
 
 import "image"
 
-// Subfont consist of an image that contains Last-First+1 glyphs and metadata
-// that describes how to get a subimage containing the glyph for a given rune.
+// Subfont provides Last-First+1 font glyphs for runes form First to Last. The
+// glyphs are stored in Data starting from Offset.
 type Subfont struct {
 	First  rune // first character in the subfont
 	Last   rune // last character in the subfont
@@ -16,6 +16,7 @@ type Subfont struct {
 }
 
 // SubfontLoader is the interface that wraps the LoadSubfont method.
+//
 // LoadSubfont loads the subfont containing a given rune. A successful call
 // returns the pointer to the loaded subfont, otherwise the nil pointer is
 // returned.
@@ -23,6 +24,7 @@ type SubfontLoader interface {
 	LoadSubfont(r rune) *Subfont
 }
 
+// Data represents a glyph storage.
 type Data interface {
 	// Advance returns the advance for the i-th glyph.
 	Advance(i int) int
