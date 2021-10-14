@@ -25,7 +25,7 @@ type Driver struct {
 	cinfo byte
 	cfast uint16
 	w, h  uint16
-	buf   [32 * 3]byte // must be multiple of two and three
+	buf   [40 * 3]byte // must be multiple of two and three
 }
 
 // New returns new Driver.

@@ -12,6 +12,29 @@ import (
 	"github.com/embeddedgo/display/pixd/driver/tftdrv"
 )
 
+// magic numbers, bufA*bufB*bufC + 1 must be multiple of two, bufA smalest value
+const (
+	bufA = 3
+	bufB = 3
+	bufC = 5
+)
+
+var bufDims = [...]image.Point{
+	{bufA * bufB * bufC, 1}, // Fill requires one row here
+	{1, bufA * bufB * bufC}, // Fill requires one column here
+	{bufA, bufB * bufC},
+	{bufB * bufC, bufA},
+	{bufA * bufB, bufC},
+	{bufC, bufA * bufB},
+}
+
+var bufDims_ = [...]image.Point{
+	{bufA * bufB, 1}, // Fill requires one row here
+	{1, bufA * bufB}, // Fill requires one column here
+	{bufA, bufB},
+	{bufB, bufA},
+}
+
 // DriverOver implements pixd.Driver interface with the full support for
 // draw.Over operator. It requires tftdrv.RDCI to read the frame memory content.
 // If the display has write-only interface use Driver instead.
@@ -23,7 +46,7 @@ type DriverOver struct {
 	cfast   uint16
 	r, g, b uint16
 	w, h    uint16
-	buf     [32 * 3]byte // must be multiple of two and three
+	buf     [(bufA*bufB*bufC + 1) * 3]byte // must be multiple of two and three
 }
 
 // NewOver returns new DriverOver.
@@ -122,7 +145,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	if d.cinfo == transparent {
 		return
 	}
-	n := r.Dx() * r.Dy()
+	width, height := r.Dx(), r.Dy()
+	n := width * height
 	if n == 0 {
 		return
 	}
@@ -160,32 +184,67 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 			}
 		}
 	default:
-		maxWidth := len(d.buf)/3 - 1
+		// find the best coverage of the r area by d.buf
+		var best image.Point
+		if height < bufA || width < bufA {
+			if width >= height {
+				best = bufDims[0]
+			} else {
+				best = bufDims[1]
+			}
+		} else {
+			bu := width * height
+			for _, dim := range bufDims {
+				nx := width / dim.X
+				ny := height / dim.Y
+				ux := width - nx*dim.X
+				if ux != 0 {
+					ux = ny // we do not pay attention to the size
+				}
+				uy := height - ny*dim.Y
+				if uy != 0 {
+					uy = nx // we do not pay attention to the size
+				}
+				if uc := uy + ux; uc < bu {
+					bu = uc
+					best = dim
+				}
+			}
+		}
+		// draw
 		sr := uint(d.r)
 		sg := uint(d.g)
 		sb := uint(d.b)
 		a := 0xffff - uint(d.cfast)
-		for y := r.Min.Y; y < r.Max.Y; y++ {
+		y := r.Min.Y
+		for {
+			height := r.Max.Y - y
+			if height <= 0 {
+				break
+			}
+			if height > best.Y {
+				height = best.Y
+			}
 			x := r.Min.X
 			for {
 				width := r.Max.X - x
 				if width <= 0 {
 					break
 				}
-				if width > maxWidth {
-					width = maxWidth
+				if width > best.X {
+					width = best.X
 				}
 				r1 := image.Rectangle{
 					image.Point{x, y},
-					image.Point{x + width, y + 1},
+					image.Point{x + width, y + height},
 				}
 				x += width
-				width = width*3 + 1
+				n := width*height*3 + 1
 				capaset(d.dci, &d.xarg, r1)
 				d.dci.Cmd(RAMRD)
-				d.dci.ReadBytes(d.buf[0:width])
+				d.dci.ReadBytes(d.buf[0:n])
 				d.dci.End() // required to end RAMRD (undocumented)
-				for i := 1; i < width; i += 3 {
+				for i := 1; i < n; i += 3 {
 					r := uint(d.buf[i+0])
 					g := uint(d.buf[i+1])
 					b := uint(d.buf[i+2])
@@ -198,8 +257,9 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				}
 				capaset(d.dci, &d.xarg, r1)
 				d.dci.Cmd(RAMWR)
-				d.dci.WriteBytes(d.buf[1:width])
+				d.dci.WriteBytes(d.buf[1:n])
 			}
+			y += height
 		}
 	}
 	d.dci.End()
