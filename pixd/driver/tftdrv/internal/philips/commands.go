@@ -4,6 +4,12 @@
 
 package philips
 
+import (
+	"image"
+
+	"github.com/embeddedgo/display/pixd/driver/tftdrv"
+)
+
 // PCF8833 commands
 const (
 	NOP       = 0x00 // no operation
@@ -27,6 +33,7 @@ const (
 	PASET     = 0x2B // page address set
 	RAMWR     = 0x2C // memory write
 	RGBSET    = 0x2D // colour set
+	RAMRD     = 0x2E // not supported by PCF8833 but exists in many derived command sets
 	PTLAR     = 0x30 // partial area
 	VSCRDEF   = 0x33 // vertical scroll definition
 	TEOFF     = 0x34 // tearing line off
@@ -59,3 +66,67 @@ const (
 	ECM       = 0xF0 // enter calibration mode
 	OTPSHTIN  = 0xF1 // shift data in OTP shift registers
 )
+
+func StartWrite8(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+	r.Max.X--
+	r.Max.Y--
+	dci.Cmd(CASET)
+	xarg[0] = uint8(r.Min.X)
+	xarg[1] = uint8(r.Max.X)
+	dci.WriteBytes(xarg[:2])
+	dci.Cmd(PASET)
+	xarg[0] = uint8(r.Min.Y)
+	xarg[1] = uint8(r.Max.Y)
+	dci.WriteBytes(xarg[:2])
+	dci.Cmd(RAMWR)
+}
+
+func StartRead8(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+	r.Max.X--
+	r.Max.Y--
+	dci.Cmd(CASET)
+	xarg[0] = uint8(r.Min.X)
+	xarg[1] = uint8(r.Max.X)
+	dci.WriteBytes(xarg[:2])
+	dci.Cmd(PASET)
+	xarg[0] = uint8(r.Min.Y)
+	xarg[1] = uint8(r.Max.Y)
+	dci.WriteBytes(xarg[:2])
+	dci.Cmd(RAMRD)
+}
+
+func StartWrite16(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+	r.Max.X--
+	r.Max.Y--
+	dci.Cmd(CASET)
+	xarg[0] = uint8(r.Min.X >> 8)
+	xarg[1] = uint8(r.Min.X)
+	xarg[2] = uint8(r.Max.X >> 8)
+	xarg[3] = uint8(r.Max.X)
+	dci.WriteBytes(xarg[:])
+	dci.Cmd(PASET)
+	xarg[0] = uint8(r.Min.Y >> 8)
+	xarg[1] = uint8(r.Min.Y)
+	xarg[2] = uint8(r.Max.Y >> 8)
+	xarg[3] = uint8(r.Max.Y)
+	dci.WriteBytes(xarg[:])
+	dci.Cmd(RAMWR)
+}
+
+func StartRead16(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+	r.Max.X--
+	r.Max.Y--
+	dci.Cmd(CASET)
+	xarg[0] = uint8(r.Min.X >> 8)
+	xarg[1] = uint8(r.Min.X)
+	xarg[2] = uint8(r.Max.X >> 8)
+	xarg[3] = uint8(r.Max.X)
+	dci.WriteBytes(xarg[:])
+	dci.Cmd(PASET)
+	xarg[0] = uint8(r.Min.Y >> 8)
+	xarg[1] = uint8(r.Min.Y)
+	xarg[2] = uint8(r.Max.Y >> 8)
+	xarg[3] = uint8(r.Max.Y)
+	dci.WriteBytes(xarg[:])
+	dci.Cmd(RAMRD)
+}

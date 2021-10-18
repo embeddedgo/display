@@ -8,8 +8,10 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"time"
 
 	"github.com/embeddedgo/display/pixd/driver/tftdrv"
+	"github.com/embeddedgo/display/pixd/driver/tftdrv/internal/philips"
 )
 
 // magic numbers, bufA*bufB*bufC + 1 must be multiple of two, bufA smalest value
@@ -54,7 +56,6 @@ func NewOver(dci tftdrv.RDCI) *DriverOver {
 	return &DriverOver{dci: dci, w: 240, h: 320}
 }
 
-func (d *DriverOver) DCI() tftdrv.RDCI     { return d.dci }
 func (d *DriverOver) Err(clear bool) error { return d.dci.Err(clear) }
 func (d *DriverOver) Flush()               {}
 
@@ -63,12 +64,29 @@ func (d *DriverOver) Size() image.Point {
 }
 
 // Init initializes display using provided initialization commands. The
-// initialization commands depends on the LCD pannel. See InitGFX and InitST for
-// working examples.
+// initialization commands depends on the LCD pannel. See InitGFX for working
+// example.
 func (d *DriverOver) Init(cmds []byte, swreset bool) {
-	initialize(d.dci, cmds, swreset)
+	i := 0
+	for i < len(cmds) {
+		cmd := cmds[i]
+		n := int(cmds[i+1])
+		i += 2
+		if n == 255 {
+			time.Sleep(time.Duration(cmd) * time.Millisecond)
+			continue
+		}
+		d.dci.Cmd(cmd)
+		if n != 0 {
+			k := i + n
+			data := cmds[i:k]
+			i = k
+			d.dci.WriteBytes(data)
+		}
+	}
 }
 
+//go:noinline
 func (d *DriverOver) SetMADCTL(madctl byte) {
 	d.dci.Cmd(MADCTL)
 	d.xarg[0] = madctl
@@ -150,9 +168,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	if n == 0 {
 		return
 	}
-	pixset(d.dci, &d.pf, d.cinfo&0xf)
-	capaset(d.dci, &d.xarg, r)
-	d.dci.Cmd(RAMWR)
+	pixSet(d.dci, &d.pf, d.cinfo&0xf)
+	philips.StartWrite16(d.dci, &d.xarg, r)
 	pixSize := int(d.cinfo>>osize) & 3
 	n *= pixSize
 	typ := d.cinfo >> otype
@@ -240,8 +257,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				}
 				x += width
 				n := width*height*3 + 1
-				capaset(d.dci, &d.xarg, r1)
-				d.dci.Cmd(RAMRD)
+				philips.StartRead16(d.dci, &d.xarg, r1)
 				d.dci.ReadBytes(d.buf[0:n])
 				d.dci.End() // required to end RAMRD (undocumented)
 				for i := 1; i < n; i += 3 {
@@ -255,8 +271,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 					d.buf[i+1] = uint8(g >> 8)
 					d.buf[i+2] = uint8(b >> 8)
 				}
-				capaset(d.dci, &d.xarg, r1)
-				d.dci.Cmd(RAMWR)
+				philips.StartWrite16(d.dci, &d.xarg, r1)
 				d.dci.WriteBytes(d.buf[1:n])
 			}
 			y += height

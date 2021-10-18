@@ -31,7 +31,7 @@ const (
 	PASET     = philips.PASET   // Page Address Set
 	RAMWR     = philips.RAMWR   // Memory Write
 	RGBSET    = philips.RGBSET  // Color SET
-	RAMRD     = 0x2E            // Memory Read
+	RAMRD     = philips.RAMRD   // Memory Read
 	PLTAR     = philips.PTLAR   // Partial Area
 	VSCRDEF   = philips.VSCRDEF // Vertical Scrolling Definition
 	TEOFF     = philips.TEOFF   // Tearing Effect Line OFF

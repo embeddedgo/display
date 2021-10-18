@@ -4,6 +4,12 @@
 
 package epson
 
+import (
+	"image"
+
+	"github.com/embeddedgo/display/pixd/driver/tftdrv"
+)
+
 // S1D15G00 commands
 const (
 	DISON   = 0xAF // Display on
@@ -41,3 +47,67 @@ const (
 	EPSRRD2 = 0x7D // Read register 2
 	NOP     = 0x25 // NOP instruction
 )
+
+func StartWrite8(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+	r.Max.X--
+	r.Max.Y--
+	dci.Cmd(CASET)
+	xarg[0] = uint8(r.Min.X)
+	xarg[1] = uint8(r.Max.X)
+	dci.WriteBytes(xarg[:2])
+	dci.Cmd(PASET)
+	xarg[0] = uint8(r.Min.Y)
+	xarg[1] = uint8(r.Max.Y)
+	dci.WriteBytes(xarg[:2])
+	dci.Cmd(RAMWR)
+}
+
+func StartRead8(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+	r.Max.X--
+	r.Max.Y--
+	dci.Cmd(CASET)
+	xarg[0] = uint8(r.Min.X)
+	xarg[1] = uint8(r.Max.X)
+	dci.WriteBytes(xarg[:2])
+	dci.Cmd(PASET)
+	xarg[0] = uint8(r.Min.Y)
+	xarg[1] = uint8(r.Max.Y)
+	dci.WriteBytes(xarg[:2])
+	dci.Cmd(RAMRD)
+}
+
+func StartWrite16(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+	r.Max.X--
+	r.Max.Y--
+	dci.Cmd(CASET)
+	xarg[0] = uint8(r.Min.X >> 8)
+	xarg[1] = uint8(r.Min.X)
+	xarg[2] = uint8(r.Max.X >> 8)
+	xarg[3] = uint8(r.Max.X)
+	dci.WriteBytes(xarg[:])
+	dci.Cmd(PASET)
+	xarg[0] = uint8(r.Min.Y >> 8)
+	xarg[1] = uint8(r.Min.Y)
+	xarg[2] = uint8(r.Max.Y >> 8)
+	xarg[3] = uint8(r.Max.Y)
+	dci.WriteBytes(xarg[:])
+	dci.Cmd(RAMWR)
+}
+
+func StartRead16(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+	r.Max.X--
+	r.Max.Y--
+	dci.Cmd(CASET)
+	xarg[0] = uint8(r.Min.X >> 8)
+	xarg[1] = uint8(r.Min.X)
+	xarg[2] = uint8(r.Max.X >> 8)
+	xarg[3] = uint8(r.Max.X)
+	dci.WriteBytes(xarg[:])
+	dci.Cmd(PASET)
+	xarg[0] = uint8(r.Min.Y >> 8)
+	xarg[1] = uint8(r.Min.Y)
+	xarg[2] = uint8(r.Max.Y >> 8)
+	xarg[3] = uint8(r.Max.Y)
+	dci.WriteBytes(xarg[:])
+	dci.Cmd(RAMRD)
+}
