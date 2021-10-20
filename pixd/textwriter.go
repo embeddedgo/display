@@ -66,16 +66,16 @@ func drawRune(w *TextWriter, r rune) {
 		}
 	}
 	nx := w.Pos.X + advance
-	if w.Wrap != NoWrap && (nx > w.Area.size.X || r == '\n') {
+	if w.Wrap != NoWrap && (nx > w.Area.bounds.Max.X || r == '\n') {
 		if w.Wrap == WrapNewLine {
 			h, _ := w.Face.Size()
 			w.Pos.Y += h
 		}
-		w.Pos.X = 0
-		nx = advance
+		w.Pos.X = w.Area.bounds.Min.X
 		if r == '\n' {
 			return
 		}
+		nx = w.Pos.X + advance
 	}
 	img := &image.Uniform{w.Color}
 	mr := mask.Bounds()

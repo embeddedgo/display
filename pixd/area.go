@@ -9,14 +9,14 @@ import (
 	"image/color"
 )
 
-// Area is the drawing area on the display. It has its own coordinates with the
-// (0, 0) origin regardless of its position on the display.
+// Area is the drawing area on the display. It has its own coordinates
+// independent of its position on the display.
 type Area struct {
 	disp    *Display
 	color   color.Color
-	p0      image.Point
+	tod     image.Point
 	visible image.Rectangle
-	size    image.Point
+	bounds  image.Rectangle
 }
 
 func setColor(a *Area) {
@@ -28,19 +28,27 @@ func setColor(a *Area) {
 
 // Rect returns the area coordinates on the display.
 func (a *Area) Rect() image.Rectangle {
-	return image.Rectangle{a.p0, a.p0.Add(a.size)}
+	return a.bounds.Add(a.tod)
 }
 
 // SetRect chandges the rectangle occupied by the area on the display.
 func (a *Area) SetRect(r image.Rectangle) {
-	a.p0 = r.Min
-	a.size = r.Size()
 	a.visible = r.Intersect(a.disp.Bounds())
+	a.bounds = r.Sub(a.tod)
 }
 
 // Bounds return the area bounds in its own coordinate system.
 func (a *Area) Bounds() image.Rectangle {
-	return image.Rectangle{Max: a.size}
+	return a.bounds
+}
+
+// SetOrigin sets the coordinate of the upper left corner of the area. It does
+// not affect the position of the area on the display but translates its
+// internal coordinate system in a way that the a.Bounds().Min = origin.
+func (a *Area) SetOrigin(origin image.Point) {
+	delta := origin.Sub(a.bounds.Min)
+	a.tod = a.tod.Sub(delta)
+	a.bounds = image.Rectangle{origin, origin.Add(a.bounds.Size())}
 }
 
 // SetColor sets the color used by drawing methods.

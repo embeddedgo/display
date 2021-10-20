@@ -45,6 +45,7 @@ func (d *Display) Bounds() image.Rectangle {
 
 func (d *Display) NewArea(r image.Rectangle) *Area {
 	a := &Area{disp: d, color: color.Alpha{255}}
+	a.tod = r.Min
 	a.SetRect(r)
 	return a
 }

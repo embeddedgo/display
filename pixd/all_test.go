@@ -41,7 +41,7 @@ func TestDrawGeom(t *testing.T) {
 
 	max := a.Bounds().Max
 
-	a.SetColorRGB(24, 46, 68)
+	a.SetColorRGBA(24, 46, 68, 255)
 	for x := 0; x < max.X; x += 2 {
 		a.DrawPoint(image.Pt(x, 0), 0)
 		a.DrawPoint(image.Pt(x+1, max.Y-1), 0)
@@ -56,17 +56,17 @@ func TestDrawGeom(t *testing.T) {
 	xr := max.X * 3 / 4
 	for r := 0; r < 19; r++ {
 		y := 3 + (r+2)*r
-		a.SetColorRGB(0, 100, 200)
+		a.SetColorRGBA(0, 100, 200, 255)
 		a.DrawPoint(image.Pt(x, y), r)
 		a.FillEllipse(image.Pt(xl, y), r, r/2)
 		a.FillEllipse(image.Pt(xr, y), r/2, r)
-		a.SetColor(color.RGBA{100, 50, 0, 255})
+		a.SetColorRGBA(100, 50, 0, 255)
 		a.DrawEllipse(image.Pt(x, y), r, r)
 		a.DrawEllipse(image.Pt(xl, y), r, r/2)
 		a.DrawEllipse(image.Pt(xr, y), r/2, r)
 	}
 
-	a.SetColorRGB(250, 100, 0)
+	a.SetColorRGBA(250, 100, 0, 255)
 	for i := 0; i < 20; i++ {
 		x := 2*i + 4
 		y := i*i + 2
@@ -87,7 +87,7 @@ func TestDrawImage(t *testing.T) {
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds().Inset(4))
-	a.SetColorRGB(0, 0, 128)
+	a.SetColorRGBA(0, 0, 128, 255)
 	a.Fill(a.Bounds())
 
 	img := pixd.NewAlphaN(image.Rect(0, 0, 11, 11), 1)
@@ -178,10 +178,10 @@ func TestFont(t *testing.T) {
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
-	a.SetColorRGB(250, 250, 200)
+	a.SetColorRGBA(250, 250, 200, 255)
 	a.Fill(a.Bounds())
 	a.SetRect(a.Rect().Inset(4))
-	a.SetColorRGB(0, 0, 100)
+	a.SetColorRGBA(0, 0, 100, 255)
 
 	w := a.TextWriter(Dejavu12)
 	w.WriteString(AkermanianSteppes)

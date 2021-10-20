@@ -38,5 +38,6 @@ func (d *Driver) Fill(r image.Rectangle) {
 	d.Draw(r, &d.fill, image.Point{}, nil, image.Point{}, draw.Over)
 }
 
+func (d *Driver) Rotate(n int)         {}
 func (d *Driver) Flush()               {}
 func (d *Driver) Err(clear bool) error { return nil }

@@ -10,7 +10,7 @@ import (
 )
 
 func drawPixel(a *Area, p image.Point) {
-	p = p.Add(a.p0)
+	p = p.Add(a.tod)
 	if !p.In(a.visible) {
 		return
 	}
@@ -18,9 +18,9 @@ func drawPixel(a *Area, p image.Point) {
 }
 
 func hline(a *Area, x0, y0, x1 int) {
-	x0 += a.p0.X
-	x1 += a.p0.X
-	y0 += a.p0.Y
+	x0 += a.tod.X
+	x1 += a.tod.X
+	y0 += a.tod.Y
 	v := a.visible
 	if y0 < v.Min.Y || y0 >= v.Max.Y {
 		return
@@ -42,9 +42,9 @@ func hline(a *Area, x0, y0, x1 int) {
 }
 
 func vline(a *Area, x0, y0, y1 int) {
-	x0 += a.p0.X
-	y0 += a.p0.Y
-	y1 += a.p0.Y
+	x0 += a.tod.X
+	y0 += a.tod.Y
+	y1 += a.tod.Y
 	v := a.visible
 	if x0 < v.Min.X || x0 >= v.Max.X {
 		return
@@ -68,7 +68,7 @@ func vline(a *Area, x0, y0, y1 int) {
 // Fill fills the given rectangle.
 func (a *Area) Fill(r image.Rectangle) {
 	setColor(a)
-	r = r.Add(a.p0).Intersect(a.visible)
+	r = r.Add(a.tod).Intersect(a.visible)
 	if !r.Empty() {
 		a.disp.drv.Fill(r)
 	}
@@ -77,7 +77,7 @@ func (a *Area) Fill(r image.Rectangle) {
 // Draw works like draw.DrawMask with dst set to the image representing the
 // whole area.
 func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	r = r.Add(a.p0)
+	r = r.Add(a.tod)
 	orig := r.Min
 	r = r.Intersect(a.visible)
 	r = r.Intersect(src.Bounds().Add(orig.Sub(sp)))
