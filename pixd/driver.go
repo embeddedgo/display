@@ -15,6 +15,11 @@ type Driver interface {
 	// Size returns the display dimensions.
 	Size() image.Point
 
+	// SetDir sets the display direction by rotate its default coordinate system
+	// by dir*90 degrees. The positive number means clockwise rotation, the
+	// negative one means counterclockwise rotation.
+	SetDir(dir int)
+
 	// Draw works like draw.DrawMask with dst set to the image representing the
 	// whole display.
 	//
@@ -46,10 +51,6 @@ type Driver interface {
 	// to implement any kind of buffering if the direct drawing to the display
 	// is problematic or inefficient.
 	Flush()
-
-	// Rotate rotates the display coordinates by n*90 degrees. The positive
-	// number means clockwise rotation, the negative one - counterclockwise.
-	Rotate(n int)
 
 	// Err returns the saved error and clears it if the clear is true. If an
 	// error has occured it is recommended that the Driver avoids any further

@@ -11,7 +11,6 @@ func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
 	if ra < 0 || rb < 0 {
 		return
 	}
-	setColor(a)
 	// Alois Zingl algorithm
 	x := -ra
 	y := 0
@@ -54,7 +53,6 @@ func (a *Area) FillEllipse(p image.Point, ra, rb int) {
 	if ra < 0 || rb < 0 {
 		return
 	}
-	setColor(a)
 	// Alois Zingl algorithm
 	x := -ra
 	y := 0

@@ -13,6 +13,7 @@ import (
 type Display struct {
 	drv       Driver
 	lastColor color.Color
+	origin    image.Point
 }
 
 // NewDisplay returns a new itialized display.
@@ -40,12 +41,33 @@ func (d *Display) Err(clear bool) error {
 
 // Bounds returns the bounds of the display
 func (d *Display) Bounds() image.Rectangle {
-	return image.Rectangle{Max: d.drv.Size()}
+	return image.Rectangle{Min: d.origin, Max: d.origin.Add(d.drv.Size())}
+}
+
+// SetOrigin sets the coordinate of the upper left corner of the display. It
+// translates internal coordinate system of the display in a way that the
+// d.Bounds().Min = origin.
+func (d *Display) SetOrigin(origin image.Point) {
+	d.origin = origin
+}
+
+// SetDir sets the display direction by rotate its default coordinate system
+// by n*90 degrees. The positive number means clockwise rotation, the
+// negative one means counterclockwise rotation.
+//
+// After SetDir the coordinates of all areas that use this display should be
+// re-set (usng SetRect method) and their content should be redrawn. Use
+// a.SetRect(a.Rect()) if the coordinates of the area on the rotated display
+// should remain the same.
+func (d *Display) SetDir(n int) {
+	d.drv.SetDir(n)
 }
 
 func (d *Display) NewArea(r image.Rectangle) *Area {
-	a := &Area{disp: d, color: color.Alpha{255}}
-	a.tod = r.Min
+	a := new(Area)
+	a.bounds = image.Rectangle{Max: r.Size()} // default origin is (0,0)
+	a.color = color.Alpha{255}
+	a.ad.disp = d
 	a.SetRect(r)
 	return a
 }

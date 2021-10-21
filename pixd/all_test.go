@@ -32,10 +32,13 @@ func failErr(t *testing.T, err error) {
 func TestDrawGeom(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 200, 400))
-	disp := pixd.NewDisplay(imgdrv.New(screen))
+	screen := image.NewNRGBA(image.Rect(0, 0, 200, 410))
 
-	a := disp.NewArea(disp.Bounds().Inset(5))
+	disp1 := pixd.NewDisplay(imgdrv.New(screen.SubImage(image.Rect(0, 0, 200, 200)).(*image.NRGBA)))
+	disp2 := pixd.NewDisplay(imgdrv.New(screen.SubImage(image.Rect(0, 210, 200, 410)).(*image.NRGBA)))
+	disp2.SetOrigin(image.Pt(0, 200))
+
+	a := pixd.NewArea(image.Rect(0, 0, 200, 400), disp1, disp2)
 	a.SetColor(color.Gray{220})
 	a.Fill(a.Bounds())
 
@@ -183,7 +186,7 @@ func TestFont(t *testing.T) {
 	a.SetRect(a.Rect().Inset(4))
 	a.SetColorRGBA(0, 0, 100, 255)
 
-	w := a.TextWriter(Dejavu12)
+	w := a.NewTextWriter(Dejavu12)
 	w.WriteString(AkermanianSteppes)
 
 	w.Face = AnonPro11

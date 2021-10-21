@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// BUG: dci.End not used. Fix it!
+
 // Driver implements pixd.Driver interface with a limited support for draw.Over
 // operation. It uses write-only DCI so the alpha blending is slow and reduced
 // to 1-bit resolution. Use DriverOver if the full-fledged Porter-Duff
@@ -71,7 +73,7 @@ func (d *Driver) Init(cmds []byte) {
 	}
 }
 
-func (d *Driver) Rotate(n int) {}
+func (d *Driver) SetDir(dir int) {}
 
 func (d *Driver) SetColor(c color.Color) {
 	var r, g, b uint32
