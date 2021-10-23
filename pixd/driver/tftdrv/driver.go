@@ -11,8 +11,6 @@ import (
 	"time"
 )
 
-// BUG: dci.End not used. Fix it!
-
 // Driver implements pixd.Driver interface with a limited support for draw.Over
 // operation. It uses write-only DCI so the alpha blending is slow and reduced
 // to 1-bit resolution. Use DriverOver if the full-fledged Porter-Duff
@@ -47,7 +45,7 @@ func New(dci DCI, w, h uint16, startWrite AccessRAM, pixSet PixSet, pf16, pf18 b
 
 func (d *Driver) Err(clear bool) error { return d.dci.Err(clear) }
 func (d *Driver) Flush()               {}
-func (d *Driver) Size() image.Point    { return image.Point{int(d.w), int(d.h)} }
+func (d *Driver) Size() image.Point    { return image.Pt(int(d.w), int(d.h)) }
 
 // Init initializes the display using provided initialization commands. The
 // initialization commands depends on the LCD pannel. The command that sets
@@ -71,6 +69,7 @@ func (d *Driver) Init(cmds []byte) {
 			d.dci.WriteBytes(data)
 		}
 	}
+	d.dci.End()
 }
 
 func (d *Driver) SetDir(dir int) {}
@@ -155,10 +154,10 @@ func (d *Driver) Fill(r image.Rectangle) {
 	switch d.cinfo >> otype {
 	case fastWord:
 		d.dci.(WordNWriter).WriteWordN(d.cfast, n)
-		return
+		goto end
 	case fastByte:
 		d.dci.(ByteNWriter).WriteByteN(byte(d.cfast), n)
-		return
+		goto end
 	case bufInit:
 		d.cinfo |= bufFull << otype
 		for i := pixSize; i < len(d.buf); i += pixSize {
@@ -169,17 +168,17 @@ func (d *Driver) Fill(r image.Rectangle) {
 			}
 		}
 	}
-	m := len(d.buf)
-	for {
+	for m := len(d.buf); ; {
 		if m > n {
 			m = n
 		}
 		d.dci.WriteBytes(d.buf[:m])
-		n -= m
-		if n == 0 {
+		if n -= m; n == 0 {
 			break
 		}
 	}
+end:
+	d.dci.End()
 }
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
@@ -208,5 +207,5 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		}
 		drawOverNoRead(dst, r.Min, src, sp, sip, mask, mp, getBuf(), startWrite)
 	}
-
+	d.dci.End()
 }

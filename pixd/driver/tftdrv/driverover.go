@@ -2,16 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ili9341
+package tftdrv
 
 import (
 	"image"
 	"image/color"
 	"image/draw"
 	"time"
-
-	"github.com/embeddedgo/display/pixd/driver/tftdrv"
-	"github.com/embeddedgo/display/pixd/driver/tftdrv/internal/philips"
 )
 
 // magic numbers, bufA*bufB*bufC + 1 must be multiple of two, bufA smalest value
@@ -41,32 +38,43 @@ var bufDims_ = [...]image.Point{
 // draw.Over operator. It requires tftdrv.RDCI to read the frame memory content.
 // If the display has write-only interface use Driver instead.
 type DriverOver struct {
-	dci     tftdrv.RDCI
-	xarg    [4]byte
-	pf      [1]byte
-	cinfo   byte
-	cfast   uint16
-	r, g, b uint16
-	w, h    uint16
-	buf     [(bufA*bufB*bufC + 1) * 3]byte // must be multiple of two and three
+	dci        RDCI
+	startRead  AccessRAM
+	startWrite AccessRAM
+	pixSet     PixSet
+	w, h       uint16
+	r, g, b    uint16
+	cfast      uint16
+	cinfo      byte
+	pf         [1]byte
+	xarg       [4]byte
+	pf16       byte
+	pf18       byte
+	buf        [(bufA*bufB*bufC + 1) * 3]byte // must be multiple of two and three
 }
 
 // NewOver returns new DriverOver.
-func NewOver(dci tftdrv.RDCI) *DriverOver {
-	return &DriverOver{dci: dci, w: 240, h: 320}
+func NewOver(dci RDCI, w, h uint16, startRead, startWrite AccessRAM, pixSet PixSet, pf16, pf18 byte) *DriverOver {
+	return &DriverOver{
+		dci:        dci,
+		startRead:  startRead,
+		startWrite: startWrite,
+		pixSet:     pixSet,
+		w:          w,
+		h:          h,
+		pf16:       pf16,
+		pf18:       pf18,
+	}
 }
 
 func (d *DriverOver) Err(clear bool) error { return d.dci.Err(clear) }
 func (d *DriverOver) Flush()               {}
-
-func (d *DriverOver) Size() image.Point {
-	return image.Point{int(d.w), int(d.h)}
-}
+func (d *DriverOver) Size() image.Point    { return image.Pt(int(d.w), int(d.h)) }
 
 // Init initializes display using provided initialization commands. The
 // initialization commands depends on the LCD pannel. See InitGFX for working
 // example.
-func (d *DriverOver) Init(cmds []byte, swreset bool) {
+func (d *DriverOver) Init(cmds []byte) {
 	i := 0
 	for i < len(cmds) {
 		cmd := cmds[i]
@@ -84,14 +92,10 @@ func (d *DriverOver) Init(cmds []byte, swreset bool) {
 			d.dci.WriteBytes(data)
 		}
 	}
+	d.dci.End()
 }
 
-//go:noinline
-func (d *DriverOver) SetMADCTL(madctl byte) {
-	d.dci.Cmd(MADCTL)
-	d.xarg[0] = madctl
-	d.dci.WriteBytes(d.xarg[:1])
-}
+func (d *DriverOver) SetDir(dir int) {}
 
 const alphaOpaque = 0xfb00
 
@@ -125,34 +129,34 @@ func (d *DriverOver) SetColor(c color.Color) {
 		b &^= 3
 		if r&7 == 0 && b&7 == 0 {
 			rgb565 := r<<8 | g<<3 | b>>3
-			if _, ok := d.dci.(tftdrv.WordNWriter); ok {
-				d.cinfo = fastWord<<otype | 1<<osize | MCU16
+			if _, ok := d.dci.(WordNWriter); ok {
+				d.cinfo = fastWord<<otype | 1<<osize
 				d.cfast = uint16(rgb565)
 				return
 			}
 			h := rgb565 >> 8
 			l := rgb565 & 0xff
 			if h == l {
-				if _, ok := d.dci.(tftdrv.ByteNWriter); ok {
-					d.cinfo = fastByte<<otype | 2<<osize | MCU16
+				if _, ok := d.dci.(ByteNWriter); ok {
+					d.cinfo = fastByte<<otype | 2<<osize
 					d.cfast = uint16(h)
 					return
 				}
 			}
-			d.cinfo = bufInit<<otype | 2<<osize | MCU16
+			d.cinfo = bufInit<<otype | 2<<osize
 			d.r = uint16(h)
 			d.g = uint16(l)
 			return
 		}
 		if r == g && g == b {
-			if _, ok := d.dci.(tftdrv.ByteNWriter); ok {
+			if _, ok := d.dci.(ByteNWriter); ok {
 				d.cfast = uint16(r)
-				d.cinfo = fastByte<<otype | 3<<osize | MCU18
+				d.cinfo = fastByte<<otype | 3<<osize
 				return
 			}
 		}
 	}
-	d.cinfo = bufInit<<otype | 3<<osize | MCU18
+	d.cinfo = bufInit<<otype | 3<<osize
 	d.r = uint16(r)
 	d.g = uint16(g)
 	d.b = uint16(b)
@@ -168,16 +172,20 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	if n == 0 {
 		return
 	}
-	pixSet(d.dci, &d.pf, d.cinfo&0xf)
-	philips.StartWrite16(d.dci, &d.xarg, r)
+	pf := d.pf16
+	if d.cinfo>>osize&3 == 3 {
+		pf = d.pf18
+	}
+	d.pixSet(d.dci, &d.pf, pf)
+	d.startWrite(d.dci, &d.xarg, r)
 	pixSize := int(d.cinfo>>osize) & 3
 	n *= pixSize
 	typ := d.cinfo >> otype
 	switch {
 	case typ == fastWord:
-		d.dci.(tftdrv.WordNWriter).WriteWordN(d.cfast, n)
+		d.dci.(WordNWriter).WriteWordN(d.cfast, n)
 	case typ == fastByte:
-		d.dci.(tftdrv.ByteNWriter).WriteByteN(byte(d.cfast), n)
+		d.dci.(ByteNWriter).WriteByteN(byte(d.cfast), n)
 	case d.cfast >= alphaOpaque:
 		if typ == bufInit {
 			d.cinfo |= bufFull << otype
@@ -257,7 +265,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				}
 				x += width
 				n := width*height*3 + 1
-				philips.StartRead16(d.dci, &d.xarg, r1)
+				d.startRead(d.dci, &d.xarg, r1)
 				d.dci.ReadBytes(d.buf[0:n])
 				d.dci.End() // required to end RAMRD (undocumented)
 				for i := 1; i < n; i += 3 {
@@ -271,7 +279,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 					d.buf[i+1] = uint8(g >> 8)
 					d.buf[i+2] = uint8(b >> 8)
 				}
-				philips.StartWrite16(d.dci, &d.xarg, r1)
+				d.startWrite(d.dci, &d.xarg, r1)
 				d.dci.WriteBytes(d.buf[1:n])
 			}
 			y += height
