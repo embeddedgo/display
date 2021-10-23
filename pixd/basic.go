@@ -9,96 +9,6 @@ import (
 	"image/draw"
 )
 
-func drawPixel(a *Area, p image.Point) {
-	for ad := &a.ad; ad != nil; ad = ad.link {
-		tp := p.Add(ad.tr)
-		if tp.In(ad.visible) {
-			setColor(a, ad.disp)
-			ad.disp.drv.Fill(image.Rect(tp.X, tp.Y, tp.X+1, tp.Y+1))
-		}
-	}
-}
-
-/*
-func hline(a *Area, x0, y0, x1 int) {
-	var r image.Rectangle
-	r.Min.X = x0
-	r.Min.Y = y0
-	r.Max.X = x1 + 1
-	r.Max.Y = y0 + 1
-	a.Fill(r)
-}
-
-func vline(a *Area, x0, y0, y1 int) {
-	var r image.Rectangle
-	r.Min.X = x0
-	r.Min.Y = y0
-	r.Max.X = x0 + 1
-	r.Max.Y = y1 + 1
-	a.Fill(r)
-}
-*/
-
-func hline(a *Area, x0, y0, x1 int) {
-	for ad := &a.ad; ad != nil; ad = ad.link {
-		v := ad.visible
-		ty0 := y0 + ad.tr.Y
-		if ty0 < v.Min.Y || v.Max.Y <= ty0 {
-			continue
-		}
-		tx0 := x0 + ad.tr.X
-		tx1 := x1 + ad.tr.X
-		if tx1 < tx0 {
-			tx1, tx0 = tx0, tx1
-		}
-		tx1 += 1
-		if tx0 < v.Min.X {
-			tx0 = v.Min.X
-		}
-		if tx1 >= v.Max.X {
-			tx1 = v.Max.X
-		}
-		if tx0 <= tx1 {
-			r := image.Rectangle{
-				image.Point{tx0, ty0},
-				image.Point{tx1, ty0 + 1},
-			}
-			setColor(a, ad.disp)
-			ad.disp.drv.Fill(r)
-		}
-	}
-}
-
-func vline(a *Area, x0, y0, y1 int) {
-	for ad := &a.ad; ad != nil; ad = ad.link {
-		v := ad.visible
-		tx0 := x0 + ad.tr.X
-		if tx0 < v.Min.X || v.Max.X <= tx0 {
-			continue
-		}
-		ty0 := y0 + ad.tr.Y
-		ty1 := y1 + ad.tr.Y
-		if ty1 < ty0 {
-			ty1, ty0 = ty0, ty1
-		}
-		ty1 += 1
-		if ty0 < v.Min.Y {
-			ty0 = v.Min.Y
-		}
-		if ty1 >= v.Max.Y {
-			ty1 = v.Max.Y
-		}
-		if ty0 <= ty1 {
-			r := image.Rectangle{
-				image.Point{tx0, ty0},
-				image.Point{tx0 + 1, ty1},
-			}
-			setColor(a, ad.disp)
-			ad.disp.drv.Fill(r)
-		}
-	}
-}
-
 // Fill fills the given rectangle.
 func (a *Area) Fill(r image.Rectangle) {
 	for ad := &a.ad; ad != nil; ad = ad.link {
@@ -108,6 +18,31 @@ func (a *Area) Fill(r image.Rectangle) {
 			ad.disp.drv.Fill(tr)
 		}
 	}
+}
+
+// The simple implemetations of drawPixel, hline and vline are almost as fast as
+// the optimized ones in case of real hardware that is slow in terms of
+// transferring commands and data. For example the simple implementation of
+// drawPixel below is only 1.0003 slower than the optimized one that uses
+// Point.In and drv.Fill directly (ili9341.Driver, STM32 21 MHz DMA SPI) but
+// takes 500 bytes less of Flash.
+
+func drawPixel(a *Area, p image.Point) {
+	a.Fill(image.Rectangle{image.Pt(p.X, p.Y), image.Pt(p.X+1, p.Y+1)})
+}
+
+func hline(a *Area, x0, y0, x1 int) {
+	if x0 > x1 {
+		x1, x0 = x0, x1
+	}
+	a.Fill(image.Rectangle{image.Pt(x0, y0), image.Pt(x1+1, y0+1)})
+}
+
+func vline(a *Area, x0, y0, y1 int) {
+	if y0 > y1 {
+		y1, y0 = y0, y1
+	}
+	a.Fill(image.Rectangle{image.Pt(x0, y0), image.Pt(x0+1, y1+1)})
 }
 
 // Draw works like draw.DrawMask with dst set to the image representing the

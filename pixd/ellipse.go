@@ -20,8 +20,8 @@ func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
 	err := dx + dy
 	bb2 := 2 * rb * rb
 	aa2 := 2 * ra * ra
-	drawPixel(a, p.Add(image.Point{-x, 0}))
-	drawPixel(a, p.Add(image.Point{x, 0}))
+	drawPixel(a, p.Add(image.Pt(-x, 0)))
+	drawPixel(a, p.Add(image.Pt(x, 0)))
 	for {
 		e2 = 2 * err
 		if e2 >= dx {
@@ -36,15 +36,15 @@ func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
 			dy += aa2
 			err += dy
 		}
-		drawPixel(a, p.Add(image.Point{-x, y}))
-		drawPixel(a, p.Add(image.Point{x, y}))
-		drawPixel(a, p.Add(image.Point{x, -y}))
-		drawPixel(a, p.Add(image.Point{-x, -y}))
+		drawPixel(a, p.Add(image.Pt(-x, y)))
+		drawPixel(a, p.Add(image.Pt(x, y)))
+		drawPixel(a, p.Add(image.Pt(x, -y)))
+		drawPixel(a, p.Add(image.Pt(-x, -y)))
 	}
 	for y < rb {
 		y++
-		drawPixel(a, p.Add(image.Point{0, y}))
-		drawPixel(a, p.Add(image.Point{0, -y}))
+		drawPixel(a, p.Add(image.Pt(0, y)))
+		drawPixel(a, p.Add(image.Pt(0, -y)))
 	}
 }
 
@@ -82,8 +82,8 @@ func (a *Area) FillEllipse(p image.Point, ra, rb int) {
 	}
 	for y < rb {
 		y++
-		drawPixel(a, p.Add(image.Point{0, y}))
-		drawPixel(a, p.Add(image.Point{0, -y}))
+		drawPixel(a, p.Add(image.Pt(0, y)))
+		drawPixel(a, p.Add(image.Pt(0, -y)))
 	}
 
 }

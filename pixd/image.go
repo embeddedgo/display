@@ -145,7 +145,7 @@ func (p *AlphaN) Bounds() image.Rectangle {
 }
 
 func (p *AlphaN) AlphaAt(x, y int) color.Alpha {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return color.Alpha{}
 	}
 	i, s := p.PixOffset(x, y)
@@ -170,7 +170,7 @@ func (p *AlphaN) PixOffset(x, y int) (offset int, shift uint) {
 }
 
 func (p *AlphaN) Set(x, y int, c color.Color) {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return
 	}
 	var alpha uint32
@@ -186,7 +186,7 @@ func (p *AlphaN) Set(x, y int, c color.Color) {
 }
 
 func (p *AlphaN) SetAlpha(x, y int, c color.Alpha) {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return
 	}
 	rshift := uint(8) - 1<<p.LogN
@@ -236,7 +236,7 @@ func (p *ImmAlphaN) ColorModel() color.Model { return AlphaNModel(1 << p.LogN) }
 func (p *ImmAlphaN) Bounds() image.Rectangle { return p.Rect }
 
 func (p *ImmAlphaN) AlphaAt(x, y int) color.Alpha {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return color.Alpha{}
 	}
 	i, s := p.PixOffset(x, y)
@@ -305,7 +305,7 @@ func (p *RGB) At(x, y int) color.Color {
 }
 
 func (p *RGB) RGBAAt(x, y int) color.RGBA {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return color.RGBA{}
 	}
 	i := p.PixOffset(x, y)
@@ -320,7 +320,7 @@ func (p *RGB) PixOffset(x, y int) int {
 }
 
 func (p *RGB) Set(x, y int, c color.Color) {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return
 	}
 	i := p.PixOffset(x, y)
@@ -332,7 +332,7 @@ func (p *RGB) Set(x, y int, c color.Color) {
 }
 
 func (p *RGB) SetRGBA(x, y int, c color.RGBA) {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return
 	}
 	i := p.PixOffset(x, y)
@@ -385,7 +385,7 @@ func (p *ImmRGB) At(x, y int) color.Color {
 }
 
 func (p *ImmRGB) RGBAAt(x, y int) color.RGBA {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return color.RGBA{}
 	}
 	i := p.PixOffset(x, y)
@@ -442,7 +442,7 @@ func (p *RGB16) At(x, y int) color.Color {
 }
 
 func (p *RGB16) RGBAAt(x, y int) color.RGBA {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return color.RGBA{}
 	}
 	i := p.PixOffset(x, y)
@@ -457,7 +457,7 @@ func (p *RGB16) PixOffset(x, y int) int {
 }
 
 func (p *RGB16) Set(x, y int, c color.Color) {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return
 	}
 	var r, g, b uint32
@@ -478,7 +478,7 @@ func (p *RGB16) Set(x, y int, c color.Color) {
 }
 
 func (p *RGB16) SetRGBA(x, y int, c color.RGBA) {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return
 	}
 	i := p.PixOffset(x, y)
@@ -530,7 +530,7 @@ func (p *ImmRGB16) At(x, y int) color.Color {
 }
 
 func (p *ImmRGB16) RGBAAt(x, y int) color.RGBA {
-	if !(image.Point{x, y}.In(p.Rect)) {
+	if !(image.Pt(x, y).In(p.Rect)) {
 		return color.RGBA{}
 	}
 	i := p.PixOffset(x, y)

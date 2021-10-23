@@ -106,6 +106,6 @@ func (a *Area) NewTextWriter(f FontFace) *TextWriter {
 		Area:  a,
 		Face:  f,
 		Color: a.color,
-		Pos:   image.Point{0, ascent},
+		Pos:   image.Pt(0, ascent),
 	}
 }

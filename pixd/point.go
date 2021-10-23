@@ -4,9 +4,7 @@
 
 package pixd
 
-import (
-	"image"
-)
+import "image"
 
 // DrawPoint draws a point with a given radius.
 func (a *Area) DrawPoint(p image.Point, r int) {
@@ -36,16 +34,14 @@ func (a *Area) DrawPoint(p image.Point, r int) {
 		e = ne
 	}
 	// fill the center rectangle
-	rect := image.Rectangle{
-		p.Add(image.Point{x, x}),
-		p.Sub(image.Point{x - 1, x - 1}),
-	}
+	rect := image.Rectangle{p.Add(image.Pt(x, x)), p.Sub(image.Pt(x-1, x-1))}
 	a.Fill(rect)
 }
 
 /*
-The implementation below is 1.5x slower than the above one in case of ILI9341,
-21 MHz SPI.
+The standard implementation below is 1.5 times slower than the above one
+(tested with ili9341.Driver, running on STM32, 21 MHz DMA SPI).
+
 
 func (a *Area) DrawPoint(p image.Point, r int) {
 	if r <= 0 {
@@ -72,53 +68,5 @@ func (a *Area) DrawPoint(p image.Point, r int) {
 			e += 2*x + 1
 		}
 	}
-}
-*/
-
-/*
-// DrawPoint draws a point with a given radius.
-func (a *Area) DrawPoint(p image.Point, r int) {
-	if r <= 0 {
-		if r == 0 {
-			drawPixel(a, p)
-		}
-		return
-	}
-	// based on Alois Zingl algorithm
-	// fill the four sides of the circle
-	x, y, e := -r, 0, 2*(1-r)
-	for x+y < 0 {
-		ny := y + 1
-		ne := e + 2*ny + 1
-		if e > x || ne > ny {
-			var rect image.Rectangle
-			rect.Min.X = p.X - y
-			rect.Min.Y = p.Y - x
-			rect.Max.X = p.X + y + 1
-			rect.Max.Y = rect.Min.Y + 1
-			a.Fill(rect)
-			rect.Min.Y = p.Y + x
-			rect.Max.Y = rect.Min.Y + 1
-			a.Fill(rect)
-			rect.Min.X = p.X + x
-			rect.Min.Y = p.Y - y
-			rect.Max.X = rect.Min.X + 1
-			rect.Max.Y = p.Y + y
-			a.Fill(rect)
-			rect.Min.X = p.X - x
-			rect.Max.X = rect.Min.X + 1
-			a.Fill(rect)
-			x += 1
-			ne += 2*x + 1
-		}
-		y = ny
-		e = ne
-	}
-	// fill the center rectangle
-	rect := image.Rectangle{
-		p.Add(image.Point{x, x}),
-		p.Sub(image.Point{x - 1, x - 1}),
-	}
-	a.Fill(rect)
 }
 */
