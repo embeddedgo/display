@@ -11,6 +11,8 @@ import (
 	"time"
 )
 
+// BUG: we assume that any controller supports 24-bit pixel data format
+
 // Driver implements pixd.Driver interface with a limited support for draw.Over
 // operation. It uses write-only DCI so the alpha blending is slow and reduced
 // to 1-bit resolution. Use DriverOver if the full-fledged Porter-Duff
@@ -18,28 +20,28 @@ import (
 // memory.
 type Driver struct {
 	dci        DCI
-	startWrite AccessRAM
+	startWrite AccessFrame
 	pixSet     PixSet
+	setDir     PixSet
 	w, h       uint16
 	cfast      uint16
 	cinfo      byte
-	pf         [1]byte
+	pdf        PDF
+	parg       [1]byte
 	xarg       [4]byte
-	pf16       byte
-	pf18       byte
-	buf        [38 * 3]byte // must be multiple of two and three
-} // ont 32-bit MCU the size of this struct is 144 B, exactly full allocation unit (see runtime/sizeclasses_mcu.go)
+	buf        [42 * 3]byte // must be multiple of two and three
+} // ont 32-bit MCU the size of this struct is 159 B, almost full 160 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // New returns new Driver.
-func New(dci DCI, w, h uint16, startWrite AccessRAM, pixSet PixSet, pf16, pf18 byte) *Driver {
+func New(dci DCI, w, h uint16, pdf PDF, startWrite AccessFrame, pixSet, setDir PixSet) *Driver {
 	return &Driver{
 		dci:        dci,
 		startWrite: startWrite,
 		pixSet:     pixSet,
+		setDir:     setDir,
 		w:          w,
 		h:          h,
-		pf16:       pf16,
-		pf18:       pf18,
+		pdf:        pdf,
 	}
 }
 
@@ -96,11 +98,13 @@ func (d *Driver) SetColor(c color.Color) {
 		g >>= 8
 		b >>= 8
 	}
-	// best color format supported is 18-bit RGB 666
-	r &^= 3
-	g &^= 3
-	b &^= 3
-	if d.pf16 != 0 && r&7 == 0 && b&7 == 0 {
+	if d.pdf&W24 == 0 {
+		// clear two LS-bits to increase the chances of Byte/WordNWriter
+		r &^= 3
+		g &^= 3
+		b &^= 3
+	}
+	if d.pdf&W16 != 0 && r&7 == 0 && b&7 == 0 {
 		rgb565 := r<<8 | g<<3 | b>>3
 		if _, ok := d.dci.(WordNWriter); ok {
 			d.cinfo = fastWord<<otype | 1<<osize
@@ -142,14 +146,9 @@ func (d *Driver) Fill(r image.Rectangle) {
 	if n == 0 {
 		return
 	}
-	pf := d.pf16
-	if d.cinfo>>osize&3 == 3 {
-		pf = d.pf18
-	}
-	d.pixSet(d.dci, &d.pf, pf)
-	d.startWrite(d.dci, &d.xarg, r)
-
 	pixSize := int(d.cinfo>>osize) & 3
+	d.pixSet(d.dci, &d.parg, pixSize)
+	d.startWrite(d.dci, &d.xarg, r)
 	n *= pixSize
 	switch d.cinfo >> otype {
 	case fastWord:
@@ -183,7 +182,7 @@ end:
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	sip := imageAtPoint(src, sp)
-	dst := ddram{d.dci, r.Size(), 3}
+	dst := framePart{d.dci, r.Size(), 3}
 	getBuf := func() []byte {
 		if d.cinfo&(bufInit<<otype) != 0 {
 			d.cinfo &^= (bufFull ^ bufInit) << otype // inform Fill about dirty buf
@@ -192,16 +191,14 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		return d.buf[:]
 	}
 	if op == draw.Src {
-		pf := d.pf18
-		if mask == nil && sip.pixSize == 2 {
-			pf = d.pf16
-			dst.pixSize = 2
+		if mask == nil {
+			dst.pixSize = sip.pixSize
 		}
-		d.pixSet(d.dci, &d.pf, pf)
+		d.pixSet(d.dci, &d.parg, dst.pixSize)
 		d.startWrite(d.dci, &d.xarg, r)
 		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	} else {
-		d.pixSet(d.dci, &d.pf, d.pf18)
+		d.pixSet(d.dci, &d.parg, dst.pixSize)
 		startWrite := func(r image.Rectangle) {
 			d.startWrite(d.dci, &d.xarg, r)
 		}

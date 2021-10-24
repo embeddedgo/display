@@ -18,6 +18,23 @@ const (
 	bufFull  = 3 // Fill relies on the both bits set
 )
 
-type AccessRAM func(dci DCI, xarg *[4]byte, r image.Rectangle)
+// PDF describes supported Pixel Data Formats
+type PDF byte
 
-type PixSet func(dci DCI, oldpf *[1]byte, newpf byte)
+const (
+	R16 PDF = 1 << iota // Read  RGB 565, 2 bytes/pixel
+	W16                 // Write RGB 565, 2 bytes/pixel
+	R18                 // Read  RGB 666, 3 bytes/pixel
+	W18                 // Write RGB 666, 3 bytes/pixel
+	R24                 // Read  RGB 888, 3 bytes/pixel
+	W24                 // Write RGB 888, 3 bytes/pixel
+)
+
+// AccessFrame is a type of function used by drivers to select the part of
+// frame and start access the corresponding display memory.
+type AccessFrame func(dci DCI, xarg *[4]byte, r image.Rectangle)
+
+// PixSet is is a type of function used by drivers to set the pixel data format
+// to match the pixel size. It is also used to set the display orientation
+// because some of the controllers share the same register for both functions.
+type PixSet func(dci DCI, parg *[1]byte, sizeOrDir int)

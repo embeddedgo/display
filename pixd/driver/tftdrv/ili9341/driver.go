@@ -17,8 +17,10 @@ func New(dci tftdrv.DCI) *tftdrv.Driver {
 	return tftdrv.New(
 		dci,
 		240, 320,
-		philips.StartWrite16, pixSet,
-		MCU16, MCU18,
+		tftdrv.W16|tftdrv.W18,
+		philips.StartWrite16,
+		pixSet,
+		nil,
 	)
 }
 
@@ -30,15 +32,21 @@ func NewOver(dci tftdrv.RDCI) *tftdrv.DriverOver {
 	return tftdrv.NewOver(
 		dci,
 		240, 320,
-		philips.StartRead16, philips.StartWrite16, pixSet,
-		MCU16, MCU18,
+		tftdrv.W16|tftdrv.W18|tftdrv.R18,
+		philips.StartRead16, philips.StartWrite16,
+		pixSet,
+		nil,
 	)
 }
 
-func pixSet(dci tftdrv.DCI, oldpf *[1]byte, newpf byte) {
-	if oldpf[0] != newpf {
-		oldpf[0] = newpf
+func pixSet(dci tftdrv.DCI, parg *[1]byte, pixSize int) {
+	pf := byte(MCU16)
+	if pixSize == 3 {
+		pf = MCU18
+	}
+	if parg[0] != pf {
+		parg[0] = pf
 		dci.Cmd(PIXSET)
-		dci.WriteBytes(oldpf[:])
+		dci.WriteBytes(parg[:])
 	}
 }

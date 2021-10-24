@@ -43,10 +43,10 @@ func imageAtPoint(img image.Image, pt image.Point) (out fastImage) {
 	return
 }
 
-// ddram provides access to the Display Data RAM (the nomenclature used by
+// framePart provides access to the Display Data RAM (the nomenclature used by
 // Philips / Epson / Ilitek) of the specified size (in pixels) and the pixel
 // size (in bytes).
-type ddram struct {
+type framePart struct {
 	dci     DCI
 	size    image.Point
 	pixSize int
@@ -54,7 +54,7 @@ type ddram struct {
 
 // drawSrc draws masked image to the prepared region of DDRAM. dst.PixSize must
 // be 3 (RGB 888) or 2 (RGB 565).
-func drawSrc(dst ddram, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, getBuf func() []byte, minChunk int) {
+func drawSrc(dst framePart, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, getBuf func() []byte, minChunk int) {
 	var buf struct {
 		p []byte
 		i int
@@ -221,7 +221,7 @@ func drawSrc(dst ddram, src image.Image, sp image.Point, sip fastImage, mask ima
 // not read the content of DDRAM so it reduces the alpha channel to one bit and
 // draws only opaque parts of the masked image. dst.PixSize must be 3 (RGB 888)
 // or 2 (RGB 565).
-func drawOverNoRead(dst ddram, dmin image.Point, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, buffer []byte, startWrite func(r image.Rectangle)) {
+func drawOverNoRead(dst framePart, dmin image.Point, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, buffer []byte, startWrite func(r image.Rectangle)) {
 	var buf struct {
 		p []byte
 		i int

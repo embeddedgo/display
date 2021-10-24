@@ -11,59 +11,59 @@ import (
 	"time"
 )
 
-// magic numbers, bufA*bufB*bufC + 1 must be multiple of two, bufA smalest value
+// magic numbers
 const (
-	bufA = 3
-	bufB = 3
-	bufC = 5
+	sa     = 2 // must be smalest
+	sb     = 3
+	sc     = 11
+	se     = 4                   // must be >= 1
+	bufLen = (sa*sb*sc + se) * 3 // must be multiple of 2 and 3
 )
 
+// TODO: replace image.Point with [2]uint8 or struct{w, h uint8}
 var bufDims = [...]image.Point{
-	{bufA * bufB * bufC, 1}, // Fill requires one row here
-	{1, bufA * bufB * bufC}, // Fill requires one column here
-	{bufA, bufB * bufC},
-	{bufB * bufC, bufA},
-	{bufA * bufB, bufC},
-	{bufC, bufA * bufB},
+	{sa * sb * sc, 1}, // Fill requires one row here
+	{1, sa * sb * sc}, // Fill requires one column here
+	{sa, sb * sc},
+	{sb * sc, sa},
+	{sb, sa * sc},
+	{sa * sc, sb},
+	{sc, sa * sb},
+	{sa * sb, sc},
 }
 
-var bufDims_ = [...]image.Point{
-	{bufA * bufB, 1}, // Fill requires one row here
-	{1, bufA * bufB}, // Fill requires one column here
-	{bufA, bufB},
-	{bufB, bufA},
-}
+// BUG: we assume that any controller supports 24-bit pixel data format
 
 // DriverOver implements pixd.Driver interface with the full support for
 // draw.Over operator. It requires tftdrv.RDCI to read the frame memory content.
 // If the display has write-only interface use Driver instead.
 type DriverOver struct {
 	dci        RDCI
-	startRead  AccessRAM
-	startWrite AccessRAM
+	startRead  AccessFrame
+	startWrite AccessFrame
 	pixSet     PixSet
+	setDir     PixSet
 	w, h       uint16
 	r, g, b    uint16
 	cfast      uint16
 	cinfo      byte
-	pf         [1]byte
+	pdf        PDF
+	parg       [1]byte
 	xarg       [4]byte
-	pf16       byte
-	pf18       byte
-	buf        [(bufA*bufB*bufC + 1) * 3]byte // must be multiple of two and three
-}
+	buf        [bufLen]byte
+} // ont 32-bit MCU the size of this struct is 253 B (bufLen=210), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
-func NewOver(dci RDCI, w, h uint16, startRead, startWrite AccessRAM, pixSet PixSet, pf16, pf18 byte) *DriverOver {
+func NewOver(dci RDCI, w, h uint16, pdf PDF, startRead, startWrite AccessFrame, pixSet, setDir PixSet) *DriverOver {
 	return &DriverOver{
 		dci:        dci,
 		startRead:  startRead,
 		startWrite: startWrite,
 		pixSet:     pixSet,
+		setDir:     setDir,
 		w:          w,
 		h:          h,
-		pf16:       pf16,
-		pf18:       pf18,
+		pdf:        pdf,
 	}
 }
 
@@ -123,11 +123,13 @@ func (d *DriverOver) SetColor(c color.Color) {
 		r >>= 8
 		g >>= 8
 		b >>= 8
-		// best color format supported is 18-bit RGB 666
-		r &^= 3
-		g &^= 3
-		b &^= 3
-		if r&7 == 0 && b&7 == 0 {
+		if d.pdf&W24 == 0 {
+			// clear two LS-bits to increase the chances of Byte/WordNWriter
+			r &^= 3
+			g &^= 3
+			b &^= 3
+		}
+		if d.pdf&W16 != 0 && r&7 == 0 && b&7 == 0 {
 			rgb565 := r<<8 | g<<3 | b>>3
 			if _, ok := d.dci.(WordNWriter); ok {
 				d.cinfo = fastWord<<otype | 1<<osize
@@ -172,13 +174,9 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	if n == 0 {
 		return
 	}
-	pf := d.pf16
-	if d.cinfo>>osize&3 == 3 {
-		pf = d.pf18
-	}
-	d.pixSet(d.dci, &d.pf, pf)
-	d.startWrite(d.dci, &d.xarg, r)
 	pixSize := int(d.cinfo>>osize) & 3
+	d.pixSet(d.dci, &d.parg, pixSize)
+	d.startWrite(d.dci, &d.xarg, r)
 	n *= pixSize
 	typ := d.cinfo >> otype
 	switch {
@@ -211,7 +209,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	default:
 		// find the best coverage of the r area by d.buf
 		var best image.Point
-		if height < bufA || width < bufA {
+		if height < sa || width < sa {
 			if width >= height {
 				best = bufDims[0]
 			} else {
