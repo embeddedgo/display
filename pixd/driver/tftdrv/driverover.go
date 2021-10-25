@@ -289,5 +289,21 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 }
 
 func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-
+	sip := imageAtPoint(src, sp)
+	dst := framePart{d.dci, r.Size(), 3}
+	getBuf := func() []byte {
+		if d.cinfo&(bufFull<<otype) != 0 {
+			// inform Fill about dirty buf
+			d.cinfo &^= (bufFull ^ bufInit) << otype
+		}
+		return d.buf[:]
+	}
+	if op == draw.Src {
+		if mask == nil {
+			dst.pixSize = sip.pixSize
+		}
+		d.pixSet(d.dci, &d.parg, dst.pixSize)
+		d.startWrite(d.dci, &d.xarg, r)
+		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
+	}
 }
