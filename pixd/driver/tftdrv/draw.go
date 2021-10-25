@@ -217,10 +217,9 @@ func drawSrc(dst framePart, src image.Image, sp image.Point, sip fastImage, mask
 	}
 }
 
-// drawOverNoRead draws masked image over the prepared region of DDRAM. It can
-// not read the content of DDRAM so it reduces the alpha channel to one bit and
-// draws only opaque parts of the masked image. dst.PixSize must be 3 (RGB 888)
-// or 2 (RGB 565).
+// drawOverNoRead draws masked image. It cannot read the content of frame memory
+// so it reduces the alpha channel to one bit and draws only opaque parts of
+// the masked image. dst.PixSize must be 3 (RGB 888) or 2 (RGB 565).
 func drawOverNoRead(dst framePart, dmin image.Point, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, buffer []byte, startWrite func(r image.Rectangle)) {
 	var buf struct {
 		p []byte
@@ -292,8 +291,8 @@ func drawOverNoRead(dst framePart, dmin image.Point, src image.Image, sp image.P
 							buf.i = 0
 						}
 						r := image.Rectangle{
-							image.Point{x, y},
-							image.Point{x + width, y + 1},
+							image.Pt(x, y),
+							image.Pt(x+width, y+1),
 						}.Add(dmin)
 						startWrite(r)
 					}

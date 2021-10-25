@@ -20,16 +20,15 @@ const (
 	bufLen = (sa*sb*sc + se) * 3 // must be multiple of 2 and 3
 )
 
-// TODO: replace image.Point with [2]uint8 or struct{w, h uint8}
-var bufDims = [...]image.Point{
-	{sa * sb * sc, 1}, // Fill requires one row here
-	{1, sa * sb * sc}, // Fill requires one column here
-	{sa, sb * sc},
-	{sb * sc, sa},
-	{sb, sa * sc},
-	{sa * sc, sb},
-	{sc, sa * sb},
-	{sa * sb, sc},
+var bufDim = [...]uint16{
+	sa*sb*sc<<8 | 1, // Fill requires one row here
+	1<<8 | sa*sb*sc, // Fill requires one column here
+	sa<<8 | sb*sc,
+	sb*sc<<8 | sa,
+	sb<<8 | sa*sc,
+	sa*sc<<8 | sb,
+	sc<<8 | sa*sb,
+	sa*sb<<8 | sc,
 }
 
 // BUG: we assume that any controller supports 24-bit pixel data format
@@ -210,27 +209,30 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 		// find the best coverage of the r area by d.buf
 		var best image.Point
 		if height < sa || width < sa {
+			// fast path for hline and vline
 			if width >= height {
-				best = bufDims[0]
+				best = image.Pt(int(bufDim[0])>>8, int(bufDim[0])&0xff)
 			} else {
-				best = bufDims[1]
+				best = image.Pt(int(bufDim[1])>>8, int(bufDim[1])&0xff)
 			}
 		} else {
 			bu := width * height
-			for _, dim := range bufDims {
-				nx := width / dim.X
-				ny := height / dim.Y
-				ux := width - nx*dim.X
+			for _, dim := range bufDim {
+				dw := int(dim) >> 8
+				dh := int(dim) & 0xff
+				nx := width / dw
+				ny := height / dh
+				ux := width - nx*dw
 				if ux != 0 {
 					ux = ny // we do not pay attention to the size
 				}
-				uy := height - ny*dim.Y
+				uy := height - ny*dh
 				if uy != 0 {
 					uy = nx // we do not pay attention to the size
 				}
 				if uc := uy + ux; uc < bu {
 					bu = uc
-					best = dim
+					best = image.Pt(dw, dh)
 				}
 			}
 		}
@@ -258,8 +260,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 					width = best.X
 				}
 				r1 := image.Rectangle{
-					image.Point{x, y},
-					image.Point{x + width, y + height},
+					image.Pt(x, y),
+					image.Pt(x+width, y+height),
 				}
 				x += width
 				n := width*height*3 + 1
@@ -287,4 +289,5 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 }
 
 func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+
 }
