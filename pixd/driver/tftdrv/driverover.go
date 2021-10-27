@@ -21,14 +21,49 @@ const (
 )
 
 var bufDim = [...]uint16{
-	sa*sb*sc<<8 | 1, // Fill requires one row here
-	1<<8 | sa*sb*sc, // Fill requires one column here
+	sa*sb*sc<<8 | 1, // bestBufSize requires one row here
+	1<<8 | sa*sb*sc, // bestBufSize requires one column here
 	sa<<8 | sb*sc,
 	sb*sc<<8 | sa,
 	sb<<8 | sa*sc,
 	sa*sc<<8 | sb,
 	sc<<8 | sa*sb,
 	sa*sb<<8 | sc,
+}
+
+// bestBufSize finds the best buffer dimensions to cover the width x height
+// rectangle
+func bestBufSize(rsiz image.Point) image.Point {
+	var best image.Point
+	if rsiz.X < sa || rsiz.Y < sa {
+		// fast path for hline and vline
+		if rsiz.X >= rsiz.Y {
+			best = image.Pt(int(bufDim[0])>>8, int(bufDim[0])&0xff)
+		} else {
+			best = image.Pt(int(bufDim[1])>>8, int(bufDim[1])&0xff)
+		}
+	} else {
+		bu := rsiz.X * rsiz.Y
+		for _, dim := range bufDim {
+			dw := int(dim) >> 8
+			dh := int(dim) & 0xff
+			nx := rsiz.X / dw
+			ny := rsiz.Y / dh
+			ux := rsiz.X - nx*dw
+			if ux != 0 {
+				ux = ny // we do not pay attention to the size
+			}
+			uy := rsiz.Y - ny*dh
+			if uy != 0 {
+				uy = nx // we do not pay attention to the size
+			}
+			if uc := uy + ux; uc < bu {
+				bu = uc
+				best = image.Pt(dw, dh)
+			}
+		}
+	}
+	return best
 }
 
 // BUG: we assume that any controller supports 24-bit pixel data format
@@ -168,8 +203,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	if d.cinfo == transparent {
 		return
 	}
-	width, height := r.Dx(), r.Dy()
-	n := width * height
+	rsiz := r.Size()
+	n := rsiz.X * rsiz.Y
 	if n == 0 {
 		return
 	}
@@ -206,37 +241,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 			}
 		}
 	default:
-		// find the best coverage of the r area by d.buf
-		var best image.Point
-		if height < sa || width < sa {
-			// fast path for hline and vline
-			if width >= height {
-				best = image.Pt(int(bufDim[0])>>8, int(bufDim[0])&0xff)
-			} else {
-				best = image.Pt(int(bufDim[1])>>8, int(bufDim[1])&0xff)
-			}
-		} else {
-			bu := width * height
-			for _, dim := range bufDim {
-				dw := int(dim) >> 8
-				dh := int(dim) & 0xff
-				nx := width / dw
-				ny := height / dh
-				ux := width - nx*dw
-				if ux != 0 {
-					ux = ny // we do not pay attention to the size
-				}
-				uy := height - ny*dh
-				if uy != 0 {
-					uy = nx // we do not pay attention to the size
-				}
-				if uc := uy + ux; uc < bu {
-					bu = uc
-					best = image.Pt(dw, dh)
-				}
-			}
-		}
-		// draw
+		bsiz := bestBufSize(rsiz)
 		sr := uint(d.r)
 		sg := uint(d.g)
 		sb := uint(d.b)
@@ -247,8 +252,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 			if height <= 0 {
 				break
 			}
-			if height > best.Y {
-				height = best.Y
+			if height > bsiz.Y {
+				height = bsiz.Y
 			}
 			x := r.Min.X
 			for {
@@ -256,8 +261,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				if width <= 0 {
 					break
 				}
-				if width > best.X {
-					width = best.X
+				if width > bsiz.X {
+					width = bsiz.X
 				}
 				r1 := image.Rectangle{
 					image.Pt(x, y),
