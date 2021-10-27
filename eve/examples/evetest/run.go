@@ -19,7 +19,7 @@ func waitTouch(lcd *eve.Driver) {
 func Run(lcd *eve.Driver) error {
 	lcd.SetBacklight(96)
 
-	width, height := lcd.Width(), lcd.Height()
+	width, height := lcd.Size()
 
 	dl := lcd.DL(-1)
 	dl.Clear(eve.CST)

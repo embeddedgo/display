@@ -49,14 +49,9 @@ func (d *Driver) Err(clear bool) error {
 	return d.w.dci.Err(clear)
 }
 
-// Width returns screen width.
-func (d *Driver) Width() int {
-	return int(d.w.width)
-}
-
-// Height returns screen height.
-func (d *Driver) Height() int {
-	return int(d.w.height)
+// Size returns the screen size.
+func (d *Driver) Size() (width, height int) {
+	return int(d.w.width), int(d.w.height)
 }
 
 // MemMap returns the memory map.
