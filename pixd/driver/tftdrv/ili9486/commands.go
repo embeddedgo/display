@@ -2,15 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ili9341
+package ili9486
 
 import "github.com/embeddedgo/display/pixd/driver/tftdrv/internal/philips"
 
-// ILI9341 commands
+// ILI9486 commands
 const (
 	NOP       = philips.NOP     // No Operation
 	SWRESET   = philips.SWRESET // Software Reset
 	RDDIDIF   = philips.RDDIDIF // Read Display IdentificInformation
+	RDNUMED   = 0x05            // Read Number of the Errors on DSI
 	RDDST     = philips.RDDST   // Read Display Status
 	RDDPM     = 0x0A            // Read Display Power Mode
 	RDDMADCTL = 0x0B            // Read Display MADCTL
@@ -24,7 +25,6 @@ const (
 	NORON     = philips.NORON   // Normal Display Mode ON
 	DINVOFF   = philips.INVOFF  // Display Inversion OFF
 	DINVON    = philips.INVON   // Display Inversion ON
-	GAMSET    = 0x26            // Gamma Set
 	DISPOFF   = philips.DISPOFF // Display OFF
 	DISPON    = philips.DISPON  // Display ON
 	CASET     = philips.CASET   // Column Address Set
@@ -43,8 +43,8 @@ const (
 	PIXSET    = philips.COLMOD  // Pixel Format Set
 	RAMWRC    = 0x3C            // Memory Write Continue
 	RAMRDC    = 0x3E            // Memory Read Continue
-	TSCLSET   = 0x44            // Set Tear Scanline
-	TSCLGET   = 0x45            // Get Scanline
+	TESLWR    = 0x44            // Set Tear Scanline
+	TESLRD    = 0x45            // Get Scanline
 	WRDISBV   = 0x51            // Write Display Brightness
 	RDDISBV   = 0x52            // Read Display Brightness
 	WRCTRLD   = 0x53            // Write CTRL Display
@@ -53,6 +53,8 @@ const (
 	RDCABC    = 0x56            // Read Content Adaptive Brightness Ctrl
 	WRCABCMB  = 0x5E            // Write CABC Minimum Brightness
 	RDCABCMB  = 0x5F            // Write CABC Minimum Brightness
+	RDFCS     = 0xAA            // ead First Checksum
+	RDCFCS    = 0xAF            // Read Continue Checksum
 	IFMODE    = 0xB0            // RGB Interface Signal Control
 	FRMCTR1   = 0xB1            // Frame Control (In Normal Mode)
 	FRMCTR2   = 0xB2            // Frame Control (In Idle Mode)
@@ -70,10 +72,20 @@ const (
 	BLCTR8    = 0xBF            // Backlight Control 8
 	PWCTR1    = 0xC0            // Power Control 1
 	PWCTR2    = 0xC1            // Power Control 2
+	PWCTR3    = 0xC2            // Power Control 3
+	PWCTR4    = 0xC3            // Power Control 4
+	PWCTR5    = 0xC4            // Power Control 5
 	VMCTR1    = 0xC5            // VCOM Control 1
+	CABCCTRL1 = 0xC6            // CABC Control 1
 	VMCTR2    = 0xC7            // VCOM Control 2
-	PWCTRA    = 0xCB            // Power control A
-	PWCTRB    = 0xCF            // Power control B
+	CABCCTRL2 = 0xC8            // CABC Control 2
+	CABCCTRL3 = 0xC9            // CABC Control 3
+	CABCCTRL4 = 0xCA            // CABC Control 4
+	CABCCTRL5 = 0xCB            // CABC Control 5
+	CABCCTRL6 = 0xCC            // CABC Control 6
+	CABCCTRL7 = 0xCD            // CABC Control 7
+	CABCCTRL8 = 0xCE            // CABC Control 8
+	CABCCTRL9 = 0xCF            // CABC Control 9
 	NVMWR     = 0xD0            // NV Memory Write
 	NVMPKEY   = 0xD1            // NV Memory Protection Key
 	RDNVM     = 0xD2            // NV Memory Status Read
@@ -90,9 +102,10 @@ const (
 	DRVTIMB   = 0xEA            // Driver timing control B
 	PONSEQ    = 0xED            // Power on sequence control
 	SFD       = philips.SFD     // Set Factory Defaults (undocumented)
-	IFCTL     = 0xF6            // Interface Contro
 	EN3G      = 0xF2            // Enable 3G
+	IFCTL     = 0xF6            // Interface Contro
 	PUMPRT    = 0xF7            // Pump ratio control
+	SPIRCCFG  = 0xFB            // SPI Read Command Setting
 )
 
 // MADCTL arguments
@@ -113,27 +126,21 @@ const (
 	RGB18 = 0x60 // set 18-bit 666 pixel format for RGB interface
 )
 
-// InitGFX contains initialization commands taken from Adafruit GFX library.
-var InitGFX = []byte{
+// InitMSP4022 contains initialization commands for MSP4022 and MSP4022 displays
+// http://www.lcdwiki.com/4.0inch_SPI_Module_ILI9486
+var InitMSP4022 = []byte{
 	SWRESET, 0,
 	5, 255, // wait 5 ms
-	SFD, 3, 0x03, 0x80, 0x02,
-	PWCTRB, 3, 0x00, 0xC1, 0x30,
-	PONSEQ, 4, 0x64, 0x03, 0x12, 0x81,
-	DRVTIM, 3, 0x85, 0x00, 0x78,
-	PWCTRA, 5, 0x39, 0x2C, 0x00, 0x34, 0x02,
-	PUMPRT, 1, 0x20,
-	DRVTIMB, 2, 0x00, 0x00,
-	PWCTR1, 1, 0x23,
-	PWCTR2, 1, 0x10,
-	VMCTR1, 2, 0x3e, 0x28,
-	VMCTR2, 1, 0x86,
-	VSCRSADD, 1, 0x00,
-	FRMCTR1, 2, 0x00, 0x18,
-	DISCTRL, 3, 0x08, 0x82, 0x27,
-	GAMSET, 1, 0x01,
-	PGAMCTRL, 15, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00,
-	NGAMCTRL, 15, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F,
+	//philips.OTPSHTIN, 6, 0x36, 0x04, 0x00, 0x3C, 0x0F, 0x8F,
+	EN3G, 9, 0x18, 0xA3, 0x12, 0x02, 0xB2, 0x12, 0xFF, 0x10, 0x00,
+	0xF8, 2, 0x21, 0x04,
+	0xF9, 2, 0x00, 0x08,
+	INVTR, 1, 0x00,
+	PWCTR2, 1, 0x47,
+	VMCTR1, 4, 0x00, 0xAF, 0x80, 0x00,
+	PGAMCTRL, 15, 0x0F, 0x1F, 0x1C, 0x0C, 0x0F, 0x08, 0x48, 0x98, 0x37, 0x0A, 0x13, 0x04, 0x11, 0x0D, 0x00,
+	NGAMCTRL, 15, 0x0F, 0x32, 0x2E, 0x0B, 0x0D, 0x05, 0x47, 0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00,
+	PIXSET, 1, MCU18,
 	120, 255, // wait 120 ms
 	SLPOUT, 0,
 	5, 255, // wait 5 ms

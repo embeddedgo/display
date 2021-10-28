@@ -175,7 +175,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 	}
 	if op == draw.Src {
 		if mask == nil && sip.pixSize <= 3 {
-			dst.pixSize = sip.pixSize
+			dst.pixSize = sip.pixSize // BUG: check supported pix size
 		}
 		d.pixSet(d.dci, &d.parg, dst.pixSize)
 		d.startWrite(d.dci, &d.xarg, r)
