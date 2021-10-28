@@ -4,7 +4,10 @@
 
 package tftdrv
 
-import "image"
+import (
+	"image"
+	"time"
+)
 
 const (
 	transparent = 0
@@ -38,3 +41,24 @@ type AccessFrame func(dci DCI, xarg *[4]byte, r image.Rectangle)
 // to match the pixel size. It is also used to set the display orientation
 // because some of the controllers share the same register for both functions.
 type PixSet func(dci DCI, parg *[1]byte, sizeOrDir int)
+
+func initialize(dci DCI, cmds []byte) {
+	i := 0
+	for i < len(cmds) {
+		cmd := cmds[i]
+		n := int(cmds[i+1])
+		i += 2
+		if n == 255 {
+			time.Sleep(time.Duration(cmd) * time.Millisecond)
+			continue
+		}
+		dci.Cmd(cmd)
+		if n != 0 {
+			k := i + n
+			data := cmds[i:k]
+			i = k
+			dci.WriteBytes(data)
+		}
+	}
+	dci.End()
+}

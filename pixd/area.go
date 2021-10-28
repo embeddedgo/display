@@ -94,18 +94,19 @@ func (a *Area) Color() color.Color {
 	return a.color
 }
 
-// TextWriter returns a ready to use TextWriter initialized as below:
+// NewTextWriter provides a conveniet way to create new TextWriter. It can be
+// used in place of the following set of statements:
 //	w := new(TextWriter)
 //	w.Area = a
 //	w.Face = f
-//	w.Color = a.Color()
+//	w.Color = &image.Uniform{a.Color()}
 //	_, w.Pos.Y = f.Size() // ascent
 func (a *Area) NewTextWriter(f FontFace) *TextWriter {
 	_, ascent := f.Size()
 	return &TextWriter{
 		Area:  a,
 		Face:  f,
-		Color: a.color,
+		Color: &image.Uniform{a.color},
 		Pos:   image.Pt(0, ascent),
 	}
 }

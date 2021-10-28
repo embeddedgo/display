@@ -8,7 +8,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"time"
 )
 
 // BUG: we assume that any controller supports 24-bit pixel data format
@@ -29,8 +28,8 @@ type Driver struct {
 	pdf        PDF
 	parg       [1]byte
 	xarg       [4]byte
-	buf        [42 * 3]byte // must be multiple of two and three
-} // ont 32-bit MCU the size of this struct is 159 B, almost full 160 B allocation unit (see runtime/sizeclasses_mcu.go)
+	buf        [52 * 3]byte // must be multiple of two and three
+} // ont 32-bit MCU the size of this struct is 189 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // New returns new Driver.
 func New(dci DCI, w, h uint16, pdf PDF, startWrite AccessFrame, pixSet, setDir PixSet) *Driver {
@@ -54,24 +53,7 @@ func (d *Driver) Size() image.Point    { return image.Pt(int(d.w), int(d.h)) }
 // the display orientation and the color order must be the last one in the cmds
 // See ili9341.InitGFX for working example.
 func (d *Driver) Init(cmds []byte) {
-	i := 0
-	for i < len(cmds) {
-		cmd := cmds[i]
-		n := int(cmds[i+1])
-		i += 2
-		if n == 255 {
-			time.Sleep(time.Duration(cmd) * time.Millisecond)
-			continue
-		}
-		d.dci.Cmd(cmd)
-		if n != 0 {
-			k := i + n
-			data := cmds[i:k]
-			i = k
-			d.dci.WriteBytes(data)
-		}
-	}
-	d.dci.End()
+	initialize(d.dci, cmds)
 }
 
 func (d *Driver) SetDir(dir int) {}
@@ -185,13 +167,14 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 	dst := framePart{d.dci, r.Size(), 3}
 	getBuf := func() []byte {
 		if d.cinfo&(bufInit<<otype) != 0 {
+			// bufInit or bufFull
 			d.cinfo &^= (bufFull ^ bufInit) << otype // inform Fill about dirty buf
 			return d.buf[d.cinfo>>osize&3:]
 		}
 		return d.buf[:]
 	}
 	if op == draw.Src {
-		if mask == nil {
+		if mask == nil && sip.pixSize <= 3 {
 			dst.pixSize = sip.pixSize
 		}
 		d.pixSet(d.dci, &d.parg, dst.pixSize)

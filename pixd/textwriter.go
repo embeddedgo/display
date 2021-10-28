@@ -6,7 +6,6 @@ package pixd
 
 import (
 	"image"
-	"image/color"
 	"image/draw"
 	"unicode/utf8"
 )
@@ -31,14 +30,22 @@ func StringWidth(f FontFace, s string) int {
 	return x
 }
 
-// TextWriter allows to write a text on the area. The Area, Face and Color
-// fields must be set before use it.
+// TextWriter allows to write a text on the area. At least the Area, Face and
+// Color fields must be set before use it.
+//
+// Notice that the Color field type is image.Image, not color.Color. This gives
+// you greater flexibility when drawing text. Set it to &image.Uniform{color}
+// for traditional uniform color of glyphs.
+//
+// If Filter is not nil it is used to filter the glyphs obtained from Face
+// (scale, rotate, etc.)
 type TextWriter struct {
-	Area  *Area
-	Face  FontFace
-	Color color.Color
-	Pos   image.Point
-	Wrap  WrapMode
+	Area   *Area
+	Face   FontFace
+	Color  image.Image
+	Pos    image.Point
+	Filter func(glyph image.Image) image.Image
+	Wrap   WrapMode
 }
 
 func (w *TextWriter) Write(s []byte) (int, error) {
@@ -64,6 +71,9 @@ func drawRune(w *TextWriter, r rune) {
 		if mask == nil {
 			return
 		}
+		if w.Filter != nil {
+			mask = w.Filter(mask)
+		}
 	}
 	nx := w.Pos.X + advance
 	if w.Wrap != NoWrap && (nx > w.Area.bounds.Max.X || r == '\n') {
@@ -77,9 +87,8 @@ func drawRune(w *TextWriter, r rune) {
 		}
 		nx = w.Pos.X + advance
 	}
-	img := &image.Uniform{w.Color}
 	mr := mask.Bounds()
 	dr := mr.Add(w.Pos.Sub(origin))
-	w.Area.Draw(dr, img, image.Point{}, mask, mr.Min, draw.Over)
+	w.Area.Draw(dr, w.Color, image.Point{}, mask, mr.Min, draw.Over)
 	w.Pos.X = nx
 }

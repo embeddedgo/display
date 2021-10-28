@@ -8,7 +8,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"time"
 )
 
 // magic numbers
@@ -105,28 +104,12 @@ func (d *DriverOver) Err(clear bool) error { return d.dci.Err(clear) }
 func (d *DriverOver) Flush()               {}
 func (d *DriverOver) Size() image.Point    { return image.Pt(int(d.w), int(d.h)) }
 
-// Init initializes display using provided initialization commands. The
-// initialization commands depends on the LCD pannel. See InitGFX for working
-// example.
+// Init initializes the display using provided initialization commands. The
+// initialization commands depends on the LCD pannel. The command that sets
+// the display orientation and the color order must be the last one in the cmds
+// See ili9341.InitGFX for working example.
 func (d *DriverOver) Init(cmds []byte) {
-	i := 0
-	for i < len(cmds) {
-		cmd := cmds[i]
-		n := int(cmds[i+1])
-		i += 2
-		if n == 255 {
-			time.Sleep(time.Duration(cmd) * time.Millisecond)
-			continue
-		}
-		d.dci.Cmd(cmd)
-		if n != 0 {
-			k := i + n
-			data := cmds[i:k]
-			i = k
-			d.dci.WriteBytes(data)
-		}
-	}
-	d.dci.End()
+	initialize(d.dci, cmds)
 }
 
 func (d *DriverOver) SetDir(dir int) {}
@@ -297,14 +280,14 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 	sip := imageAtPoint(src, sp)
 	dst := framePart{d.dci, r.Size(), 3}
 	getBuf := func() []byte {
-		if d.cinfo&(bufFull<<otype) != 0 {
+		if d.cinfo&(bufFull<<otype) == bufFull<<otype {
 			// inform Fill about dirty buf
 			d.cinfo &^= (bufFull ^ bufInit) << otype
 		}
 		return d.buf[:]
 	}
 	if op == draw.Src {
-		if mask == nil {
+		if mask == nil && sip.pixSize <= 3 {
 			dst.pixSize = sip.pixSize
 		}
 		d.pixSet(d.dci, &d.parg, dst.pixSize)
