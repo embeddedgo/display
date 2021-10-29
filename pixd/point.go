@@ -4,10 +4,14 @@
 
 package pixd
 
-import "image"
+import (
+	"image"
+	"math/rand"
+	"time"
+)
 
 // DrawPoint draws a point with a given radius.
-func (a *Area) DrawPoint(p image.Point, r int) {
+func (a *Area) DrawPoint1(p image.Point, r int) {
 	if r <= 0 {
 		if r == 0 {
 			drawPixel(a, p)
@@ -70,3 +74,60 @@ func (a *Area) DrawPoint(p image.Point, r int) {
 	}
 }
 */
+
+func (a *Area) DrawPoint(p image.Point, r int) {
+	if r <= 0 {
+		if r == 0 {
+			drawPixel(a, p)
+		}
+		return
+	}
+	// based on Alois Zingl algorithm
+	x, y, e := -r, 0, 2-2*r
+	cx := x
+	cy := y
+	for {
+		e0 := e
+		if e0 <= y {
+			y++
+			e += 2*y + 1
+		}
+		if e0 > x || e > y {
+			x++
+			if x >= 0 {
+				y++
+			}
+			if y != cy {
+				{
+					rnd := rand.Int63()
+					r := 128 + byte(rnd&127)
+					rnd >>= 7
+					g := 128 + byte(rnd&127)
+					rnd >>= 7
+					b := 128 + byte(rnd&127)
+					a.SetColorRGBA(r, g, b, 255)
+				}
+
+				// x, y both changed
+				var r image.Rectangle
+				x0 := cx
+				x1 := -cx
+				y0 := cy
+				y1 := y - 1
+				r.Min.X = p.X + x0
+				r.Max.X = p.X + x1 + 1
+				r.Min.Y = p.Y + y0
+				r.Max.Y = p.Y + y1 + 1
+				a.Fill(r)
+				if x >= 0 {
+					break
+				}
+				time.Sleep(500 * time.Millisecond)
+				cx = x
+				cy = y
+			}
+
+			e += 2*x + 1
+		}
+	}
+}

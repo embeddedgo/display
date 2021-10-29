@@ -4,7 +4,10 @@
 
 package pixd
 
-import "image"
+import (
+	"image"
+	"time"
+)
 
 // DrawEllipse draws an empty ellipse.
 func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
@@ -36,6 +39,7 @@ func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
 			dy += aa2
 			err += dy
 		}
+		time.Sleep(500 * time.Millisecond)
 		drawPixel(a, p.Add(image.Pt(-x, y)))
 		drawPixel(a, p.Add(image.Pt(x, y)))
 		drawPixel(a, p.Add(image.Pt(x, -y)))
