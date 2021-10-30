@@ -46,12 +46,12 @@ func TestDrawGeom(t *testing.T) {
 
 	a.SetColorRGBA(24, 46, 68, 255)
 	for x := 0; x < max.X; x += 2 {
-		a.DrawPoint(image.Pt(x, 0), 0)
-		a.DrawPoint(image.Pt(x+1, max.Y-1), 0)
+		a.DrawPixel(x, 0)
+		a.DrawPixel(x+1, max.Y-1)
 	}
 	for y := 2; y < max.Y; y += 2 {
-		a.DrawPoint(image.Pt(0, y), 0)
-		a.DrawPoint(image.Pt(max.X-1, y-1), 0)
+		a.DrawPixel(0, y)
+		a.DrawPixel(max.X-1, y-1)
 	}
 
 	x := max.X / 2
@@ -60,7 +60,7 @@ func TestDrawGeom(t *testing.T) {
 	for r := 0; r < 19; r++ {
 		y := 3 + (r+2)*r
 		a.SetColorRGBA(0, 100, 200, 255)
-		a.DrawPoint(image.Pt(x, y), r)
+		a.FillEllipse(image.Pt(x, y), r, r)
 		a.FillEllipse(image.Pt(xl, y), r, r/2)
 		a.FillEllipse(image.Pt(xr, y), r/2, r)
 		a.SetColorRGBA(100, 50, 0, 255)
@@ -68,6 +68,7 @@ func TestDrawGeom(t *testing.T) {
 		a.DrawEllipse(image.Pt(xl, y), r, r/2)
 		a.DrawEllipse(image.Pt(xr, y), r/2, r)
 	}
+
 
 	a.SetColorRGBA(250, 100, 0, 255)
 	for i := 0; i < 20; i++ {

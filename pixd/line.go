@@ -65,7 +65,7 @@ func drawLine(a *Area, x0, y0, x1, y1 int) {
 func (a *Area) DrawLine(points ...image.Point) {
 	if len(points) <= 1 {
 		if len(points) == 1 {
-			drawPixel(a, points[0])
+			a.DrawPixel(points[0].X, points[0].Y)
 		}
 		return
 	}
