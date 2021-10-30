@@ -16,7 +16,7 @@ func absSign(x int) (abs, sign int) {
 	return
 }
 
-func drawLine(a *Area, x0, y0, x1, y1 int) {
+func line(a *Area, x0, y0, x1, y1 int) {
 	// based on Alois Zingl algorithm
 	dx, sx := absSign(x1 - x0)
 	dy, sy := absSign(y1 - y0)
@@ -61,17 +61,17 @@ func drawLine(a *Area, x0, y0, x1, y1 int) {
 	}
 }
 
-// DrawLine connects the given points by drawing segments of straight line.
-func (a *Area) DrawLine(points ...image.Point) {
+// Line connects the given points by drawing segments of straight line.
+func (a *Area) Line(points ...image.Point) {
 	if len(points) <= 1 {
 		if len(points) == 1 {
-			a.DrawPixel(points[0].X, points[0].Y)
+			a.Pixel(points[0].X, points[0].Y)
 		}
 		return
 	}
 	p0 := points[0]
 	for _, p1 := range points[1:] {
-		drawLine(a, p0.X, p0.Y, p1.X, p1.Y)
+		line(a, p0.X, p0.Y, p1.X, p1.Y)
 		p0 = p1
 	}
 }

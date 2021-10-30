@@ -27,8 +27,8 @@ func (a *Area) Fill(r image.Rectangle) {
 // Point.In and drv.Fill directly (ili9341.Driver, STM32 21 MHz DMA SPI) but
 // takes 500 bytes less of Flash.
 
-// DrawPixel provides a convenient way to fill one-pixel rectangle.
-func (a *Area) DrawPixel(x, y int) {
+// Pixel provides a convenient way to fill one-pixel rectangle.
+func (a *Area) Pixel(x, y int) {
 	a.Fill(image.Rectangle{image.Pt(x, y), image.Pt(x+1, y+1)})
 }
 

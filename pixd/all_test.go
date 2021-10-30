@@ -46,12 +46,12 @@ func TestDrawGeom(t *testing.T) {
 
 	a.SetColorRGBA(24, 46, 68, 255)
 	for x := 0; x < max.X; x += 2 {
-		a.DrawPixel(x, 0)
-		a.DrawPixel(x+1, max.Y-1)
+		a.Pixel(x, 0)
+		a.Pixel(x+1, max.Y-1)
 	}
 	for y := 2; y < max.Y; y += 2 {
-		a.DrawPixel(0, y)
-		a.DrawPixel(max.X-1, y-1)
+		a.Pixel(0, y)
+		a.Pixel(max.X-1, y-1)
 	}
 
 	x := max.X / 2
@@ -60,22 +60,21 @@ func TestDrawGeom(t *testing.T) {
 	for r := 0; r < 19; r++ {
 		y := 3 + (r+2)*r
 		a.SetColorRGBA(0, 100, 200, 255)
-		a.FillEllipse(image.Pt(x, y), r, r)
-		a.FillEllipse(image.Pt(xl, y), r, r/2)
-		a.FillEllipse(image.Pt(xr, y), r/2, r)
+		a.Ellipse(image.Pt(x, y), r, r, true)
+		a.Ellipse(image.Pt(xl, y), r, r/2, true)
+		a.Ellipse(image.Pt(xr, y), r/2, r, true)
 		a.SetColorRGBA(100, 50, 0, 255)
-		a.DrawEllipse(image.Pt(x, y), r, r)
-		a.DrawEllipse(image.Pt(xl, y), r, r/2)
-		a.DrawEllipse(image.Pt(xr, y), r/2, r)
+		a.Ellipse(image.Pt(x, y), r, r, false)
+		a.Ellipse(image.Pt(xl, y), r, r/2, false)
+		a.Ellipse(image.Pt(xr, y), r/2, r, false)
 	}
-
 
 	a.SetColorRGBA(250, 100, 0, 255)
 	for i := 0; i < 20; i++ {
 		x := 2*i + 4
 		y := i*i + 2
-		a.DrawLine(image.Pt(2, y), image.Pt(x, 2))
-		a.DrawLine(image.Pt(max.X-1-2, y), image.Pt(max.X-1-x, 2))
+		a.Line(image.Pt(2, y), image.Pt(x, 2))
+		a.Line(image.Pt(max.X-1-2, y), image.Pt(max.X-1-x, 2))
 	}
 
 	f, err := os.OpenFile(filepath.Join(dir, "geom.png"), os.O_WRONLY|os.O_CREATE, 0755)
