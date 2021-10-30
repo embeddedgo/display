@@ -140,3 +140,7 @@ var InitGFX = []byte{
 	DISPON, 0,
 	MADCTL, 1, BGR | MX, // default display orientation, must be the last one
 }
+
+var InitMSP2807 = []byte{
+
+}
