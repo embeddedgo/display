@@ -126,8 +126,7 @@ const (
 	RGB18 = 0x60 // set 18-bit 666 pixel format for RGB interface
 )
 
-// InitMSP4022 contains initialization commands for MSP4022 and MSP4022 displays
-// http://www.lcdwiki.com/4.0inch_SPI_Module_ILI9486
+// InitMSP4022 contains initialization commands for MSP4022 module (QD-TFT3956) // taken from http://www.lcdwiki.com/4.0inch_SPI_Module_ILI9486
 var InitMSP4022 = []byte{
 	SWRESET, 0,
 	5, 255, // wait 5 ms

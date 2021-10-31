@@ -25,14 +25,14 @@ type Driver struct {
 	w, h       uint16
 	cfast      uint16
 	cinfo      byte
-	pdf        PDF
+	pf         PF
 	parg       [1]byte
 	xarg       [4]byte
 	buf        [52 * 3]byte // must be multiple of two and three
 } // ont 32-bit MCU the size of this struct is 189 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // New returns new Driver.
-func New(dci DCI, w, h uint16, pdf PDF, startWrite AccessFrame, pixSet, setDir PixSet) *Driver {
+func New(dci DCI, w, h uint16, pf PF, startWrite AccessFrame, pixSet, setDir PixSet) *Driver {
 	return &Driver{
 		dci:        dci,
 		startWrite: startWrite,
@@ -40,7 +40,7 @@ func New(dci DCI, w, h uint16, pdf PDF, startWrite AccessFrame, pixSet, setDir P
 		setDir:     setDir,
 		w:          w,
 		h:          h,
-		pdf:        pdf,
+		pf:         pf,
 	}
 }
 
@@ -80,13 +80,13 @@ func (d *Driver) SetColor(c color.Color) {
 		g >>= 8
 		b >>= 8
 	}
-	if d.pdf&W24 == 0 {
+	if d.pf&W24 == 0 {
 		// clear two LS-bits to increase the chances of Byte/WordNWriter
 		r &^= 3
 		g &^= 3
 		b &^= 3
 	}
-	if d.pdf&W16 != 0 && r&7 == 0 && b&7 == 0 {
+	if d.pf&W16 != 0 && r&7 == 0 && b&7 == 0 {
 		rgb565 := r<<8 | g<<3 | b>>3
 		if _, ok := d.dci.(WordNWriter); ok {
 			d.cinfo = fastWord<<otype | 1<<osize
@@ -129,7 +129,9 @@ func (d *Driver) Fill(r image.Rectangle) {
 		return
 	}
 	pixSize := int(d.cinfo>>osize) & 3
-	d.pixSet(d.dci, &d.parg, pixSize)
+	if d.pixSet != nil {
+		d.pixSet(d.dci, &d.parg, pixSize)
+	}
 	d.startWrite(d.dci, &d.xarg, r)
 	n *= pixSize
 	switch d.cinfo >> otype {
@@ -174,14 +176,18 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		return d.buf[:]
 	}
 	if op == draw.Src {
-		if mask == nil && sip.pixSize <= 3 {
-			dst.pixSize = sip.pixSize // BUG: check supported pix size
+		if d.pixSet != nil {
+			if mask == nil && sip.pixSize < dst.pixSize {
+				dst.pixSize = sip.pixSize
+			}
+			d.pixSet(d.dci, &d.parg, dst.pixSize)
 		}
-		d.pixSet(d.dci, &d.parg, dst.pixSize)
 		d.startWrite(d.dci, &d.xarg, r)
 		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	} else {
-		d.pixSet(d.dci, &d.parg, dst.pixSize)
+		if d.pixSet != nil {
+			d.pixSet(d.dci, &d.parg, dst.pixSize)
+		}
 		startWrite := func(r image.Rectangle) {
 			d.startWrite(d.dci, &d.xarg, r)
 		}

@@ -80,14 +80,14 @@ type DriverOver struct {
 	r, g, b    uint16
 	cfast      uint16
 	cinfo      byte
-	pdf        PDF
+	pf         PF
 	parg       [1]byte
 	xarg       [4]byte
 	buf        [bufLen]byte
 } // ont 32-bit MCU the size of this struct is 253 B (bufLen=210), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
-func NewOver(dci RDCI, w, h uint16, pdf PDF, startRead, startWrite AccessFrame, pixSet, setDir PixSet) *DriverOver {
+func NewOver(dci RDCI, w, h uint16, pf PF, startRead, startWrite AccessFrame, pixSet, setDir PixSet) *DriverOver {
 	return &DriverOver{
 		dci:        dci,
 		startRead:  startRead,
@@ -96,7 +96,7 @@ func NewOver(dci RDCI, w, h uint16, pdf PDF, startRead, startWrite AccessFrame, 
 		setDir:     setDir,
 		w:          w,
 		h:          h,
-		pdf:        pdf,
+		pf:         pf,
 	}
 }
 
@@ -140,13 +140,13 @@ func (d *DriverOver) SetColor(c color.Color) {
 		r >>= 8
 		g >>= 8
 		b >>= 8
-		if d.pdf&W24 == 0 {
+		if d.pf&W24 == 0 {
 			// clear two LS-bits to increase the chances of Byte/WordNWriter
 			r &^= 3
 			g &^= 3
 			b &^= 3
 		}
-		if d.pdf&W16 != 0 && r&7 == 0 && b&7 == 0 {
+		if d.pf&W16 != 0 && r&7 == 0 && b&7 == 0 {
 			rgb565 := r<<8 | g<<3 | b>>3
 			if _, ok := d.dci.(WordNWriter); ok {
 				d.cinfo = fastWord<<otype | 1<<osize
@@ -255,7 +255,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				n := width*height*3 + 1
 				d.startRead(d.dci, &d.xarg, r1)
 				d.dci.ReadBytes(d.buf[0:n])
-				d.dci.End() // required to end RAMRD (undocumented)
+				d.dci.End() // required to end RAMRD (ILI9xxx, undocumented)
 				for i := 1; i < n; i += 3 {
 					r := uint(d.buf[i+0])
 					g := uint(d.buf[i+1])

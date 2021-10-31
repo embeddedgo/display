@@ -19,7 +19,7 @@ func New(dci tftdrv.DCI) *tftdrv.Driver {
 		320, 480,
 		tftdrv.W18,
 		philips.StartWrite16,
-		pixSet,
+		nil,
 		nil,
 	)
 }
@@ -34,9 +34,7 @@ func NewOver(dci tftdrv.RDCI) *tftdrv.DriverOver {
 		320, 480,
 		tftdrv.W18|tftdrv.R18,
 		philips.StartRead16, philips.StartWrite16,
-		pixSet,
+		nil,
 		nil,
 	)
 }
-
-func pixSet(dci tftdrv.DCI, parg *[1]byte, pixSize int) {}

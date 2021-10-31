@@ -21,16 +21,16 @@ const (
 	bufFull  = 3 // Fill relies on the both bits set
 )
 
-// PDF describes supported Pixel Data Formats
-type PDF byte
+// PF describes supported pixel data formats
+type PF byte
 
 const (
-	R16 PDF = 1 << iota // Read  RGB 565, 2 bytes/pixel
-	W16                 // Write RGB 565, 2 bytes/pixel
-	R18                 // Read  RGB 666, 3 bytes/pixel
-	W18                 // Write RGB 666, 3 bytes/pixel
-	R24                 // Read  RGB 888, 3 bytes/pixel
-	W24                 // Write RGB 888, 3 bytes/pixel
+	R16 PF = 1 << iota // Read  RGB 565, 2 bytes/pixel
+	W16                // Write RGB 565, 2 bytes/pixel
+	R18                // Read  RGB 666, 3 bytes/pixel
+	W18                // Write RGB 666, 3 bytes/pixel
+	R24                // Read  RGB 888, 3 bytes/pixel
+	W24                // Write RGB 888, 3 bytes/pixel
 )
 
 // AccessFrame is a type of function used by drivers to select the part of
