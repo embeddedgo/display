@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"time"
 )
 
 // magic numbers
@@ -192,7 +193,9 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 		return
 	}
 	pixSize := int(d.cinfo>>osize) & 3
-	d.pixSet(d.dci, &d.parg, pixSize)
+	if d.pixSet != nil {
+		d.pixSet(d.dci, &d.parg, pixSize)
+	}
 	d.startWrite(d.dci, &d.xarg, r)
 	n *= pixSize
 	typ := d.cinfo >> otype
@@ -255,7 +258,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				n := width*height*3 + 1
 				d.startRead(d.dci, &d.xarg, r1)
 				d.dci.ReadBytes(d.buf[0:n])
-				d.dci.End() // required to end RAMRD (ILI9xxx, undocumented)
+				d.dci.End()                        // required to end RAMRD (ILI9xxx, undocumented)
+				time.Sleep(500 * time.Microsecond) // required by ILI9486
 				for i := 1; i < n; i += 3 {
 					r := uint(d.buf[i+0])
 					g := uint(d.buf[i+1])
@@ -287,11 +291,14 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 		return d.buf[:]
 	}
 	if op == draw.Src {
-		if mask == nil && sip.pixSize <= 3 {
-			dst.pixSize = sip.pixSize
+		if d.pixSet != nil {
+			if mask == nil && sip.pixSize <= 3 {
+				dst.pixSize = sip.pixSize
+			}
+			d.pixSet(d.dci, &d.parg, dst.pixSize)
 		}
-		d.pixSet(d.dci, &d.parg, dst.pixSize)
 		d.startWrite(d.dci, &d.xarg, r)
 		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	}
+	d.dci.End()
 }
