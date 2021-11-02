@@ -141,20 +141,19 @@ var InitGFX = []byte{
 	MADCTL, 1, BGR | MX, // default display orientation, must be the last one
 }
 
-/*
 // InitMSP2807 contains initialization commands for MSP2807 module (QD-TFT2803)
 // taken from http://www.lcdwiki.com/2.8inch_SPI_Module_ILI9341_SKU:MSP2807
 var InitMSP2807 = []byte{
 	SWRESET, 0,
 	5, 255, // wait 5 ms
-	PWCTRB, 3, 0x00, 0xC9, 0X30,
+	PWCTRB, 3, 0x00, 0xC9, 0x30,
 	PONSEQ, 4, 0x64, 0x03, 0x12, 0x81,
 	DRVTIM, 3, 0x85, 0x10, 0x7A,
 	PWCTRA, 5, 0x39, 0x2C, 0x00, 0x34, 0x02,
 	PUMPRT, 1, 0x20,
 	DRVTIMB, 2, 0x00, 0x00,
 	PWCTR1, 1, 0x1B,
-	PWCTR2, 1, 0x10,
+	PWCTR2, 1, 0x00,
 	VMCTR1, 2, 0x30, 0x30,
 	VMCTR2, 1, 0xB7,
 	FRMCTR1, 2, 0x00, 0x1A,
@@ -168,4 +167,3 @@ var InitMSP2807 = []byte{
 	DISPON, 0,
 	MADCTL, 1, BGR | MX, // default display orientation, must be the last one
 }
-*/
