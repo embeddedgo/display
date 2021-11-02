@@ -8,7 +8,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"time"
 )
 
 // magic numbers
@@ -73,8 +72,8 @@ func bestBufSize(rsiz image.Point) image.Point {
 // If the display has write-only interface use Driver instead.
 type DriverOver struct {
 	dci        RDCI
-	startRead  AccessFrame
-	startWrite AccessFrame
+	startWrite StartWrite
+	read       Read
 	pixSet     PixSet
 	setDir     PixSet
 	w, h       uint16
@@ -88,11 +87,11 @@ type DriverOver struct {
 } // ont 32-bit MCU the size of this struct is 253 B (bufLen=210), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
-func NewOver(dci RDCI, w, h uint16, pf PF, startRead, startWrite AccessFrame, pixSet, setDir PixSet) *DriverOver {
+func NewOver(dci RDCI, w, h uint16, pf PF, startWrite StartWrite, read Read, pixSet, setDir PixSet) *DriverOver {
 	return &DriverOver{
 		dci:        dci,
-		startRead:  startRead,
 		startWrite: startWrite,
+		read:       read,
 		pixSet:     pixSet,
 		setDir:     setDir,
 		w:          w,
@@ -196,37 +195,40 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	if d.pixSet != nil {
 		d.pixSet(d.dci, &d.parg, pixSize)
 	}
-	d.startWrite(d.dci, &d.xarg, r)
-	n *= pixSize
-	typ := d.cinfo >> otype
-	switch {
-	case typ == fastWord:
-		d.dci.(WordNWriter).WriteWordN(d.cfast, n)
-	case typ == fastByte:
-		d.dci.(ByteNWriter).WriteByteN(byte(d.cfast), n)
-	case d.cfast >= alphaOpaque:
-		if typ == bufInit {
-			d.cinfo |= bufFull << otype
-			for i := 0; i < len(d.buf); i += pixSize {
-				d.buf[i+0] = uint8(d.r)
-				d.buf[i+1] = uint8(d.g)
-				if pixSize == 3 {
-					d.buf[i+2] = uint8(d.b)
+	if typ := d.cinfo >> otype; typ < bufInit || d.cfast >= alphaOpaque {
+		// no alpha blending
+		d.startWrite(d.dci, &d.xarg, r)
+		n *= pixSize
+		switch {
+		case typ == fastWord:
+			d.dci.(WordNWriter).WriteWordN(d.cfast, n)
+		case typ == fastByte:
+			d.dci.(ByteNWriter).WriteByteN(byte(d.cfast), n)
+		default:
+			if typ == bufInit {
+				d.cinfo |= bufFull << otype
+				for i := 0; i < len(d.buf); i += pixSize {
+					d.buf[i+0] = uint8(d.r)
+					d.buf[i+1] = uint8(d.g)
+					if pixSize == 3 {
+						d.buf[i+2] = uint8(d.b)
+					}
+				}
+			}
+			m := len(d.buf)
+			for {
+				if m > n {
+					m = n
+				}
+				d.dci.WriteBytes(d.buf[:m])
+				n -= m
+				if n == 0 {
+					break
 				}
 			}
 		}
-		m := len(d.buf)
-		for {
-			if m > n {
-				m = n
-			}
-			d.dci.WriteBytes(d.buf[:m])
-			n -= m
-			if n == 0 {
-				break
-			}
-		}
-	default:
+	} else {
+		// alpha blending with the current display content
 		bsiz := bestBufSize(rsiz)
 		sr := uint(d.r)
 		sg := uint(d.g)
@@ -256,10 +258,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				}
 				x += width
 				n := width*height*3 + 1
-				d.startRead(d.dci, &d.xarg, r1)
-				d.dci.ReadBytes(d.buf[0:n])
-				d.dci.End()                        // required to end RAMRD (ILI9xxx, undocumented)
-				time.Sleep(500 * time.Microsecond) // required by ILI9486
+				d.read(d.dci, &d.xarg, r1, d.buf[0:n])
 				for i := 1; i < n; i += 3 {
 					r := uint(d.buf[i+0])
 					g := uint(d.buf[i+1])

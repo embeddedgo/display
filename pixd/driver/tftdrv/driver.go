@@ -19,7 +19,7 @@ import (
 // memory.
 type Driver struct {
 	dci        DCI
-	startWrite AccessFrame
+	startWrite StartWrite
 	pixSet     PixSet
 	setDir     PixSet
 	w, h       uint16
@@ -32,7 +32,7 @@ type Driver struct {
 } // ont 32-bit MCU the size of this struct is 189 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // New returns new Driver.
-func New(dci DCI, w, h uint16, pf PF, startWrite AccessFrame, pixSet, setDir PixSet) *Driver {
+func New(dci DCI, w, h uint16, pf PF, startWrite StartWrite, pixSet, setDir PixSet) *Driver {
 	return &Driver{
 		dci:        dci,
 		startWrite: startWrite,

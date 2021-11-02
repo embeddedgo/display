@@ -15,6 +15,7 @@ const (
 	osize = 0
 	otype = 6 // Fill relies on the type field takes two MSbits
 
+	// do not reorder
 	fastByte = 0
 	fastWord = 1
 	bufInit  = 2 // getBuf relies on the one bit difference to the bufFull
@@ -35,7 +36,9 @@ const (
 
 // AccessFrame is a type of function used by drivers to select the part of
 // frame and start access the corresponding display memory.
-type AccessFrame func(dci DCI, xarg *[4]byte, r image.Rectangle)
+type StartWrite func(dci DCI, xarg *[4]byte, r image.Rectangle)
+
+type Read func(dci RDCI, xarg *[4]byte, r image.Rectangle, buf []byte)
 
 // PixSet is is a type of function used by drivers to set the pixel data format
 // to match the pixel size. It is also used to set the display orientation

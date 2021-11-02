@@ -55,7 +55,7 @@ const (
 	RDCABCMB  = 0x5F            // Write CABC Minimum Brightness
 	RDFCS     = 0xAA            // ead First Checksum
 	RDCFCS    = 0xAF            // Read Continue Checksum
-	IFMODE    = 0xB0            // RGB Interface Signal Control
+	IFMODE    = 0xB0            // Interface Mode Control
 	FRMCTR1   = 0xB1            // Frame Control (In Normal Mode)
 	FRMCTR2   = 0xB2            // Frame Control (In Idle Mode)
 	FRMCTR3   = 0xB3            // Frame Control (In Partial Mode)

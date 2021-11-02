@@ -5,6 +5,8 @@
 package ili9341
 
 import (
+	"image"
+
 	"github.com/embeddedgo/display/pixd/driver/tftdrv"
 	"github.com/embeddedgo/display/pixd/driver/tftdrv/internal/philips"
 )
@@ -33,10 +35,17 @@ func NewOver(dci tftdrv.RDCI) *tftdrv.DriverOver {
 		dci,
 		240, 320,
 		tftdrv.W16|tftdrv.W18|tftdrv.R18,
-		philips.StartRead16, philips.StartWrite16,
+		philips.StartWrite16,
+		read,
 		pixSet,
 		nil,
 	)
+}
+
+func read(dci tftdrv.RDCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
+	philips.StartRead16(dci, xarg, r)
+	dci.ReadBytes(buf)
+	dci.End()
 }
 
 func pixSet(dci tftdrv.DCI, parg *[1]byte, pixSize int) {
