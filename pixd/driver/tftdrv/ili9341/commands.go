@@ -113,8 +113,8 @@ const (
 	RGB18 = 0x60 // set 18-bit 666 pixel format for RGB interface
 )
 
-// InitGFX contains initialization commands taken from Adafruit GFX library.
-var InitGFX = []byte{
+// GFX contains initialization commands taken from Adafruit GFX library.
+var GFX = []byte{
 	SWRESET, 0,
 	5, 255, // wait 5 ms
 	SFD, 3, 0x03, 0x80, 0x02,
@@ -141,9 +141,9 @@ var InitGFX = []byte{
 	MADCTL, 1, BGR | MX, // default display orientation, must be the last one
 }
 
-// InitMSP2807 contains initialization commands for MSP2807 module (QD-TFT2803)
+// MSP2807 contains initialization commands for MSP2807 module (QD-TFT2803)
 // taken from http://www.lcdwiki.com/2.8inch_SPI_Module_ILI9341_SKU:MSP2807
-var InitMSP2807 = []byte{
+var MSP2807 = []byte{
 	SWRESET, 0,
 	5, 255, // wait 5 ms
 	PWCTRB, 3, 0x00, 0xC9, 0x30,
