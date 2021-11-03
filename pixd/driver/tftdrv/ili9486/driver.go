@@ -6,6 +6,7 @@ package ili9486
 
 import (
 	"image"
+	"runtime"
 	"time"
 
 	"github.com/embeddedgo/display/pixd/driver/tftdrv"
@@ -47,5 +48,14 @@ func read(dci tftdrv.RDCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
 	philips.StartRead16(dci, xarg, r)
 	dci.ReadBytes(buf)
 	dci.End()
-	time.Sleep(1000 * time.Microsecond)
+
+	// Workaround for the undocumented behavior. The read command probably does
+	// not stop immediately after deaserting CSN (need as much as 1.4ms).
+	t0 := time.Now()
+	for time.Now().Sub(t0) < 1400*time.Microsecond {
+		runtime.Gosched()
+	}
+	// Due to the limited resolution of SYSTICK based system timer (2 ms) the
+	// time.Sleep(1400 * time.Microsecond) draws 1.34 times slower than the
+	// above busy wait.
 }
