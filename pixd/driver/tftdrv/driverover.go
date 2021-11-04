@@ -77,6 +77,7 @@ type DriverOver struct {
 	r, g, b uint16
 	cfast   uint16
 	cinfo   byte
+	dir     byte
 	pf      PF
 	parg    [1]byte
 	xarg    [4]byte
@@ -101,9 +102,10 @@ func (d *DriverOver) Size() image.Point    { return image.Pt(int(d.w), int(d.h))
 // Init initializes the display using provided initialization commands. The
 // initialization commands depends on the LCD pannel. The command that sets
 // the display orientation and the color order must be the last one in the cmds
-// See ili9341.InitGFX for working example.
+// See ili9341.GFX, ili9486.MSP4022 as examples.
 func (d *DriverOver) Init(cmds []byte) {
 	initialize(d.dci, cmds)
+	d.dir = cmds[len(cmds)-1]
 }
 
 func (d *DriverOver) SetDir(dir int) {}
