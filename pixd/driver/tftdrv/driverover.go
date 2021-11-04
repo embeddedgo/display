@@ -280,7 +280,6 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 }
 
 func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	sip := imageAtPoint(src, sp)
 	dst := framePart{d.dci, r.Size(), 3}
 	getBuf := func() []byte {
 		if d.cinfo&(bufFull<<otype) == bufFull<<otype {
@@ -290,6 +289,7 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 		return d.buf[:]
 	}
 	if op == draw.Src {
+		sip := imageAtPoint(src, sp)
 		if d.pixSet != nil {
 			if mask == nil && sip.pixSize <= 3 {
 				dst.pixSize = sip.pixSize
@@ -298,6 +298,64 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 		}
 		d.startWrite(d.dci, &d.xarg, r)
 		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
+	} else {
+		if d.pixSet != nil {
+			d.pixSet(d.dci, &d.parg, dst.pixSize)
+		}
+		rsiz := r.Size()
+		bsiz := bestBufSize(rsiz)
+		y := 0
+		for {
+			height := rsiz.Y - y
+			if height <= 0 {
+				break
+			}
+			if height > bsiz.Y {
+				height = bsiz.Y
+			}
+			var r1 image.Rectangle
+			r1.Min.Y = r.Min.Y + y
+			r1.Max.Y = r1.Min.Y + height
+			x := 0
+			for {
+				width := rsiz.X - x
+				if width <= 0 {
+					break
+				}
+				if width > bsiz.X {
+					width = bsiz.X
+				}
+				r1.Min.X = r.Min.X + x
+				r1.Max.X = r1.Min.X + width
+				n := width*height*3 + 1
+				d.read(d.dci, &d.xarg, r1, d.buf[0:n])
+				i := 1
+				for y1 := y; y1 < y+height; y1++ {
+					for x1 := x; x1 < x+width; x1++ {
+						dr := uint32(d.buf[i+0])
+						dg := uint32(d.buf[i+1])
+						db := uint32(d.buf[i+2])
+						sr, sg, sb, sa := src.At(sp.X+x1, sp.Y+y1).RGBA()
+						ma := uint32(0xffff)
+						if mask != nil {
+							_, _, _, ma = mask.At(mp.X+x1, mp.Y+y1).RGBA()
+						}
+						a := 0xffff - (sa * ma / 0xffff)
+						dr = ((dr<<8|dr)*a + sr*ma) / 0xffff
+						dg = ((dg<<8|dg)*a + sg*ma) / 0xffff
+						db = ((db<<8|db)*a + sb*ma) / 0xffff
+						d.buf[i+0] = uint8(dr >> 8)
+						d.buf[i+1] = uint8(dg >> 8)
+						d.buf[i+2] = uint8(db >> 8)
+						i += 3
+					}
+				}
+				d.startWrite(d.dci, &d.xarg, r1)
+				d.dci.WriteBytes(d.buf[1:n])
+				x += width
+			}
+			y += height
+		}
 	}
 	d.dci.End()
 }

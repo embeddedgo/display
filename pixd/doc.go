@@ -3,8 +3,8 @@
 // license that can be found in the LICENSE file.
 
 // Package pixd provides set of drawing functions for simple pixmap based
-// displays. Such displays, unlike vector or display-list based ones, expect
-// data in the form of an array of pixels.
+// displays. Such displays, unlike the vector or display-list based ones,
+// require data in the form of ready-made array of pixels.
 //
 // Only one drawing operation is required from the display driver: drawing an
 // image on a selected rectangle. This basic drawing primitive is supported in

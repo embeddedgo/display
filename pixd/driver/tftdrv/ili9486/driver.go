@@ -48,15 +48,14 @@ func read(dci tftdrv.RDCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
 	dci.ReadBytes(buf)
 	dci.End()
 
-	// Workaround for the undocumented behavior. The read command probably does
-	// not stop immediately after deaserting CSN (need as much as 1.4ms).
-	time.Sleep(1400 * time.Microsecond)
+	// Workaround for the undocumented behavior. Deaserting CSN probably does
+	// not stop reading immediately (it takes as much as 1.5 ms).
+	time.Sleep(1500 * time.Microsecond)
 
-	// In case of SYSTICK based system timer the above sleep lasts 2 ms and the
-	// drawing is 1.34 times slower compared with the busy wait below:
+	// In case of a ticking system timer the above sleep lasts about 2 ms
+	// (customary tick period) and the drawing is 1.3 times slower compared to
+	// the busy wait below.
 	//
 	//	t0 := time.Now()
-	//	for time.Now().Sub(t0) < 1400*time.Microsecond {
-	//		runtime.Gosched()
-	//	}
+	//	for time.Now().Sub(t0) < 1500*time.Microsecond {}
 }
