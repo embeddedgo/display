@@ -126,7 +126,8 @@ const (
 	RGB18 = 0x60 // set 18-bit 666 pixel format for RGB interface
 )
 
-// MSP4022 contains initialization commands for MSP4022 module (QD-TFT3956) // taken from http://www.lcdwiki.com/4.0inch_SPI_Module_ILI9486
+// MSP4022 are the initialization commands for MSP4022 module (QD-TFT3956)
+// taken from http://www.lcdwiki.com/4.0inch_SPI_Module_ILI9486
 var MSP4022 = []byte{
 	SWRESET, 0,
 	5, 255, // wait 5 ms
@@ -145,4 +146,25 @@ var MSP4022 = []byte{
 	5, 255, // wait 5 ms
 	DISPON, 0,
 	MADCTL, 1, BGR | MX, // default display orientation, must be the last one
+}
+
+// IAW are the initialization commands taken from https://github.com/ImpulseAdventure/Waveshare_ILI9486
+var IAW = []byte{
+	SWRESET, 0,
+	5, 255, // wait 5 ms
+	PWCTR1, 2, 0x19, 0x1a,
+	PWCTR2, 2, 0x45, 0x00,
+	PWCTR3, 1, 0x33,
+	VMCTR1, 2, 0x00, 0x28,
+	FRMCTR1, 2, 0xA0, 0x11,
+	INVTR, 1, 0x02,
+	DISCTRL, 3, 0x00, 0x22, 0x3B, // modified from the orignal ImpulseAdventure code for RGB color order
+	PGAMCTRL, 15, 0x1F, 0x25, 0x22, 0x0B, 0x06, 0x0A, 0x4E, 0xC6, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	NGAMCTRL, 15, 0x1F, 0x3F, 0x3F, 0x0F, 0x1F, 0x0F, 0x46, 0x49, 0x31, 0x05, 0x09, 0x03, 0x1C, 0x1A, 0x00,
+	PIXSET, 1, MCU18,
+	120, 255, // wait 120 ms
+	SLPOUT, 0,
+	5, 255, // wait 5 ms
+	DISPON, 0,
+	MADCTL, 1, 0, // default display orientation, must be the last one
 }

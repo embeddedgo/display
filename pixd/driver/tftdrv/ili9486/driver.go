@@ -17,14 +17,7 @@ import (
 // is slow and reduced to 1-bit resolution. Use NewOver if the display supports
 // reading pixel data and the full-fledged Porter-Duff composition is required.
 func New(dci tftdrv.DCI) *tftdrv.Driver {
-	return tftdrv.New(
-		dci,
-		320, 480,
-		tftdrv.W18,
-		philips.StartWrite16,
-		nil,
-		nil,
-	)
+	return tftdrv.New(dci, 320, 480, tftdrv.W18, ctrl)
 }
 
 // NewOver returns a new tftdrv.DriverOver that implements pixd.Driver
@@ -32,15 +25,7 @@ func New(dci tftdrv.DCI) *tftdrv.Driver {
 // requires reading pixel data from the frame memory. If the display has
 // write-only interface use New instead.
 func NewOver(dci tftdrv.RDCI) *tftdrv.DriverOver {
-	return tftdrv.NewOver(
-		dci,
-		320, 480,
-		tftdrv.W18|tftdrv.R18,
-		philips.StartWrite16,
-		read,
-		nil,
-		nil,
-	)
+	return tftdrv.NewOver(dci, 320, 480, tftdrv.W18|tftdrv.R18, ctrlOver)
 }
 
 func read(dci tftdrv.RDCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
@@ -59,3 +44,14 @@ func read(dci tftdrv.RDCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
 	//	t0 := time.Now()
 	//	for time.Now().Sub(t0) < 1500*time.Microsecond {}
 }
+
+var (
+	ctrl = &tftdrv.Ctrl{
+		StartWrite: philips.StartWrite16,
+	}
+
+	ctrlOver = &tftdrv.Ctrl{
+		StartWrite: philips.StartWrite16,
+		Read:       read,
+	}
+)

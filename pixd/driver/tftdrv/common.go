@@ -34,16 +34,12 @@ const (
 	W24                // Write RGB 888, 3 bytes/pixel
 )
 
-// AccessFrame is a type of function used by drivers to select the part of
-// frame and start access the corresponding display memory.
-type StartWrite func(dci DCI, xarg *[4]byte, r image.Rectangle)
-
-type Read func(dci RDCI, xarg *[4]byte, r image.Rectangle, buf []byte)
-
-// PixSet is is a type of function used by drivers to set the pixel data format
-// to match the pixel size. It is also used to set the display orientation
-// because some of the controllers share the same register for both functions.
-type PixSet func(dci DCI, parg *[1]byte, sizeOrDir int)
+type Ctrl struct {
+	StartWrite func(dci DCI, xarg *[4]byte, r image.Rectangle)
+	Read       func(dci RDCI, xarg *[4]byte, r image.Rectangle, buf []byte)
+	SetPF      func(dci DCI, parg *[1]byte, size int)
+	SetDir     func(dci DCI, parg *[1]byte, def byte, dir int)
+}
 
 func initialize(dci DCI, cmds []byte) {
 	i := 0

@@ -18,29 +18,25 @@ import (
 // composition is required and the display supports reading from its frame
 // memory.
 type Driver struct {
-	dci        DCI
-	startWrite StartWrite
-	pixSet     PixSet
-	setDir     PixSet
-	w, h       uint16
-	cfast      uint16
-	cinfo      byte
-	pf         PF
-	parg       [1]byte
-	xarg       [4]byte
-	buf        [52 * 3]byte // must be multiple of two and three
+	dci   DCI
+	c     *Ctrl
+	w, h  uint16
+	cfast uint16
+	cinfo byte
+	pf    PF
+	parg  [1]byte
+	xarg  [4]byte
+	buf   [52 * 3]byte // must be multiple of two and three
 } // ont 32-bit MCU the size of this struct is 189 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // New returns new Driver.
-func New(dci DCI, w, h uint16, pf PF, startWrite StartWrite, pixSet, setDir PixSet) *Driver {
+func New(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *Driver {
 	return &Driver{
-		dci:        dci,
-		startWrite: startWrite,
-		pixSet:     pixSet,
-		setDir:     setDir,
-		w:          w,
-		h:          h,
-		pf:         pf,
+		dci: dci,
+		c:   ctrl,
+		w:   w,
+		h:   h,
+		pf:  pf,
 	}
 }
 
@@ -129,10 +125,10 @@ func (d *Driver) Fill(r image.Rectangle) {
 		return
 	}
 	pixSize := int(d.cinfo>>osize) & 3
-	if d.pixSet != nil {
-		d.pixSet(d.dci, &d.parg, pixSize)
+	if d.c.SetPF != nil {
+		d.c.SetPF(d.dci, &d.parg, pixSize)
 	}
-	d.startWrite(d.dci, &d.xarg, r)
+	d.c.StartWrite(d.dci, &d.xarg, r)
 	n *= pixSize
 	switch d.cinfo >> otype {
 	case fastWord:
@@ -176,20 +172,20 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		return d.buf[:]
 	}
 	if op == draw.Src {
-		if d.pixSet != nil {
+		if d.c.SetPF != nil {
 			if mask == nil && sip.pixSize < dst.pixSize {
 				dst.pixSize = sip.pixSize
 			}
-			d.pixSet(d.dci, &d.parg, dst.pixSize)
+			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
 		}
-		d.startWrite(d.dci, &d.xarg, r)
+		d.c.StartWrite(d.dci, &d.xarg, r)
 		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	} else {
-		if d.pixSet != nil {
-			d.pixSet(d.dci, &d.parg, dst.pixSize)
+		if d.c.SetPF != nil {
+			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
 		}
 		startWrite := func(r image.Rectangle) {
-			d.startWrite(d.dci, &d.xarg, r)
+			d.c.StartWrite(d.dci, &d.xarg, r)
 		}
 		drawOverNoRead(dst, r.Min, src, sp, sip, mask, mp, getBuf(), startWrite)
 	}

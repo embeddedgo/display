@@ -71,32 +71,26 @@ func bestBufSize(rsiz image.Point) image.Point {
 // draw.Over operator. It requires tftdrv.RDCI to read the frame memory content.
 // If the display has write-only interface use Driver instead.
 type DriverOver struct {
-	dci        RDCI
-	startWrite StartWrite
-	read       Read
-	pixSet     PixSet
-	setDir     PixSet
-	w, h       uint16
-	r, g, b    uint16
-	cfast      uint16
-	cinfo      byte
-	pf         PF
-	parg       [1]byte
-	xarg       [4]byte
-	buf        [bufLen]byte
+	dci     RDCI
+	c       *Ctrl
+	w, h    uint16
+	r, g, b uint16
+	cfast   uint16
+	cinfo   byte
+	pf      PF
+	parg    [1]byte
+	xarg    [4]byte
+	buf     [bufLen]byte
 } // ont 32-bit MCU the size of this struct is 253 B (bufLen=210), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
-func NewOver(dci RDCI, w, h uint16, pf PF, startWrite StartWrite, read Read, pixSet, setDir PixSet) *DriverOver {
+func NewOver(dci RDCI, w, h uint16, pf PF, ctrl *Ctrl) *DriverOver {
 	return &DriverOver{
-		dci:        dci,
-		startWrite: startWrite,
-		read:       read,
-		pixSet:     pixSet,
-		setDir:     setDir,
-		w:          w,
-		h:          h,
-		pf:         pf,
+		dci: dci,
+		c:   ctrl,
+		w:   w,
+		h:   h,
+		pf:  pf,
 	}
 }
 
@@ -192,12 +186,12 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 		return
 	}
 	pixSize := int(d.cinfo>>osize) & 3
-	if d.pixSet != nil {
-		d.pixSet(d.dci, &d.parg, pixSize)
+	if d.c.SetPF != nil {
+		d.c.SetPF(d.dci, &d.parg, pixSize)
 	}
 	if typ := d.cinfo >> otype; typ < bufInit || d.cfast >= alphaOpaque {
 		// no alpha blending
-		d.startWrite(d.dci, &d.xarg, r)
+		d.c.StartWrite(d.dci, &d.xarg, r)
 		n *= pixSize
 		switch {
 		case typ == fastWord:
@@ -258,7 +252,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				}
 				x += width
 				n := width*height*3 + 1
-				d.read(d.dci, &d.xarg, r1, d.buf[0:n])
+				d.c.Read(d.dci, &d.xarg, r1, d.buf[0:n])
 				for i := 1; i < n; i += 3 {
 					r := uint(d.buf[i+0])
 					g := uint(d.buf[i+1])
@@ -270,7 +264,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 					d.buf[i+1] = uint8(g >> 8)
 					d.buf[i+2] = uint8(b >> 8)
 				}
-				d.startWrite(d.dci, &d.xarg, r1)
+				d.c.StartWrite(d.dci, &d.xarg, r1)
 				d.dci.WriteBytes(d.buf[1:n])
 			}
 			y += height
@@ -290,17 +284,17 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 	}
 	if op == draw.Src {
 		sip := imageAtPoint(src, sp)
-		if d.pixSet != nil {
+		if d.c.SetPF != nil {
 			if mask == nil && sip.pixSize <= 3 {
 				dst.pixSize = sip.pixSize
 			}
-			d.pixSet(d.dci, &d.parg, dst.pixSize)
+			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
 		}
-		d.startWrite(d.dci, &d.xarg, r)
+		d.c.StartWrite(d.dci, &d.xarg, r)
 		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	} else {
-		if d.pixSet != nil {
-			d.pixSet(d.dci, &d.parg, dst.pixSize)
+		if d.c.SetPF != nil {
+			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
 		}
 		rsiz := r.Size()
 		bsiz := bestBufSize(rsiz)
@@ -328,7 +322,7 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 				r1.Min.X = r.Min.X + x
 				r1.Max.X = r1.Min.X + width
 				n := width*height*3 + 1
-				d.read(d.dci, &d.xarg, r1, d.buf[0:n])
+				d.c.Read(d.dci, &d.xarg, r1, d.buf[0:n])
 				i := 1
 				for y1 := y; y1 < y+height; y1++ {
 					for x1 := x; x1 < x+width; x1++ {
@@ -350,7 +344,7 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 						i += 3
 					}
 				}
-				d.startWrite(d.dci, &d.xarg, r1)
+				d.c.StartWrite(d.dci, &d.xarg, r1)
 				d.dci.WriteBytes(d.buf[1:n])
 				x += width
 			}
