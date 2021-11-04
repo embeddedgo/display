@@ -26,8 +26,8 @@ type Driver struct {
 	pf    PF
 	parg  [1]byte
 	xarg  [4]byte
-	buf   [52 * 3]byte // must be multiple of two and three
-} // ont 32-bit MCU the size of this struct is 189 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
+	buf   [54 * 3]byte // must be multiple of two and three
+} // ont 32-bit MCU the size of this struct is 187 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // New returns new Driver.
 func New(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *Driver {

@@ -13,8 +13,8 @@ import (
 // magic numbers
 const (
 	sa     = 2 // must be smalest
-	sb     = 3
-	sc     = 11
+	sb     = 5
+	sc     = 7
 	se     = 4                   // must be >= 1
 	bufLen = (sa*sb*sc + se) * 3 // must be multiple of 2 and 3
 )
@@ -81,7 +81,7 @@ type DriverOver struct {
 	parg    [1]byte
 	xarg    [4]byte
 	buf     [bufLen]byte
-} // ont 32-bit MCU the size of this struct is 253 B (bufLen=210), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
+} // ont 32-bit MCU the size of this struct is 253 B (bufLen=222), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
 func NewOver(dci RDCI, w, h uint16, pf PF, ctrl *Ctrl) *DriverOver {
