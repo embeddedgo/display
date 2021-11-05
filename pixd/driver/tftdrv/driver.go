@@ -186,10 +186,74 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		if d.c.SetPF != nil {
 			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
 		}
-		startWrite := func(r image.Rectangle) {
-			d.c.StartWrite(d.dci, &d.xarg, r)
+		buf := getBuf()
+		i := 0
+		width := dst.size.X
+		height := dst.size.Y
+		for y := 0; y < height; y++ {
+			j := y * sip.stride
+			drawing := false
+			for x := 0; x < width; x++ {
+				ma := uint32(0x8000)
+				if mask != nil {
+					_, _, _, ma = mask.At(mp.X+x, mp.Y+y).RGBA()
+				}
+				if ma>>15 != 0 { // only 1-bit transparency supported
+					var sr, sg, sb, sa uint32
+					if sip.pixSize != 0 {
+						sr, sg, sb, sa = fastRGBA(&sip, j)
+						j += sip.pixSize
+					} else {
+						sr, sg, sb, sa = src.At(sp.X+x, sp.Y+y).RGBA()
+					}
+					if mask != nil {
+						sa = (sa * ma / 0xffff) >> 15 // we are interested in MSbit
+						if sa != 0 {
+							sr = sr * ma / 0xffff
+							sg = sg * ma / 0xffff
+							sb = sb * ma / 0xffff
+						}
+					}
+					if sa != 0 {
+						// opaque pixel
+						if !drawing {
+							drawing = true
+							if i != 0 {
+								d.dci.WriteBytes(buf[:i])
+								i = 0
+							}
+							r1 := image.Rectangle{
+								image.Pt(x, y),
+								image.Pt(x+width, y+1),
+							}.Add(r.Min)
+							d.c.StartWrite(d.dci, &d.xarg, r1)
+						}
+						if dst.pixSize == 2 {
+							sr >>= 11
+							sg >>= 10
+							sb >>= 11
+							buf[i+0] = uint8(sr<<3 | sg>>3)
+							buf[i+1] = uint8(sg<<5 | sb)
+						} else {
+							buf[i+0] = uint8(sr >> 8)
+							buf[i+1] = uint8(sg >> 8)
+							buf[i+2] = uint8(sb >> 8)
+						}
+						i += dst.pixSize
+						if i == len(buf) {
+							d.dci.WriteBytes(buf)
+							i = 0
+						}
+						continue
+					}
+				}
+				// transparent pixel
+				drawing = false
+			}
 		}
-		drawOverNoRead(d.dci, dst, r.Min, src, sp, sip, mask, mp, getBuf(), startWrite)
+		if i != 0 {
+			d.dci.WriteBytes(buf[:i])
+		}
 	}
 	d.dci.End()
 }
