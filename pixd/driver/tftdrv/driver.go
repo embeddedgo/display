@@ -164,7 +164,7 @@ end:
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	sip := imageAtPoint(src, sp)
-	dst := framePart{d.dci, r.Size(), 3}
+	dst := dst{r.Size(), 3}
 	getBuf := func() []byte {
 		if d.cinfo&(bufInit<<otype) != 0 {
 			// bufInit or bufFull
@@ -181,7 +181,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
 		}
 		d.c.StartWrite(d.dci, &d.xarg, r)
-		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
+		drawSrc(d.dci, dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	} else {
 		if d.c.SetPF != nil {
 			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
@@ -189,7 +189,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		startWrite := func(r image.Rectangle) {
 			d.c.StartWrite(d.dci, &d.xarg, r)
 		}
-		drawOverNoRead(dst, r.Min, src, sp, sip, mask, mp, getBuf(), startWrite)
+		drawOverNoRead(d.dci, dst, r.Min, src, sp, sip, mask, mp, getBuf(), startWrite)
 	}
 	d.dci.End()
 }

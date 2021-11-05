@@ -182,8 +182,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	if d.cinfo == transparent {
 		return
 	}
-	rsiz := r.Size()
-	n := rsiz.X * rsiz.Y
+	dstSize := r.Size()
+	n := dstSize.X * dstSize.Y
 	if n == 0 {
 		return
 	}
@@ -225,7 +225,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 		}
 	} else {
 		// alpha blending with the current display content
-		bsiz := bestBufSize(rsiz)
+		bufSize := bestBufSize(dstSize)
 		sr := uint(d.r)
 		sg := uint(d.g)
 		sb := uint(d.b)
@@ -236,8 +236,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 			if height <= 0 {
 				break
 			}
-			if height > bsiz.Y {
-				height = bsiz.Y
+			if height > bufSize.Y {
+				height = bufSize.Y
 			}
 			x := r.Min.X
 			for {
@@ -245,8 +245,8 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				if width <= 0 {
 					break
 				}
-				if width > bsiz.X {
-					width = bsiz.X
+				if width > bufSize.X {
+					width = bufSize.X
 				}
 				r1 := image.Rectangle{
 					image.Pt(x, y),
@@ -276,7 +276,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 }
 
 func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	dst := framePart{d.dci, r.Size(), 3}
+	dst := dst{r.Size(), 3}
 	getBuf := func() []byte {
 		if d.cinfo&(bufFull<<otype) == bufFull<<otype {
 			// inform Fill about dirty buf
@@ -293,44 +293,44 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
 		}
 		d.c.StartWrite(d.dci, &d.xarg, r)
-		drawSrc(dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
+		drawSrc(d.dci, dst, src, sp, sip, mask, mp, getBuf, len(d.buf)*3/4)
 	} else {
 		if d.c.SetPF != nil {
-			d.c.SetPF(d.dci, &d.parg, dst.pixSize)
+			d.c.SetPF(d.dci, &d.parg, 3)
 		}
-		rsiz := r.Size()
-		bsiz := bestBufSize(rsiz)
+		buf := getBuf()
+		bufSize := bestBufSize(dst.size)
 		y := 0
 		for {
-			height := rsiz.Y - y
+			height := dst.size.Y - y
 			if height <= 0 {
 				break
 			}
-			if height > bsiz.Y {
-				height = bsiz.Y
+			if height > bufSize.Y {
+				height = bufSize.Y
 			}
 			var r1 image.Rectangle
 			r1.Min.Y = r.Min.Y + y
 			r1.Max.Y = r1.Min.Y + height
 			x := 0
 			for {
-				width := rsiz.X - x
+				width := dst.size.X - x
 				if width <= 0 {
 					break
 				}
-				if width > bsiz.X {
-					width = bsiz.X
+				if width > bufSize.X {
+					width = bufSize.X
 				}
 				r1.Min.X = r.Min.X + x
 				r1.Max.X = r1.Min.X + width
 				n := width*height*3 + 1
-				d.c.Read(d.dci, &d.xarg, r1, d.buf[0:n])
+				d.c.Read(d.dci, &d.xarg, r1, buf[0:n])
 				i := 1
 				for y1 := y; y1 < y+height; y1++ {
 					for x1 := x; x1 < x+width; x1++ {
-						dr := uint32(d.buf[i+0])
-						dg := uint32(d.buf[i+1])
-						db := uint32(d.buf[i+2])
+						dr := uint32(buf[i+0])
+						dg := uint32(buf[i+1])
+						db := uint32(buf[i+2])
 						sr, sg, sb, sa := src.At(sp.X+x1, sp.Y+y1).RGBA()
 						ma := uint32(0xffff)
 						if mask != nil {
@@ -340,14 +340,14 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 						dr = ((dr<<8|dr)*a + sr*ma) / 0xffff
 						dg = ((dg<<8|dg)*a + sg*ma) / 0xffff
 						db = ((db<<8|db)*a + sb*ma) / 0xffff
-						d.buf[i+0] = uint8(dr >> 8)
-						d.buf[i+1] = uint8(dg >> 8)
-						d.buf[i+2] = uint8(db >> 8)
+						buf[i+0] = uint8(dr >> 8)
+						buf[i+1] = uint8(dg >> 8)
+						buf[i+2] = uint8(db >> 8)
 						i += 3
 					}
 				}
 				d.c.StartWrite(d.dci, &d.xarg, r1)
-				d.dci.WriteBytes(d.buf[1:n])
+				d.dci.WriteBytes(buf[1:n])
 				x += width
 			}
 			y += height

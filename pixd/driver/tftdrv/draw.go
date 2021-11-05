@@ -17,6 +17,11 @@ type fastImage struct {
 	s       string
 }
 
+type dst struct {
+	size    image.Point
+	pixSize int
+}
+
 func imageAtPoint(img image.Image, pt image.Point) (out fastImage) {
 	switch img := img.(type) {
 	case *pixd.RGB16:
@@ -43,18 +48,9 @@ func imageAtPoint(img image.Image, pt image.Point) (out fastImage) {
 	return
 }
 
-// framePart provides access to the Display Data RAM (the nomenclature used by
-// Philips / Epson / Ilitek) of the specified size (in pixels) and the pixel
-// size (in bytes).
-type framePart struct {
-	dci     DCI
-	size    image.Point
-	pixSize int
-}
-
-// drawSrc draws masked image to the prepared region of DDRAM. dst.PixSize must
+// drawSrc draws masked image to the prepared region of GRAM. dst.PixSize must
 // be 3 (RGB 888) or 2 (RGB 565).
-func drawSrc(dst framePart, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, getBuf func() []byte, minChunk int) {
+func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, getBuf func() []byte, minChunk int) {
 	var buf struct {
 		p []byte
 		i int
@@ -70,13 +66,13 @@ func drawSrc(dst framePart, src image.Image, sp image.Point, sip fastImage, mask
 				if len(sip.p) != 0 {
 					if width == sip.stride {
 						// write the entire sip
-						dst.dci.WriteBytes(sip.p[:height*sip.stride])
+						dci.WriteBytes(sip.p[:height*sip.stride])
 						return
 					}
 					if width >= minChunk {
 						// write line by line directly from sip
 						for {
-							dst.dci.WriteBytes(sip.p[:width])
+							dci.WriteBytes(sip.p[:width])
 							if height--; height == 0 {
 								break
 							}
@@ -84,7 +80,7 @@ func drawSrc(dst framePart, src image.Image, sp image.Point, sip fastImage, mask
 						}
 						return
 					}
-				} else if w, ok := dst.dci.(StringWriter); ok {
+				} else if w, ok := dci.(StringWriter); ok {
 					if width == sip.stride {
 						// write the entire sip
 						w.WriteString(sip.s[:height*sip.stride])
@@ -125,7 +121,7 @@ func drawSrc(dst framePart, src image.Image, sp image.Point, sip fastImage, mask
 				buf.i += dst.pixSize
 				j += sip.pixSize
 				if buf.i == len(buf.p) {
-					dst.dci.WriteBytes(buf.p)
+					dci.WriteBytes(buf.p)
 					buf.i = 0
 				}
 				if j == k {
@@ -148,7 +144,7 @@ func drawSrc(dst framePart, src image.Image, sp image.Point, sip fastImage, mask
 					buf.p[buf.i+2] = uint8(b >> 8)
 					buf.i += 3
 					if buf.i == len(buf.p) {
-						dst.dci.WriteBytes(buf.p)
+						dci.WriteBytes(buf.p)
 						buf.i = 0
 					}
 				}
@@ -206,21 +202,21 @@ func drawSrc(dst framePart, src image.Image, sp image.Point, sip fastImage, mask
 				}
 				buf.i += dst.pixSize
 				if buf.i == len(buf.p) {
-					dst.dci.WriteBytes(buf.p)
+					dci.WriteBytes(buf.p)
 					buf.i = 0
 				}
 			}
 		}
 	}
 	if buf.i != 0 {
-		dst.dci.WriteBytes(buf.p[:buf.i])
+		dci.WriteBytes(buf.p[:buf.i])
 	}
 }
 
 // drawOverNoRead draws masked image. It cannot read the content of frame memory
 // so it reduces the alpha channel to one bit and draws only opaque parts of
 // the masked image. dst.PixSize must be 3 (RGB 888) or 2 (RGB 565).
-func drawOverNoRead(dst framePart, dmin image.Point, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, buffer []byte, startWrite func(r image.Rectangle)) {
+func drawOverNoRead(dci DCI, dst dst, dmin image.Point, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, buffer []byte, startWrite func(r image.Rectangle)) {
 	var buf struct {
 		p []byte
 		i int
@@ -287,7 +283,7 @@ func drawOverNoRead(dst framePart, dmin image.Point, src image.Image, sp image.P
 					if !drawing {
 						drawing = true
 						if buf.i != 0 {
-							dst.dci.WriteBytes(buf.p[:buf.i])
+							dci.WriteBytes(buf.p[:buf.i])
 							buf.i = 0
 						}
 						r := image.Rectangle{
@@ -309,7 +305,7 @@ func drawOverNoRead(dst framePart, dmin image.Point, src image.Image, sp image.P
 					}
 					buf.i += dst.pixSize
 					if buf.i == len(buf.p) {
-						dst.dci.WriteBytes(buf.p)
+						dci.WriteBytes(buf.p)
 						buf.i = 0
 					}
 					continue
@@ -320,6 +316,6 @@ func drawOverNoRead(dst framePart, dmin image.Point, src image.Image, sp image.P
 		}
 	}
 	if buf.i != 0 {
-		dst.dci.WriteBytes(buf.p[:buf.i])
+		dci.WriteBytes(buf.p[:buf.i])
 	}
 }
