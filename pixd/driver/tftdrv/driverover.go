@@ -276,7 +276,6 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 }
 
 func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	dst := dst{r.Size(), 3}
 	getBuf := func() []byte {
 		if d.cinfo&(bufFull<<otype) == bufFull<<otype {
 			// inform Fill about dirty buf
@@ -284,8 +283,9 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 		}
 		return d.buf[:]
 	}
+	dst := dst{r.Size(), 3}
+	sip := imageAtPoint(src, sp)
 	if op == draw.Src {
-		sip := imageAtPoint(src, sp)
 		if d.c.SetPF != nil {
 			if mask == nil && sip.pixSize <= 3 {
 				dst.pixSize = sip.pixSize
@@ -327,16 +327,23 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 				d.c.Read(d.dci, &d.xarg, r1, buf[0:n])
 				i := 1
 				for y1 := y; y1 < y+height; y1++ {
+					j := y1*sip.stride + x*sip.pixSize
 					for x1 := x; x1 < x+width; x1++ {
-						dr := uint32(buf[i+0])
-						dg := uint32(buf[i+1])
-						db := uint32(buf[i+2])
-						sr, sg, sb, sa := src.At(sp.X+x1, sp.Y+y1).RGBA()
+						var sr, sg, sb, sa uint32
+						if sip.pixSize != 0 {
+							sr, sg, sb, sa = fastRGBA(&sip, j)
+							j += sip.pixSize
+						} else {
+							sr, sg, sb, sa = src.At(sp.X+x1, sp.Y+y1).RGBA()
+						}
 						ma := uint32(0xffff)
 						if mask != nil {
 							_, _, _, ma = mask.At(mp.X+x1, mp.Y+y1).RGBA()
 						}
 						a := 0xffff - (sa * ma / 0xffff)
+						dr := uint32(buf[i+0])
+						dg := uint32(buf[i+1])
+						db := uint32(buf[i+2])
 						dr = ((dr<<8|dr)*a + sr*ma) / 0xffff
 						dg = ((dg<<8|dg)*a + sg*ma) / 0xffff
 						db = ((db<<8|db)*a + sb*ma) / 0xffff

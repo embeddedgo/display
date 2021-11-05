@@ -38,7 +38,7 @@ type Driver interface {
 	SetColor(c color.Color)
 
 	// Fill helps to increase prformance when drawing filled rectangles which
-	// are heavily when drawing various geometric shapes.
+	// are heavily used when drawing various geometric shapes.
 	//
 	// Fill(r) is intended to be a faster counterpart of
 	//

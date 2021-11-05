@@ -163,8 +163,6 @@ end:
 }
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	sip := imageAtPoint(src, sp)
-	dst := dst{r.Size(), 3}
 	getBuf := func() []byte {
 		if d.cinfo&(bufInit<<otype) != 0 {
 			// bufInit or bufFull
@@ -173,6 +171,8 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		}
 		return d.buf[:]
 	}
+	sip := imageAtPoint(src, sp)
+	dst := dst{r.Size(), 3}
 	if op == draw.Src {
 		if d.c.SetPF != nil {
 			if mask == nil && sip.pixSize < dst.pixSize {

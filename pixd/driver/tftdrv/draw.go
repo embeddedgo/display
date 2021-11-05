@@ -17,11 +17,6 @@ type fastImage struct {
 	s       string
 }
 
-type dst struct {
-	size    image.Point
-	pixSize int
-}
-
 func imageAtPoint(img image.Image, pt image.Point) (out fastImage) {
 	switch img := img.(type) {
 	case *pixd.RGB16:
@@ -46,6 +41,46 @@ func imageAtPoint(img image.Image, pt image.Point) (out fastImage) {
 		out.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
 	}
 	return
+}
+
+func fastRGBA(fi *fastImage, j int) (r, g, b, a uint32) {
+	a = 255
+	if fi.p != nil {
+		r = uint32(fi.p[j+0])
+		g = uint32(fi.p[j+1])
+		if fi.pixSize != 2 {
+			b = uint32(fi.p[j+2])
+			if fi.pixSize == 4 {
+				a = uint32(fi.p[j+3])
+			}
+		}
+	} else {
+		r = uint32(fi.s[j+0])
+		g = uint32(fi.s[j+1])
+		if fi.pixSize != 2 {
+			b = uint32(fi.s[j+2])
+			if fi.pixSize == 4 {
+				a = uint32(fi.s[j+3])
+			}
+		}
+	}
+	a |= a << 8
+	if fi.pixSize == 2 {
+		r, g, b = r>>3, r&7<<3|g>>5, g&0x1f
+		r = r<<11 | r<<6 | r<<1
+		g = g<<10 | g<<4 | g>>2
+		b = b<<11 | b<<6 | b<<1
+	} else {
+		r |= r << 8
+		g |= g << 8
+		b |= b << 8
+	}
+	return
+}
+
+type dst struct {
+	size    image.Point
+	pixSize int
 }
 
 // drawSrc draws masked image to the prepared region of GRAM. dst.PixSize must
@@ -158,29 +193,7 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 			for x := 0; x < width; x++ {
 				var r, g, b uint32
 				if sip.pixSize != 0 {
-					if sip.p != nil {
-						r = uint32(sip.p[j+0])
-						g = uint32(sip.p[j+1])
-						if sip.pixSize != 2 {
-							b = uint32(sip.p[j+2])
-						}
-					} else {
-						r = uint32(sip.s[j+0])
-						g = uint32(sip.s[j+1])
-						if sip.pixSize != 2 {
-							b = uint32(sip.s[j+2])
-						}
-					}
-					if sip.pixSize == 2 {
-						r, g, b = r>>3, r&7<<3|g>>5, g&0x1F
-						r = r<<11 | r<<6 | r<<1
-						g = g<<10 | g<<4 | g>>2
-						b = b<<11 | b<<6 | b<<1
-					} else {
-						r |= r << 8
-						g |= g << 8
-						b |= b << 8
-					}
+					r, g, b, _ = fastRGBA(&sip, j)
 					j += sip.pixSize
 				} else {
 					r, g, b, _ = src.At(sp.X+x, sp.Y+y).RGBA()
@@ -235,37 +248,7 @@ func drawOverNoRead(dci DCI, dst dst, dmin image.Point, src image.Image, sp imag
 			if ma>>15 != 0 { // only 1-bit transparency supported
 				var r, g, b, a uint32
 				if sip.pixSize != 0 {
-					a = 0xff
-					if sip.p != nil {
-						r = uint32(sip.p[j+0])
-						g = uint32(sip.p[j+1])
-						if sip.pixSize != 2 {
-							b = uint32(sip.p[j+2])
-							if sip.pixSize == 4 {
-								a = uint32(sip.p[j+3])
-							}
-						}
-					} else {
-						r = uint32(sip.s[j+0])
-						g = uint32(sip.s[j+1])
-						if sip.pixSize != 2 {
-							b = uint32(sip.s[j+2])
-							if sip.pixSize == 4 {
-								a = uint32(sip.s[j+3])
-							}
-						}
-					}
-					a |= a << 8
-					if sip.pixSize == 2 {
-						r, g, b = r>>3, r&7<<3|g>>5, g&0x1f
-						r = r<<11 | r<<6 | r<<1
-						g = g<<10 | g<<4 | g>>2
-						b = b<<11 | b<<6 | b<<1
-					} else {
-						r |= r << 8
-						g |= g << 8
-						b |= b << 8
-					}
+					r, g, b, a = fastRGBA(&sip, j)
 					j += sip.pixSize
 				} else {
 					r, g, b, a = src.At(sp.X+x, sp.Y+y).RGBA()
