@@ -57,12 +57,13 @@ func (d *Display) SetOrigin(origin image.Point) {
 //
 // After SetDir the coordinates of all areas that use this display should be
 // re-set (usng SetRect method) and their content should be redrawn. Use
-// a.SetRect(a.Rect()) if the coordinates of the area on the rotated display
-// should remain the same.
+// a.SetRect(a.Rect()) if the coordinates should remain the same.
 func (d *Display) SetDir(n int) {
 	d.drv.SetDir(n)
 }
 
+// NewArea provides a convenient way to create a drawing area on the display.
+// Use NewArea for areas that occupy more than one display.
 func (d *Display) NewArea(r image.Rectangle) *Area {
 	a := new(Area)
 	a.bounds = image.Rectangle{Max: r.Size()} // default origin is (0,0)

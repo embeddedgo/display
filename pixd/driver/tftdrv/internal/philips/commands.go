@@ -67,6 +67,15 @@ const (
 	OTPSHTIN  = 0xF1 // shift data in OTP shift registers
 )
 
+// MADCTL arguments
+const (
+	BGR = 1 << 3 // BGR color order
+	LAO = 1 << 4 // line address order (bottom to top)
+	V   = 1 << 5 // vertical RAM write; in Y direction
+	MX  = 1 << 6 // mirror X
+	MY  = 1 << 7 // mirror Y
+)
+
 func StartWrite8(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
@@ -129,4 +138,23 @@ func StartRead16(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
 	xarg[3] = uint8(r.Max.Y)
 	dci.WriteBytes(xarg[:])
 	dci.Cmd(RAMRD)
+}
+
+func SetDir(dci tftdrv.DCI, parg, madctl *[1]byte, dir int) {
+	org := madctl[0]
+	if org&V != 0 {
+		dir = -dir
+	}
+	switch dir & 3 {
+	case 1:
+		madctl[0] = org ^ (V | MX)
+	case 2:
+		madctl[0] = org ^ (MX | MY)
+	case 3:
+		madctl[0] = org ^ (V | MY)
+	}
+	dci.Cmd(MADCTL)
+	dci.WriteBytes(madctl[:])
+	madctl[0] = org
+	dci.End()
 }

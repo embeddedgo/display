@@ -23,12 +23,13 @@ type Driver struct {
 	w, h  uint16
 	cfast uint16
 	cinfo byte
-	dir   byte
 	pf    PF
+	mv    byte
+	dir   [1]byte
 	parg  [1]byte
 	xarg  [4]byte
 	buf   [54 * 3]byte // must be multiple of two and three
-} // ont 32-bit MCU the size of this struct is 188 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
+} // ont 32-bit MCU the size of this struct is 189 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // New returns new Driver.
 func New(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *Driver {
@@ -51,10 +52,18 @@ func (d *Driver) Size() image.Point    { return image.Pt(int(d.w), int(d.h)) }
 // See ili9341.InitGFX for working example.
 func (d *Driver) Init(cmds []byte) {
 	initialize(d.dci, cmds)
-	d.dir = cmds[len(cmds)-1]
+	d.dir[0] = cmds[len(cmds)-1]
 }
 
-func (d *Driver) SetDir(dir int) {}
+func (d *Driver) SetDir(dir int) {
+	if d.c.SetDir != nil {
+		if mv := byte(dir & 1); mv != d.mv {
+			d.mv = mv
+			d.w, d.h = d.h, d.w
+		}
+		d.c.SetDir(d.dci, &d.parg, &d.dir, dir)
+	}
+}
 
 func (d *Driver) SetColor(c color.Color) {
 	var r, g, b uint32

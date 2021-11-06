@@ -77,12 +77,13 @@ type DriverOver struct {
 	r, g, b uint16
 	cfast   uint16
 	cinfo   byte
-	dir     byte
 	pf      PF
+	mv      byte
+	dir     [1]byte
 	parg    [1]byte
 	xarg    [4]byte
 	buf     [bufLen]byte
-} // ont 32-bit MCU the size of this struct is 253 B (bufLen=222), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
+} // ont 32-bit MCU the size of this struct is 255 B (bufLen=222), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
 func NewOver(dci RDCI, w, h uint16, pf PF, ctrl *Ctrl) *DriverOver {
@@ -105,10 +106,18 @@ func (d *DriverOver) Size() image.Point    { return image.Pt(int(d.w), int(d.h))
 // See ili9341.GFX, ili9486.MSP4022 as examples.
 func (d *DriverOver) Init(cmds []byte) {
 	initialize(d.dci, cmds)
-	d.dir = cmds[len(cmds)-1]
+	d.dir[0] = cmds[len(cmds)-1]
 }
 
-func (d *DriverOver) SetDir(dir int) {}
+func (d *DriverOver) SetDir(dir int) {
+	if d.c.SetDir != nil {
+		if mv := byte(dir & 1); mv != d.mv {
+			d.mv = mv
+			d.w, d.h = d.h, d.w
+		}
+		d.c.SetDir(d.dci, &d.parg, &d.dir, dir)
+	}
+}
 
 const alphaOpaque = 0xfb00
 

@@ -28,6 +28,19 @@ func NewOver(dci tftdrv.RDCI) *tftdrv.DriverOver {
 	return tftdrv.NewOver(dci, 320, 480, tftdrv.W18|tftdrv.R18, ctrlOver)
 }
 
+var (
+	ctrl = &tftdrv.Ctrl{
+		StartWrite: philips.StartWrite16,
+		SetDir:     philips.SetDir,
+	}
+
+	ctrlOver = &tftdrv.Ctrl{
+		StartWrite: philips.StartWrite16,
+		Read:       read,
+		SetDir:     philips.SetDir,
+	}
+)
+
 func read(dci tftdrv.RDCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
 	philips.StartRead16(dci, xarg, r)
 	dci.ReadBytes(buf)
@@ -45,13 +58,3 @@ func read(dci tftdrv.RDCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
 	//	for time.Now().Sub(t0) < 1500*time.Microsecond {}
 }
 
-var (
-	ctrl = &tftdrv.Ctrl{
-		StartWrite: philips.StartWrite16,
-	}
-
-	ctrlOver = &tftdrv.Ctrl{
-		StartWrite: philips.StartWrite16,
-		Read:       read,
-	}
-)

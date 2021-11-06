@@ -166,5 +166,5 @@ var IAW = []byte{
 	SLPOUT, 0,
 	5, 255, // wait 5 ms
 	DISPON, 0,
-	MADCTL, 1, 0, // default display orientation, must be the last one
+	MADCTL, 1, BGR, // default display orientation, must be the last one
 }

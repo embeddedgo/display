@@ -49,11 +49,13 @@ var (
 	ctrl = &tftdrv.Ctrl{
 		StartWrite: philips.StartWrite16,
 		SetPF:      setPF,
+		SetDir:     philips.SetDir,
 	}
 
 	ctrlOver = &tftdrv.Ctrl{
 		StartWrite: philips.StartWrite16,
 		Read:       read,
 		SetPF:      setPF,
+		SetDir:     philips.SetDir,
 	}
 )

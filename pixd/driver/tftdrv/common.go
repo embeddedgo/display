@@ -27,7 +27,7 @@ type Ctrl struct {
 	StartWrite func(dci DCI, xarg *[4]byte, r image.Rectangle)
 	Read       func(dci RDCI, xarg *[4]byte, r image.Rectangle, buf []byte)
 	SetPF      func(dci DCI, parg *[1]byte, size int)
-	SetDir     func(dci DCI, parg *[1]byte, def byte, dir int)
+	SetDir     func(dci DCI, parg, darg *[1]byte, dir int)
 }
 
 const (

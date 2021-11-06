@@ -83,8 +83,8 @@ func (a *Area) SetColor(c color.Color) {
 }
 
 // SetColorRGBA is equivalent of SetColor(color.RGBA{r, g, b, alpha}). Notice
-// that r, g, b must be alpha-premultiplied, they must be less than or equal to
-// alpha.
+// that r, g, b must be alpha-premultiplied, e.g. they must be less than or
+// equal to alpha.
 func (a *Area) SetColorRGBA(r, g, b, alpha uint8) {
 	a.color = color.RGBA{r, g, b, alpha}
 }
