@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package ili9486 provides driver to ILI9486 based displays.
+// Package st7789 provides driver to ST7789 based displays.
 //
 // The maximum SPI clock is 15 MHz for writing and 6.7 MHz for reading. In
 // practice the controller seems to work fine in both directions with 24 MHz SPI
@@ -13,4 +13,4 @@
 // The maximum speed of the 18/16/9/8-bit paraller interface is 15 MHz for
 // writing and 2.2 Mhz for reading. This corresponds to the maximum bandwidth of
 // 272 Mb/s and 40 Mb/s respectively (18-bit interface).
-package ili9486
+package st7789
