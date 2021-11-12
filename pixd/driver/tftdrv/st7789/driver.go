@@ -40,7 +40,7 @@ func setPF(dci tftdrv.DCI, parg *[1]byte, pixSize int) {
 	}
 	if parg[0] != pf {
 		parg[0] = pf
-		dci.Cmd(PIXSET)
+		dci.Cmd(COLMOD)
 		dci.WriteBytes(parg[:])
 	}
 }

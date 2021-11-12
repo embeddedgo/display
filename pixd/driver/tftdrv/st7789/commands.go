@@ -112,8 +112,6 @@ const (
 
 // GFX contains initialization commands taken from Adafruit GFX library.
 var GFX = []byte{
-	SWRESET, 0,
-	5, 255, // wait 5 ms
 	INVON, 0,
 	10, 255, // wait 10 ms
 	NORON, 0,
@@ -121,5 +119,5 @@ var GFX = []byte{
 	SLPOUT, 0,
 	5, 255, // wait 5 ms
 	DISPON, 0,
-	MADCTL, 1, BGR, // default display orientation, must be the last one
+	MADCTL, 1, 0, // default display orientation, must be the last one
 }
