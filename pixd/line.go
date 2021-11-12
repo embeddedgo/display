@@ -16,62 +16,50 @@ func absSign(x int) (abs, sign int) {
 	return
 }
 
-func line(a *Area, x0, y0, x1, y1 int) {
+func (a *Area) Line(p0, p1 image.Point) {
 	// based on Alois Zingl algorithm
-	dx, sx := absSign(x1 - x0)
-	dy, sy := absSign(y1 - y0)
+	dx, sx := absSign(p1.X - p0.X)
+	dy, sy := absSign(p1.Y - p0.Y)
 	dy = -dy
 	e := dx + dy
-	x := x0
-	y := y0
+	x := p0.X
+	y := p0.Y
+	var h, v bool
 	for {
 		e2 := 2 * e
-		h := e2 >= dy
-		v := e2 <= dx
+		h = e2 >= dy
+		v = e2 <= dx
 		if h {
-			if x == x1 {
-				break
-			}
 			if v {
-				if y != y0 {
-					vline(a, x, y0, y)
+				if y != p0.Y {
+					vline(a, x, p0.Y, y)
 				} else {
-					hline(a, x0, y, x)
+					hline(a, p0.X, y, x)
 				}
+			}
+			if x == p1.X {
+				break
 			}
 			e += dy
 			x += sx
 		}
 		if v {
-			if y == y1 {
+			if y == p1.Y {
 				break
 			}
 			e += dx
 			y += sy
 			if h {
-				y0 = y
-				x0 = x
+				p0.X = x
+				p0.Y = y
 			}
 		}
 	}
-	if y != y0 {
-		vline(a, x, y0, y)
-	} else {
-		hline(a, x0, y, x)
-	}
-}
-
-// Line connects the given points by drawing segments of straight line.
-func (a *Area) Line(points ...image.Point) {
-	if len(points) <= 1 {
-		if len(points) == 1 {
-			a.Pixel(points[0].X, points[0].Y)
+	if h != v {
+		if y != p0.Y {
+			vline(a, x, p0.Y, y)
+		} else {
+			hline(a, p0.X, y, x)
 		}
-		return
-	}
-	p0 := points[0]
-	for _, p1 := range points[1:] {
-		line(a, p0.X, p0.Y, p1.X, p1.Y)
-		p0 = p1
 	}
 }
