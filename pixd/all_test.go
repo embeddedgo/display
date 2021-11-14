@@ -200,3 +200,43 @@ func TestFont(t *testing.T) {
 	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())
 }
+
+func TestTriangle(t *testing.T) {
+	os.Mkdir(dir, 0755)
+
+	screen := image.NewNRGBA(image.Rect(0, 0, 400, 800))
+	disp := pixd.NewDisplay(imgdrv.New(screen))
+
+	a := disp.NewArea(disp.Bounds())
+	a.SetColorRGBA(0, 0, 0, 255)
+	a.Fill(a.Bounds())
+
+	p0 := image.Pt(100, 10)
+	p1 := image.Pt(380, 200)
+	p2 := image.Pt(10, 210)
+	a.SetColorRGBA(0, 100, 0, 255)
+	a.Triangle(p0, p1, p2, false)
+	a.SetColorRGBA(100, 0, 200, 255)
+	a.Triangle(p0, p1, p2, true)
+
+	p0 = image.Pt(100, 220)
+	p1 = image.Pt(380, 300)
+	p2 = image.Pt(10, 790)
+	a.SetColorRGBA(0, 100, 0, 255)
+	a.Triangle(p0, p1, p2, false)
+	a.SetColorRGBA(100, 0, 200, 255)
+	a.Triangle(p0, p1, p2, true)
+
+	p0 = image.Pt(390, 320)
+	p1 = image.Pt(300, 790)
+	p2 = image.Pt(100, 700)
+	a.SetColorRGBA(0, 100, 0, 255)
+	a.Triangle(p0, p1, p2, false)
+	a.SetColorRGBA(100, 0, 200, 255)
+	a.Triangle(p0, p1, p2, true)
+
+	f, err := os.OpenFile(filepath.Join(dir, "triangle.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, screen))
+	failErr(t, f.Close())
+}
