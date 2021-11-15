@@ -23,11 +23,11 @@ func New(dci tftdrv.DCI) *tftdrv.Driver {
 // interface. The returned driver fully supports the draw.Over operator but
 // requires reading pixel data from the frame memory. If the display has
 // write-only interface use New instead.
-func NewOver(dci tftdrv.RDCI) *tftdrv.DriverOver {
+func NewOver(dci tftdrv.DCI) *tftdrv.DriverOver {
 	return tftdrv.NewOver(dci, 240, 320, tftdrv.W16|tftdrv.W18|tftdrv.R18, ctrlOver)
 }
 
-func read(dci tftdrv.RDCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
+func read(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
 	philips.StartRead16(dci, xarg, r)
 	dci.ReadBytes(buf)
 	dci.End()

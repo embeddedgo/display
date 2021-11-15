@@ -12,6 +12,11 @@ type DCI interface {
 	// WriteBytes writes the len(p) bytes from p to the display controller.
 	WriteBytes(p []uint8)
 
+	// ReadBytes reads the len(p) bytes into p from the display controller.
+	// Some displays are write-only so the implementation designed exclusively
+	// for write-only displays can do nothing.
+	ReadBytes(p []byte)
+
 	// End ends the conversation with the display controller. The undelying
 	// shared communication interface can be used by another application until
 	// next command.
@@ -19,14 +24,6 @@ type DCI interface {
 
 	// Err returns the saved error and clears it if the clear is true.
 	Err(clear bool) error
-}
-
-// RDCI is a Display Controller Interface with a ReadBytes method.
-type RDCI interface {
-	DCI
-
-	// ReadBytes reads the len(p) bytes into p from the display controller.
-	ReadBytes(p []byte)
 }
 
 // StringWriter is an optional interface that may be implemented by DCI to
@@ -55,10 +52,8 @@ type WordNWriter interface {
 }
 
 /*
-	// WordsWriter is an optional interface that may be implemented by a DCI or
-	// RDCI to improve drawing pertformance in case of 16-bit pixel format.
-	//
-	// WriteWords writes the len(p) bytes from p to the display controller.
+	// WordsWriter is an optional interface that may be implemented by a DCI.
+	// WriteWords writes the len(p) words from p to the display controller.
 	type WordsWriter interface {
 		WriteWords(p []uint16)
 	}

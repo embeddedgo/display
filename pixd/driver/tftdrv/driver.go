@@ -13,10 +13,10 @@ import (
 // BUG: we assume that any controller supports 24-bit pixel data format
 
 // Driver implements pixd.Driver interface with a limited support for draw.Over
-// operation. It uses write-only DCI so the alpha blending is slow and reduced
-// to 1-bit resolution. Use DriverOver if the full-fledged Porter-Duff
-// composition is required and the display supports reading from its frame
-// memory.
+// operation. It is designed for write-only displays (doesn't use DCI.ReadBytes
+// method) so the alpha blending is slow and reduced to 1-bit resolution. Use
+// DriverOver if the full-fledged Porter-Duff composition is required and the
+// display supports reading from its frame memory.
 type Driver struct {
 	dci   DCI
 	c     *Ctrl

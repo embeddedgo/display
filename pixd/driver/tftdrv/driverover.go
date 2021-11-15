@@ -68,10 +68,11 @@ func bestBufSize(rsiz image.Point) image.Point {
 // BUG: we assume that any controller supports 24-bit pixel data format
 
 // DriverOver implements pixd.Driver interface with the full support for
-// draw.Over operator. It requires tftdrv.RDCI to read the frame memory content.
-// If the display has write-only interface use Driver instead.
+// draw.Over operator. The DCI must fully implement ReadBytes method to read the
+// frame memory content. If the display has write-only interface use Driver
+// instead.
 type DriverOver struct {
-	dci     RDCI
+	dci     DCI
 	c       *Ctrl
 	w, h    uint16
 	r, g, b uint16
@@ -86,7 +87,7 @@ type DriverOver struct {
 } // ont 32-bit MCU the size of this struct is 255 B (bufLen=222), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
-func NewOver(dci RDCI, w, h uint16, pf PF, ctrl *Ctrl) *DriverOver {
+func NewOver(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *DriverOver {
 	return &DriverOver{
 		dci: dci,
 		c:   ctrl,
