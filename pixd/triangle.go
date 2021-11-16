@@ -52,7 +52,7 @@ func fillTriangle(a *Area, top, left, right image.Point) {
 	lend := left.X
 	rend := right.X
 	for {
-		plx := lx
+		flx := lx
 		for {
 			le2 := 2 * le
 			if le2 >= ldy {
@@ -65,13 +65,13 @@ func fillTriangle(a *Area, top, left, right image.Point) {
 			if le2 <= ldx {
 				break
 			}
-			if lsx < 0 {
-				plx = lx
-			}
 		}
-		prx := rx
+		if lsx < 0 {
+			flx = lx
+		}
+
+		frx := rx
 		for {
-			prx = rx
 			re2 := 2 * re
 			if re2 >= rdy {
 				if rx == rend {
@@ -83,20 +83,50 @@ func fillTriangle(a *Area, top, left, right image.Point) {
 			if re2 <= rdx {
 				break
 			}
-			if rsx > 0 {
-				prx = rx
-			}
 		}
-		a.Fill(image.Rectangle{image.Pt(plx, y), image.Pt(prx+1, y+1)})
-		switch y {
-		case bottom:
-			return
-		case left.Y:
+		if rsx > 0 {
+			frx = rx
+		}
+
+		a.Fill(image.Rectangle{image.Pt(flx, y), image.Pt(frx+1, y+1)})
+		if y == left.Y {
+			if y == bottom {
+				break
+			}
 			ldx, lsx, ldy, le = dxsxdye(right, left)
 			lend = right.X
-		case right.Y:
+			for {
+				le2 := 2 * le
+				if le2 >= ldy {
+					if lx == lend {
+						break
+					}
+					le += ldy
+					lx += lsx
+				}
+				if le2 <= ldx {
+					break
+				}
+			}
+		} else if y == right.Y {
+			if y == bottom {
+				break
+			}
 			rdx, rsx, rdy, re = dxsxdye(left, right)
 			rend = left.X
+			for {
+				re2 := 2 * re
+				if re2 >= rdy {
+					if rx == rend {
+						break
+					}
+					re += rdy
+					rx += rsx
+				}
+				if re2 <= rdx {
+					break
+				}
+			}
 		}
 		le += ldx
 		re += rdx
