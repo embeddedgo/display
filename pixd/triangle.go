@@ -6,36 +6,8 @@ package pixd
 
 import "image"
 
-/*
 func (a *Area) Triangle(p0, p1, p2 image.Point, fill bool) {
-	// Order the points as top, left, right.
-	if p0.Y > p1.Y {
-		p0, p1 = p1, p0
-	}
-	if p0.Y > p2.Y {
-		p0, p2 = p2, p0
-	}
-	if p1.X > p2.X {
-		p1, p2 = p2, p1
-	}
-	if fill {
-		fillTriangle(a, p0, p1, p2)
-	} else {
-		// The same drawing direction is required for filed and empty triangle
-		// to ensure equal edges.
-		a.Line(p0, p1)
-		a.Line(p0, p2)
-		if p1.Y > p2.Y {
-			p1, p2 = p2, p1
-		}
-		a.Line(p1, p2)
-		return
-	}
-}
-*/
-
-func (a *Area) Triangle(p0, p1, p2 image.Point, fill bool) {
-	// order the vertices by Y to determine the triangle height
+	// order the vertices by Y to determine the height of triangle
 	if p0.Y > p2.Y {
 		p0, p2 = p2, p0
 	}
@@ -45,7 +17,7 @@ func (a *Area) Triangle(p0, p1, p2 image.Point, fill bool) {
 		p1, p2 = p2, p1
 	}
 	height := p2.Y - p0.Y
-	// order the vertices by X to determine the triangle width
+	// order the vertices by X to determine the width of triangle
 	q0, q1, q2 := p0, p1, p2
 	if q0.X > q2.X {
 		q0, q2 = q2, q0
@@ -60,21 +32,21 @@ func (a *Area) Triangle(p0, p1, p2 image.Point, fill bool) {
 	rot := width < height
 	if rot {
 		p0, p1, p2 = q0, q1, q2
-		// order the vertices as left-top-bottom
-		if p1.Y > q2.Y {
-			p1, p2 = p2, p1
-		}
-	} else {
-		// order the vertices as top-left-right
-		if p1.X > p2.X {
-			p1, p2 = p2, p1
-		}
+	}
+	// order the vertices as left-top-bottom / top-left-right
+	q1, q2 = p1.Sub(p0), p2.Sub(p0)
+	z := q1.X*q2.Y - q1.Y*q2.X
+	if rot {
+		z = -z
+	}
+	if z > 0 {
+		p1, p2 = p2, p1
 	}
 	if fill {
 		fillTriangle(a, p0, p1, p2, rot)
 	} else {
-		// ensure the same drawing direction for filed and empty triangle
-		// for same edges (Bresenham / Zingl lines are not symetrical)
+		// ensure the same drawing direction for filed and empty triangle to
+		// obtain the  same edges (Bresenham / Zingl lines are not symetrical)
 		a.Line(p0, p1)
 		a.Line(p0, p2)
 		if rot {
@@ -97,10 +69,11 @@ func dxsxdye(p, top image.Point) (dx, sx, dy, e int) {
 	return
 }
 
-// nextX returns x for the point of a line where y changes to y+1
-func nextX(x, dx, sx, end, dy, e int) (nx, ne int) {
+// nextX returns x for the point on the line where y changes to y+1
+func nextX(x, dx, sx, end, dy, e int) (nx, px, ne int) {
 	// based on Alois Zingl line drawing algorithm
 	for {
+		px = x
 		e2 := 2 * e
 		if e2 >= dy {
 			if x == end {
@@ -113,7 +86,7 @@ func nextX(x, dx, sx, end, dy, e int) (nx, ne int) {
 			break
 		}
 	}
-	return x, e
+	return x, px, e
 }
 
 // If rot is false fillTriangle fills the triangle described by top, left,
@@ -138,27 +111,21 @@ func fillTriangle(a *Area, top, left, right image.Point, rot bool) {
 	lend := left.X
 	rend := right.X
 	for {
+		var px int
 		flx := lx
-		lx, le = nextX(lx, ldx, lsx, lend, ldy, le)
+		lx, px, le = nextX(lx, ldx, lsx, lend, ldy, le)
 		if lsx < 0 {
-			flx = lx
+			flx = px
 		}
 		frx := rx
-		rx, re = nextX(rx, rdx, rsx, rend, rdy, re)
+		rx, px, re = nextX(rx, rdx, rsx, rend, rdy, re)
 		if rsx > 0 {
-			frx = rx
+			frx = px
 		}
-		var r image.Rectangle
+		r := image.Rectangle{image.Pt(flx, y),  image.Pt(frx+1, y+1)}
 		if rot {
-			r.Min.X = y
-			r.Max.X = y + 1
-			r.Min.Y = flx
-			r.Max.Y = frx + 1
-		} else {
-			r.Min.X = flx
-			r.Max.X = frx + 1
-			r.Min.Y = y
-			r.Max.Y = y + 1
+			r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+			r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
 		}
 		a.Fill(r)
 		if y == left.Y {
@@ -167,14 +134,14 @@ func fillTriangle(a *Area, top, left, right image.Point, rot bool) {
 			}
 			ldx, lsx, ldy, le = dxsxdye(right, left)
 			lend = right.X
-			lx, le = nextX(lx, ldx, lsx, lend, ldy, le)
+			lx, _, le = nextX(lx, ldx, lsx, lend, ldy, le)
 		} else if y == right.Y {
 			if y == bottom {
 				break
 			}
 			rdx, rsx, rdy, re = dxsxdye(left, right)
 			rend = left.X
-			rx, re = nextX(rx, rdx, rsx, rend, rdy, re)
+			rx, _, re = nextX(rx, rdx, rsx, rend, rdy, re)
 		}
 		le += ldx
 		re += rdx
@@ -214,9 +181,9 @@ func fillTriangle(a *Area, top, left, right image.Point, rot bool) {
 			if le2 <= ldx {
 				break
 			}
-		}
-		if lsx < 0 {
-			flx = lx
+			if lsx < 0 {
+				flx = lx
+			}
 		}
 		frx := rx
 		for {
@@ -231,21 +198,14 @@ func fillTriangle(a *Area, top, left, right image.Point, rot bool) {
 			if re2 <= rdx {
 				break
 			}
+			if rsx > 0 {
+				frx = rx
+			}
 		}
-		if rsx > 0 {
-			frx = rx
-		}
-		var r image.Rectangle
+		r := image.Rectangle{image.Pt(flx, y),  image.Pt(frx+1, y+1)}
 		if rot {
-			r.Min.X = y
-			r.Max.X = y + 1
-			r.Min.Y = flx
-			r.Max.Y = frx + 1
-		} else {
-			r.Min.X = flx
-			r.Max.X = frx + 1
-			r.Min.Y = y
-			r.Max.Y = y + 1
+			r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+			r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
 		}
 		a.Fill(r)
 		if y == left.Y {
