@@ -43,7 +43,62 @@ func (a *Area) Triangle(p0, p1, p2 image.Point, fill bool) {
 		p1, p2 = p2, p1
 	}
 	if fill {
-		fillTriangle(a, p0, p1, p2, rot)
+		// Read the code below as if it was always drawing horizontal lines
+		// (flx,y)-(frx,y), line by line, from top (p0) to bottom. If rot is
+		// true the actual drawing is from left to right, using vertical lines.
+		if rot {
+			p0.X, p0.Y = p0.Y, p0.X
+			p1.X, p1.Y = p1.Y, p1.X
+			p2.X, p2.Y = p2.Y, p2.X
+		}
+		ldx, lsx, ldy, le := dxsxdye(p1, p0)
+		lx := p0.X
+		rdx, rsx, rdy, re := dxsxdye(p2, p0)
+		rx := p0.X
+		y := p0.Y
+		bottom := p1.Y
+		if bottom < p2.Y {
+			bottom = p2.Y
+		}
+		lend := p1.X
+		rend := p2.X
+		for {
+			var px int
+			flx := lx
+			lx, px, le = nextX(lx, ldx, lsx, lend, ldy, le)
+			if lsx < 0 {
+				flx = px
+			}
+			frx := rx
+			rx, px, re = nextX(rx, rdx, rsx, rend, rdy, re)
+			if rsx > 0 {
+				frx = px
+			}
+			r := image.Rectangle{image.Pt(flx, y), image.Pt(frx+1, y+1)}
+			if rot {
+				r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+				r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
+			}
+			a.Fill(r)
+			if y == p1.Y {
+				if y == bottom {
+					break
+				}
+				ldx, lsx, ldy, le = dxsxdye(p2, p1)
+				lend = p2.X
+				lx, _, le = nextX(lx, ldx, lsx, lend, ldy, le)
+			} else if y == p2.Y {
+				if y == bottom {
+					break
+				}
+				rdx, rsx, rdy, re = dxsxdye(p1, p2)
+				rend = p1.X
+				rx, _, re = nextX(rx, rdx, rsx, rend, rdy, re)
+			}
+			le += ldx
+			re += rdx
+			y++
+		}
 	} else {
 		// ensure the same drawing direction for filed and empty triangle to
 		// obtain the  same edges (Bresenham / Zingl lines are not symetrical)
@@ -88,168 +143,3 @@ func nextX(x, dx, sx, end, dy, e int) (nx, px, ne int) {
 	}
 	return x, px, e
 }
-
-// If rot is false fillTriangle fills the triangle described by top, left,
-// right vertices drawing horizontal lines from top to bottom. If rot is true
-// it fills the triangle drawing vertical lines from left to right. In this
-// case top vertex is left one, left is top, right is bottom.
-func fillTriangle(a *Area, top, left, right image.Point, rot bool) {
-	if rot {
-		top.X, top.Y = top.Y, top.X
-		left.X, left.Y = left.Y, left.X
-		right.X, right.Y = right.Y, right.X
-	}
-	ldx, lsx, ldy, le := dxsxdye(left, top)
-	lx := top.X
-	rdx, rsx, rdy, re := dxsxdye(right, top)
-	rx := top.X
-	y := top.Y
-	bottom := left.Y
-	if bottom < right.Y {
-		bottom = right.Y
-	}
-	lend := left.X
-	rend := right.X
-	for {
-		var px int
-		flx := lx
-		lx, px, le = nextX(lx, ldx, lsx, lend, ldy, le)
-		if lsx < 0 {
-			flx = px
-		}
-		frx := rx
-		rx, px, re = nextX(rx, rdx, rsx, rend, rdy, re)
-		if rsx > 0 {
-			frx = px
-		}
-		r := image.Rectangle{image.Pt(flx, y),  image.Pt(frx+1, y+1)}
-		if rot {
-			r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
-			r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
-		}
-		a.Fill(r)
-		if y == left.Y {
-			if y == bottom {
-				break
-			}
-			ldx, lsx, ldy, le = dxsxdye(right, left)
-			lend = right.X
-			lx, _, le = nextX(lx, ldx, lsx, lend, ldy, le)
-		} else if y == right.Y {
-			if y == bottom {
-				break
-			}
-			rdx, rsx, rdy, re = dxsxdye(left, right)
-			rend = left.X
-			rx, _, re = nextX(rx, rdx, rsx, rend, rdy, re)
-		}
-		le += ldx
-		re += rdx
-		y++
-	}
-}
-
-/*
-func fillTriangle(a *Area, top, left, right image.Point, rot bool) {
-	if rot {
-		top.X, top.Y = top.Y, top.X
-		left.X, left.Y = left.Y, left.X
-		right.X, right.Y = right.Y, right.X
-	}
-	ldx, lsx, ldy, le := dxsxdye(left, top)
-	lx := top.X
-	rdx, rsx, rdy, re := dxsxdye(right, top)
-	rx := top.X
-	y := top.Y
-	bottom := left.Y
-	if bottom < right.Y {
-		bottom = right.Y
-	}
-	lend := left.X
-	rend := right.X
-	for {
-		flx := lx
-		for {
-			le2 := 2 * le
-			if le2 >= ldy {
-				if lx == lend {
-					break
-				}
-				le += ldy
-				lx += lsx
-			}
-			if le2 <= ldx {
-				break
-			}
-			if lsx < 0 {
-				flx = lx
-			}
-		}
-		frx := rx
-		for {
-			re2 := 2 * re
-			if re2 >= rdy {
-				if rx == rend {
-					break
-				}
-				re += rdy
-				rx += rsx
-			}
-			if re2 <= rdx {
-				break
-			}
-			if rsx > 0 {
-				frx = rx
-			}
-		}
-		r := image.Rectangle{image.Pt(flx, y),  image.Pt(frx+1, y+1)}
-		if rot {
-			r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
-			r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
-		}
-		a.Fill(r)
-		if y == left.Y {
-			if y == bottom {
-				break
-			}
-			ldx, lsx, ldy, le = dxsxdye(right, left)
-			lend = right.X
-			for {
-				le2 := 2 * le
-				if le2 >= ldy {
-					if lx == lend {
-						break
-					}
-					le += ldy
-					lx += lsx
-				}
-				if le2 <= ldx {
-					break
-				}
-			}
-		} else if y == right.Y {
-			if y == bottom {
-				break
-			}
-			rdx, rsx, rdy, re = dxsxdye(left, right)
-			rend = left.X
-			for {
-				re2 := 2 * re
-				if re2 >= rdy {
-					if rx == rend {
-						break
-					}
-					re += rdy
-					rx += rsx
-				}
-				if re2 <= rdx {
-					break
-				}
-			}
-		}
-		le += ldx
-		re += rdx
-		y++
-	}
-}
-*/
