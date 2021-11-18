@@ -44,7 +44,6 @@ func New(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *Driver {
 
 func (d *Driver) Err(clear bool) error { return d.dci.Err(clear) }
 func (d *Driver) Flush()               {}
-func (d *Driver) Size() image.Point    { return image.Pt(int(d.w), int(d.h)) }
 
 // Init initializes the display using provided initialization commands. The
 // initialization commands depends on the LCD pannel. The command that sets
@@ -55,7 +54,7 @@ func (d *Driver) Init(cmds []byte) {
 	d.dir[0] = cmds[len(cmds)-1]
 }
 
-func (d *Driver) SetDir(dir int) {
+func (d *Driver) SetDir(dir int) image.Point {
 	if d.c.SetDir != nil {
 		if mv := byte(dir & 1); mv != d.mv {
 			d.mv = mv
@@ -63,6 +62,7 @@ func (d *Driver) SetDir(dir int) {
 		}
 		d.c.SetDir(d.dci, &d.parg, &d.dir, dir)
 	}
+	return image.Pt(int(d.w), int(d.h))
 }
 
 func (d *Driver) SetColor(c color.Color) {

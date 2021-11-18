@@ -21,7 +21,7 @@ import (
 	"github.com/embeddedgo/display/pixd/font/font9/vga"
 )
 
-var dir = filepath.Join(os.TempDir(), "pix_test")
+var dir = filepath.Join(os.TempDir(), "pixd_test")
 
 func failErr(t *testing.T, err error) {
 	if err != nil {

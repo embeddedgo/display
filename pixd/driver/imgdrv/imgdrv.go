@@ -21,7 +21,7 @@ func New(img draw.Image) *Driver {
 	return &Driver{img: img}
 }
 
-func (d *Driver) Size() image.Point {
+func (d *Driver) SetDir(dir int) image.Point {
 	return d.img.Bounds().Size()
 }
 
@@ -38,6 +38,5 @@ func (d *Driver) Fill(r image.Rectangle) {
 	d.Draw(r, &d.fill, image.Point{}, nil, image.Point{}, draw.Over)
 }
 
-func (d *Driver) SetDir(dir int)       {}
 func (d *Driver) Flush()               {}
 func (d *Driver) Err(clear bool) error { return nil }

@@ -12,13 +12,11 @@ import (
 
 // Driver lists the operations expected from a display driver.
 type Driver interface {
-	// Size returns the display dimensions.
-	Size() image.Point
-
-	// SetDir sets the display direction by rotate its default coordinate system
-	// by dir*90 degrees. The positive number means clockwise rotation, the
-	// negative one means counterclockwise rotation.
-	SetDir(dir int)
+	// SetDir sets the display direction rotating its default coordinate system
+	// by dir*90 degrees. It returns the framebuffer dimensions for the new
+	// direction. NewDisplay calls SetDir(0) before any other Driver method is
+	// called so this is a good place for initialization code if required. .
+	SetDir(dir int) image.Point
 
 	// Draw works like draw.DrawMask with dst set to the image representing the
 	// whole display.

@@ -42,15 +42,15 @@ func NewArea(r image.Rectangle, displays ...*Display) *Area {
 }
 
 func (a *Area) Rect() image.Rectangle {
-	return a.bounds.Add(a.ad.tr).Add(a.ad.disp.origin)
+	return a.bounds.Add(a.ad.tr).Add(a.ad.disp.bounds.Min)
 }
 
 // SetRect chandges the rectangle covered by the area.
 func (a *Area) SetRect(r image.Rectangle) {
 	a.bounds = image.Rectangle{a.bounds.Min, a.bounds.Min.Add(r.Size())}
 	for ad := &a.ad; ad != nil; ad = ad.link {
-		ad.tr = r.Min.Sub(ad.disp.origin).Sub(a.bounds.Min)
-		ad.visible = r.Intersect(ad.disp.Bounds()).Sub(ad.disp.origin)
+		ad.tr = r.Min.Sub(ad.disp.bounds.Min).Sub(a.bounds.Min)
+		ad.visible = r.Intersect(ad.disp.bounds).Sub(ad.disp.bounds.Min)
 	}
 }
 
