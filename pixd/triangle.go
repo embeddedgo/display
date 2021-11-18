@@ -35,7 +35,7 @@ func (a *Area) Triangle(p0, p1, p2 image.Point, fill bool) {
 	}
 	// order the vertices as left-top-bottom / top-left-right
 	q1, q2 = p1.Sub(p0), p2.Sub(p0)
-	z := q1.X*q2.Y - q1.Y*q2.X
+	z := q1.X*q2.Y - q1.Y*q2.X // BUG: a huge triangle can overflow 32-bit int
 	if rot {
 		z = -z
 	}

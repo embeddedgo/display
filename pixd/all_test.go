@@ -60,13 +60,13 @@ func TestDrawGeom(t *testing.T) {
 	for r := 0; r < 19; r++ {
 		y := 3 + (r+2)*r
 		a.SetColorRGBA(0, 100, 200, 255)
-		a.Ellipse(image.Pt(x, y), r, r, true)
-		a.Ellipse(image.Pt(xl, y), r, r/2, true)
-		a.Ellipse(image.Pt(xr, y), r/2, r, true)
+		a.RoundRect(image.Pt(x, y), image.Pt(x, y), r, r, true)
+		a.RoundRect(image.Pt(xl, y), image.Pt(xl, y), r, r/2, true)
+		a.RoundRect(image.Pt(xr, y), image.Pt(xr, y), r/2, r, true)
 		a.SetColorRGBA(100, 50, 0, 255)
-		a.Ellipse(image.Pt(x, y), r, r, false)
-		a.Ellipse(image.Pt(xl, y), r, r/2, false)
-		a.Ellipse(image.Pt(xr, y), r/2, r, false)
+		a.RoundRect(image.Pt(x, y), image.Pt(x, y), r, r, false)
+		a.RoundRect(image.Pt(xl, y), image.Pt(xl, y), r, r/2, false)
+		a.RoundRect(image.Pt(xr, y), image.Pt(xr, y), r/2, r, false)
 	}
 
 	a.SetColorRGBA(250, 100, 0, 255)
@@ -154,7 +154,7 @@ var (
 	}
 )
 
-const AkermanianSteppes = `
+const AkermanianSteppesPL = `
 Wpłynąłem na suchego przestwór oceanu,
 Wóz nurza się w zieloność i jak łódka brodzi,
 Śród fali łąk szumiących, śród kwiatów powodzi,
@@ -174,10 +174,33 @@ W takiej ciszy - tak ucho natężam ciekawie,
 Że słyszałbym głos z Litwy. - Jedźmy, nikt nie woła.
 `
 
+const AkermanianSteppesEN = `
+The Akkerman Steppes Original Polish (above) by Adam Mickiewicz
+(1798-1855) translated to English by Leo Yankevich (below).
+
+I launch myself across the dry and open narrows,
+My carriage plunging into green as if a ketch,
+Floundering through the meadow flowers in the stretch.
+I pass an archipelago of coral yarrows.
+
+It's dusk now, not a road in sight, nor ancient barrows.
+I look up at the sky and look for stars to catch.
+There distant clouds glint-there tomorrow starts to etch;
+The Dnieper glimmers; Akkerman's lamp shines and harrows.
+
+I stand in stillness, hear the migratory cranes,
+Their necks and wings beyond the reach of preying hawks;
+Hear where the sooty copper glides across the plains,
+
+Where on its underside a viper writhes through stalks.
+Amid the hush I lean my ears down grassy lanes
+And listen for a voice from home. Nobody talks.
+`
+
 func TestFont(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 440, 780))
+	screen := image.NewNRGBA(image.Rect(0, 0, 440, 810))
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
@@ -187,13 +210,13 @@ func TestFont(t *testing.T) {
 	a.SetColorRGBA(0, 0, 100, 255)
 
 	w := a.NewTextWriter(Dejavu12)
-	w.WriteString(AkermanianSteppes)
+	w.WriteString(AkermanianSteppesPL)
 
 	w.Face = AnonPro11
-	w.WriteString(AkermanianSteppes)
+	w.WriteString(AkermanianSteppesEN)
 
 	w.Face = VGA
-	w.WriteString(AkermanianSteppes)
+	w.WriteString(AkermanianSteppesPL)
 
 	f, err := os.OpenFile(filepath.Join(dir, "font.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
@@ -201,7 +224,7 @@ func TestFont(t *testing.T) {
 	failErr(t, f.Close())
 }
 
-func TestTriangle(t *testing.T) {
+func TestRectTriangle(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
 	screen := image.NewNRGBA(image.Rect(0, 0, 400, 800))
@@ -211,29 +234,57 @@ func TestTriangle(t *testing.T) {
 	a.SetColorRGBA(0, 0, 0, 255)
 	a.Fill(a.Bounds())
 
-	p0 := image.Pt(100, 10)
-	p1 := image.Pt(380, 200)
-	p2 := image.Pt(10, 210)
-	a.SetColorRGBA(255, 0, 0, 255)
-	a.Triangle(p0, p1, p2, true)
-	a.SetColorRGBA(0, 192, 0, 192)
-	a.Triangle(p0, p1, p2, false)
+	triangles := [][3]image.Point{
+		{{10, 10}, {300, 8}, {390, 10}},
+		{{10, 20}, {300, 19}, {390, 20}},
+		{{10, 30}, {300, 30}, {390, 30}},
 
-	p0 = image.Pt(100, 220)
-	p1 = image.Pt(380, 300)
-	p2 = image.Pt(10, 790)
-	a.SetColorRGBA(255, 0, 0, 255)
-	a.Triangle(p0, p1, p2, true)
-	a.SetColorRGBA(0, 192, 0, 192)
-	a.Triangle(p0, p1, p2, false)
+		{{150, 40}, {250, 120}, {350, 200}},
+		{{160, 40}, {240, 80}, {320, 120}},
 
-	p0 = image.Pt(390, 320)
-	p1 = image.Pt(300, 790)
-	p2 = image.Pt(100, 700)
-	a.SetColorRGBA(255, 0, 0, 255)
-	a.Triangle(p0, p1, p2, true)
-	a.SetColorRGBA(0, 192, 0, 192)
-	a.Triangle(p0, p1, p2, false)
+		{{190, 40}, {190, 40}, {190, 40}},
+		{{200, 40}, {202, 41}, {201, 42}},
+		{{210, 40}, {212, 40}, {211, 41}},
+
+		{{10, 600}, {200, 600}, {390, 600}},
+		{{10, 610}, {200, 611}, {390, 610}},
+		{{10, 620}, {200, 622}, {390, 620}},
+		{{10, 630}, {200, 633}, {390, 630}},
+		{{10, 640}, {200, 644}, {390, 640}},
+		{{10, 650}, {200, 655}, {390, 650}},
+		{{10, 660}, {200, 666}, {390, 660}},
+		{{10, 670}, {200, 677}, {390, 670}},
+		{{10, 680}, {200, 688}, {390, 680}},
+		{{10, 690}, {200, 699}, {390, 690}},
+	}
+
+	for _, tr := range triangles {
+		a.SetColorRGBA(255, 0, 0, 255)
+		a.Triangle(tr[0], tr[1], tr[2], true)
+	}
+
+	triangles = [][3]image.Point{
+		{{100, 40}, {380, 240}, {10, 250}},
+		{{100, 260}, {380, 310}, {10, 590}},
+		{{390, 320}, {300, 590}, {80, 590}},
+	}
+
+	for _, tr := range triangles {
+		a.SetColorRGBA(255, 0, 0, 255)
+		a.Triangle(tr[0], tr[1], tr[2], true)
+		a.SetColorRGBA(0, 192, 0, 192)
+		a.Triangle(tr[0], tr[1], tr[2], false)
+	}
+
+	a.SetColorRGBA(0, 0, 128, 128)
+	a.RoundRect(image.Pt(200, 100), image.Pt(300, 400), 30, 40, true)
+	a.SetColorRGBA(0, 128, 0, 128)
+	a.RoundRect(image.Pt(200, 100), image.Pt(300, 400), 30, 40, false)
+
+	a.SetColorRGBA(0, 0, 128, 128)
+	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 20, 20, true)
+	a.SetColorRGBA(0, 128, 0, 128)
+	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 20, 20, false)
 
 	f, err := os.OpenFile(filepath.Join(dir, "triangle.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
