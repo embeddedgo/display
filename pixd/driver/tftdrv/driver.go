@@ -54,7 +54,7 @@ func (d *Driver) Init(cmds []byte) {
 	d.dir[0] = cmds[len(cmds)-1]
 }
 
-func (d *Driver) SetDir(dir int) image.Point {
+func (d *Driver) SetDir(dir int) image.Rectangle {
 	if d.c.SetDir != nil {
 		if mv := byte(dir & 1); mv != d.mv {
 			d.mv = mv
@@ -62,7 +62,7 @@ func (d *Driver) SetDir(dir int) image.Point {
 		}
 		d.c.SetDir(d.dci, &d.parg, &d.dir, dir)
 	}
-	return image.Pt(int(d.w), int(d.h))
+	return image.Rectangle{Max: image.Pt(int(d.w), int(d.h))}
 }
 
 func (d *Driver) SetColor(c color.Color) {

@@ -12,15 +12,18 @@ import (
 // Display represents a pixmap based display.
 type Display struct {
 	drv       Driver
-	lastColor color.Color
+	drvBounds image.Rectangle
+	tr        image.Point // translation to the driver coordinates
 	bounds    image.Rectangle
+	lastColor color.Color
 }
 
 // NewDisplay returns a new itialized display.
 func NewDisplay(drv Driver) *Display {
 	d := new(Display)
 	d.drv = drv
-	d.bounds.Max = drv.SetDir(0)
+	d.drvBounds = drv.SetDir(0)
+	d.bounds = d.drvBounds
 	return d
 }
 
@@ -42,6 +45,19 @@ func (d *Display) Err(clear bool) error {
 	return d.drv.Err(clear)
 }
 
+// Rect returns the rectangle set by SetRect.
+func (d *Display) Rect() image.Rectangle {
+	return d.bounds.Add(d.tr)
+}
+
+// SetRect sets the rectangle covered by the display in the frame memory
+// provided the driver. The r may exceed the dimensions of the frame memory,
+// only the intersection will be used for drawing.
+func (d *Display) SetRect(r image.Rectangle) {
+	d.tr = r.Min.Sub(d.bounds.Min)
+	d.bounds.Max = d.bounds.Min.Add(r.Size())
+}
+
 // Bounds returns the bounds of the display
 func (d *Display) Bounds() image.Rectangle {
 	return d.bounds
@@ -51,6 +67,7 @@ func (d *Display) Bounds() image.Rectangle {
 // translates internal coordinate system of the display in a way that the
 // d.Bounds().Min = origin.
 func (d *Display) SetOrigin(origin image.Point) {
+	d.tr = d.tr.Add(d.bounds.Min).Sub(origin)
 	d.bounds.Max = origin.Add(d.bounds.Size())
 	d.bounds.Min = origin
 }
@@ -59,11 +76,11 @@ func (d *Display) SetOrigin(origin image.Point) {
 // by dir*90 degrees. The positive number means clockwise rotation, the
 // negative one means counterclockwise rotation.
 //
-// After SetDir the coordinates of all areas that use this display should be
+// After SetDir the coordinates of all areas that use this display must be
 // re-set (usng SetRect method) and their content should be redrawn. Use
 // a.SetRect(a.Rect()) if the coordinates should remain the same.
 func (d *Display) SetDir(dir int) {
-	d.bounds.Max = d.bounds.Min.Add(d.drv.SetDir(dir))
+	d.drvBounds = d.drv.SetDir(dir)
 }
 
 // NewArea provides a convenient way to create a drawing area on the display.

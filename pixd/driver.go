@@ -10,16 +10,16 @@ import (
 	"image/draw"
 )
 
-// Driver lists the operations expected from a display driver.
+// Driver lists the operations expected from a display controller driver.
 type Driver interface {
 	// SetDir sets the display direction rotating its default coordinate system
-	// by dir*90 degrees. It returns the framebuffer dimensions for the new
+	// by dir*90 degrees. It returns the bounds of the frame memory for the new
 	// direction. NewDisplay calls SetDir(0) before any other Driver method is
-	// called so this is a good place for initialization code if required. .
-	SetDir(dir int) image.Point
+	// called so this is a good place for initialization code if required.
+	SetDir(dir int) image.Rectangle
 
 	// Draw works like draw.DrawMask with dst set to the image representing the
-	// whole display.
+	// whole frame memory.
 	//
 	// The draw.Over operator can be implemented in a limited way but it must
 	// at least support 1-bit transparency.
@@ -46,8 +46,8 @@ type Driver interface {
 	Fill(r image.Rectangle)
 
 	// Flush allows to flush the drivers internal buffers. Drivers are allowed
-	// to implement any kind of buffering if the direct drawing to the display
-	// is problematic or inefficient.
+	// to implement any kind of buffering if the direct drawing to the frame
+	// memory is problematic or inefficient.
 	Flush()
 
 	// Err returns the saved error and clears it if the clear is true. If an

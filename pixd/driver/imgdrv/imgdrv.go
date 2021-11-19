@@ -21,12 +21,12 @@ func New(img draw.Image) *Driver {
 	return &Driver{img: img}
 }
 
-func (d *Driver) SetDir(dir int) image.Point {
-	return d.img.Bounds().Size()
+func (d *Driver) SetDir(dir int) image.Rectangle {
+	return d.img.Bounds()
 }
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	draw.DrawMask(d.img, r.Add(d.img.Bounds().Min), src, sp, mask, mp, op)
+	draw.DrawMask(d.img, r, src, sp, mask, mp, op)
 }
 
 func (d *Driver) SetColor(c color.Color) {

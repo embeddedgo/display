@@ -41,16 +41,19 @@ func NewArea(r image.Rectangle, displays ...*Display) *Area {
 	return a
 }
 
+// Rect returns the rectangle set by SetRect.
 func (a *Area) Rect() image.Rectangle {
-	return a.bounds.Add(a.ad.tr).Add(a.ad.disp.bounds.Min)
+	tr := a.ad.tr.Sub(a.ad.disp.tr) // translation to the display coordinates
+	return a.bounds.Add(tr)
 }
 
-// SetRect chandges the rectangle covered by the area.
+// SetRect sets the rectangle covered by the area on the displays.
 func (a *Area) SetRect(r image.Rectangle) {
-	a.bounds = image.Rectangle{a.bounds.Min, a.bounds.Min.Add(r.Size())}
+	tr := r.Min.Sub(a.bounds.Min)
+	a.bounds.Max = a.bounds.Min.Add(r.Size())
 	for ad := &a.ad; ad != nil; ad = ad.link {
-		ad.tr = r.Min.Sub(ad.disp.bounds.Min).Sub(a.bounds.Min)
-		ad.visible = r.Intersect(ad.disp.bounds).Sub(ad.disp.bounds.Min)
+		ad.tr = tr.Add(ad.disp.tr)
+		ad.visible = r.Add(ad.disp.tr).Intersect(ad.disp.drvBounds)
 	}
 }
 
@@ -63,10 +66,11 @@ func (a *Area) Bounds() image.Rectangle {
 // not affect the rectangle covered by the area but translates the area own
 // coordinate system in a way that the a.Bounds().Min = origin.
 func (a *Area) SetOrigin(origin image.Point) {
-	delta := origin.Sub(a.bounds.Min)
-	a.bounds = image.Rectangle{origin, origin.Add(a.bounds.Size())}
+	delta := a.bounds.Min.Sub(origin)
+	a.bounds.Max = origin.Add(a.bounds.Size())
+	a.bounds.Min = origin
 	for ad := &a.ad; ad != nil; ad = ad.link {
-		ad.tr = ad.tr.Sub(delta)
+		ad.tr = ad.tr.Add(delta)
 	}
 }
 
