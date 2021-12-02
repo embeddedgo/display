@@ -14,8 +14,13 @@ func (a *Area) Fill(r image.Rectangle) {
 	for ad := &a.ad; ad != nil; ad = ad.link {
 		tr := r.Add(ad.tr).Intersect(ad.visible)
 		if !tr.Empty() {
-			setColor(a, ad.disp)
-			ad.disp.drv.Fill(tr)
+			ad.disp.mt.Lock()
+			if ad.disp.lastColor != a.color {
+				ad.disp.lastColor = a.color
+				ad.disp.drv.SetColor(a.color)
+			}
+			ad.disp.drv.Fill(r)
+			ad.disp.mt.Unlock()
 		}
 	}
 }
@@ -75,6 +80,8 @@ func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, mask ima
 		if mask != nil {
 			tmp = mp.Add(delta)
 		}
+		ad.disp.mt.Lock()
 		ad.disp.drv.Draw(trt, src, tsp, mask, tmp, op)
+		ad.disp.mt.Unlock()
 	}
 }

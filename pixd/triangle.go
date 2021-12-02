@@ -6,8 +6,8 @@ package pixd
 
 import "image"
 
-func (a *Area) Triangle(p0, p1, p2 image.Point, fill bool) {
-	// order the vertices by Y to determine the height of triangle
+func (a *Area) Triangle1(p0, p1, p2 image.Point, fill bool) {
+	// order the vertices by Y to determine the height of the triangle
 	if p0.Y > p2.Y {
 		p0, p2 = p2, p0
 	}
@@ -17,7 +17,7 @@ func (a *Area) Triangle(p0, p1, p2 image.Point, fill bool) {
 		p1, p2 = p2, p1
 	}
 	height := p2.Y - p0.Y
-	// order the vertices by X to determine the width of triangle
+	// order the vertices by X to determine the width of the triangle
 	q0, q1, q2 := p0, p1, p2
 	if q0.X > q2.X {
 		q0, q2 = q2, q0

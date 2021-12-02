@@ -17,7 +17,8 @@ type areaDisplay struct {
 }
 
 // Area is the drawing area on the display. It has its own coordinates
-// independent of its position on the display.
+// independent of its position on the display. Only one goroutine can use an
+// area at the same time.
 type Area struct {
 	ad     areaDisplay
 	color  color.Color
@@ -43,7 +44,10 @@ func NewArea(r image.Rectangle, displays ...*Display) *Area {
 
 // Rect returns the rectangle set by SetRect.
 func (a *Area) Rect() image.Rectangle {
-	tr := a.ad.tr.Sub(a.ad.disp.tr) // translation to the display coordinates
+	a.ad.disp.mt.Lock()
+	dispTr := a.ad.disp.tr
+	a.ad.disp.mt.Unlock()
+	tr := a.ad.tr.Sub(dispTr) // translation to the display coordinates
 	return a.bounds.Add(tr)
 }
 
@@ -52,8 +56,18 @@ func (a *Area) SetRect(r image.Rectangle) {
 	tr := r.Min.Sub(a.bounds.Min)
 	a.bounds.Max = a.bounds.Min.Add(r.Size())
 	for ad := &a.ad; ad != nil; ad = ad.link {
-		ad.tr = tr.Add(ad.disp.tr)
-		ad.visible = r.Add(ad.disp.tr).Intersect(ad.disp.drvBounds)
+		ad.disp.mt.Lock()
+		dispTr := ad.disp.tr
+		drvBounds := ad.disp.drvBounds
+		ad.disp.mt.Unlock()
+		ad.tr = tr.Add(dispTr)
+		ad.visible = r.Add(dispTr).Intersect(drvBounds)
+	}
+}
+
+func (a *Area) Flush() {
+	for ad := &a.ad; ad != nil; ad = ad.link {
+		ad.disp.Flush()
 	}
 }
 
@@ -71,13 +85,6 @@ func (a *Area) SetOrigin(origin image.Point) {
 	a.bounds.Min = origin
 	for ad := &a.ad; ad != nil; ad = ad.link {
 		ad.tr = ad.tr.Add(delta)
-	}
-}
-
-func setColor(a *Area, d *Display) {
-	if d.lastColor != a.color {
-		d.lastColor = a.color
-		d.drv.SetColor(a.color)
 	}
 }
 

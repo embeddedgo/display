@@ -7,6 +7,7 @@ package pixd
 import (
 	"image"
 	"image/color"
+	"sync"
 )
 
 // Display represents a pixmap based display.
@@ -16,6 +17,7 @@ type Display struct {
 	tr        image.Point // translation to the driver coordinates
 	bounds    image.Rectangle
 	lastColor color.Color
+	mt        sync.Mutex
 }
 
 // NewDisplay returns a new itialized display.
@@ -37,12 +39,30 @@ func (d *Display) Driver() Driver {
 // display without any buffering. Even then it is worth using Flush for code
 // portability.
 func (d *Display) Flush() {
+	d.mt.Lock()
 	d.drv.Flush()
+	d.mt.Unlock()
+}
+
+// SetDir sets the display direction by rotate its default coordinate system
+// by dir*90 degrees. The positive number means clockwise rotation, the
+// negative one means counterclockwise rotation.
+//
+// After SetDir the coordinates of all areas that use this display must be
+// re-set (usng SetRect method) and their content should be redrawn. Use
+// a.SetRect(a.Rect()) if the coordinates should remain the same.
+func (d *Display) SetDir(dir int) {
+	d.mt.Lock()
+	d.drvBounds = d.drv.SetDir(dir)
+	d.mt.Unlock()
 }
 
 // Err returns the saved error and clears it if the clear is true.
 func (d *Display) Err(clear bool) error {
-	return d.drv.Err(clear)
+	d.mt.Lock()
+	err := d.drv.Err(clear)
+	d.mt.Unlock()
+	return err
 }
 
 // Rect returns the rectangle set by SetRect.
@@ -54,7 +74,9 @@ func (d *Display) Rect() image.Rectangle {
 // provided the driver. The r may exceed the dimensions of the frame memory,
 // only the intersection will be used for drawing.
 func (d *Display) SetRect(r image.Rectangle) {
+	d.mt.Lock()
 	d.tr = r.Min.Sub(d.bounds.Min)
+	d.mt.Unlock()
 	d.bounds.Max = d.bounds.Min.Add(r.Size())
 }
 
@@ -67,20 +89,11 @@ func (d *Display) Bounds() image.Rectangle {
 // translates internal coordinate system of the display in a way that the
 // d.Bounds().Min = origin.
 func (d *Display) SetOrigin(origin image.Point) {
+	d.mt.Lock()
 	d.tr = d.tr.Add(d.bounds.Min).Sub(origin)
+	d.mt.Unlock()
 	d.bounds.Max = origin.Add(d.bounds.Size())
 	d.bounds.Min = origin
-}
-
-// SetDir sets the display direction by rotate its default coordinate system
-// by dir*90 degrees. The positive number means clockwise rotation, the
-// negative one means counterclockwise rotation.
-//
-// After SetDir the coordinates of all areas that use this display must be
-// re-set (usng SetRect method) and their content should be redrawn. Use
-// a.SetRect(a.Rect()) if the coordinates should remain the same.
-func (d *Display) SetDir(dir int) {
-	d.drvBounds = d.drv.SetDir(dir)
 }
 
 // NewArea provides a convenient way to create a drawing area on the display.

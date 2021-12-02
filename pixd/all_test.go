@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/embeddedgo/display/math2d"
 	"github.com/embeddedgo/display/pixd"
 	"github.com/embeddedgo/display/pixd/driver/imgdrv"
 	"github.com/embeddedgo/display/pixd/font"
@@ -259,21 +260,23 @@ func TestRectTriangle(t *testing.T) {
 	}
 
 	for _, tr := range triangles {
-		a.SetColorRGBA(255, 0, 0, 255)
+		a.SetColorRGBA(0, 192, 0, 192)
 		a.Triangle(tr[0], tr[1], tr[2], true)
+		a.SetColorRGBA(192, 0, 0, 192)
+		a.FillTriangle(tr[0], tr[1], tr[2])
 	}
 
 	triangles = [][3]image.Point{
 		{{100, 40}, {380, 240}, {10, 250}},
 		{{100, 260}, {380, 310}, {10, 590}},
-		{{390, 320}, {300, 590}, {80, 590}},
+		{{390, 500}, {380, 310}, {10, 590}},
 	}
 
 	for _, tr := range triangles {
-		a.SetColorRGBA(255, 0, 0, 255)
-		a.Triangle(tr[0], tr[1], tr[2], true)
-		a.SetColorRGBA(0, 192, 0, 192)
-		a.Triangle(tr[0], tr[1], tr[2], false)
+		//a.SetColorRGBA(255, 0, 0, 255)
+		//a.Triangle(tr[0], tr[1], tr[2], true)
+		a.SetColorRGBA(192, 0, 0, 192)
+		a.FillTriangle(tr[0], tr[1], tr[2])
 	}
 
 	a.SetColorRGBA(0, 0, 128, 128)
@@ -287,6 +290,27 @@ func TestRectTriangle(t *testing.T) {
 	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 20, 20, false)
 
 	f, err := os.OpenFile(filepath.Join(dir, "triangle.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, screen))
+	failErr(t, f.Close())
+}
+
+func TestArc(t *testing.T) {
+	os.Mkdir(dir, 0755)
+
+	screen := image.NewNRGBA(image.Rect(0, 0, 400, 800))
+	disp := pixd.NewDisplay(imgdrv.New(screen))
+
+	a := disp.NewArea(disp.Bounds())
+	a.SetColorRGBA(0, 0, 0, 255)
+	a.Fill(a.Bounds())
+
+	a.SetColorRGBA(255, 255, 255, 255)
+	theta0 := math2d.RightAngle / 2
+	theta1 := math2d.RightAngle / 3
+	a.Arc(image.Pt(200, 200), 150, 150, 100, 100, theta0, theta1, false)
+
+	f, err := os.OpenFile(filepath.Join(dir, "arc.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
 	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())
