@@ -261,9 +261,9 @@ func TestRectTriangle(t *testing.T) {
 
 	for _, tr := range triangles {
 		a.SetColorRGBA(0, 192, 0, 192)
-		a.Triangle(tr[0], tr[1], tr[2], true)
+		a.Quad(tr[0], tr[1], tr[2], tr[0], true)
 		a.SetColorRGBA(192, 0, 0, 192)
-		a.FillTriangle(tr[0], tr[1], tr[2])
+		a.FillQuad(tr[0], tr[1], tr[2], tr[0])
 	}
 
 	triangles = [][3]image.Point{
@@ -276,7 +276,7 @@ func TestRectTriangle(t *testing.T) {
 		//a.SetColorRGBA(255, 0, 0, 255)
 		//a.Triangle(tr[0], tr[1], tr[2], true)
 		a.SetColorRGBA(192, 0, 0, 192)
-		a.FillTriangle(tr[0], tr[1], tr[2])
+		a.FillQuad(tr[0], tr[1], tr[2], tr[2])
 	}
 
 	a.SetColorRGBA(0, 0, 128, 128)
@@ -295,6 +295,46 @@ func TestRectTriangle(t *testing.T) {
 	failErr(t, f.Close())
 }
 
+func TestQuad(t *testing.T) {
+	os.Mkdir(dir, 0755)
+
+	screen := image.NewNRGBA(image.Rect(0, 0, 400, 800))
+	disp := pixd.NewDisplay(imgdrv.New(screen))
+
+	a := disp.NewArea(disp.Bounds())
+	a.SetColorRGBA(0, 0, 0, 255)
+	a.Fill(a.Bounds())
+
+	quads := [][4]image.Point{
+		{{40, 240}, {230, 300}, {300, 20}, {10, 10}},
+		{{320, 10}, {380, 10}, {390, 300}, {250, 300}},
+	}
+
+	for _, q := range quads {
+		a.SetColorRGBA(192, 0, 0, 192)
+		a.Quad(q[0], q[1], q[2], q[3], true)
+		a.SetColorRGBA(0, 192, 0, 192)
+		a.Quad(q[0], q[1], q[2], q[3], false)
+	}
+
+	quads = [][4]image.Point{
+		{{10, 310}, {100, 310}, {110, 400}, {30, 400}},
+		{{120, 310}, {200, 320}, {200, 400}, {120, 390}},
+		{{220, 320}, {320, 320}, {320, 400}, {220, 400}},
+	}
+	for _, q := range quads {
+		a.SetColorRGBA(0, 192, 0, 192)
+		a.Quad(q[0], q[1], q[2], q[3], true)
+		a.SetColorRGBA(192, 0, 0, 192)
+		a.FillQuad(q[0], q[1], q[2], q[3])
+	}
+
+	f, err := os.OpenFile(filepath.Join(dir, "quad.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, screen))
+	failErr(t, f.Close())
+}
+
 func TestArc(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
@@ -306,9 +346,9 @@ func TestArc(t *testing.T) {
 	a.Fill(a.Bounds())
 
 	a.SetColorRGBA(255, 255, 255, 255)
-	theta0 := math2d.RightAngle / 2
-	theta1 := math2d.RightAngle / 3
-	a.Arc(image.Pt(200, 200), 150, 150, 100, 100, theta0, theta1, false)
+	th0 := math2d.RightAngle / 3
+	th1 := math2d.RightAngle
+	a.Arc(image.Pt(200, 200), 50, 50, 100, 100, th0, th1, true)
 
 	f, err := os.OpenFile(filepath.Join(dir, "arc.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
