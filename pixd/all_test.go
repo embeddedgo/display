@@ -338,17 +338,27 @@ func TestQuad(t *testing.T) {
 func TestArc(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 400, 800))
+	screen := image.NewNRGBA(image.Rect(0, 0, 400, 880))
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColorRGBA(0, 0, 0, 255)
 	a.Fill(a.Bounds())
-
 	a.SetColorRGBA(255, 255, 255, 255)
+	a.RoundRect(a.Bounds().Min, a.Bounds().Max.Sub(image.Pt(1, 1)), 0, 0, false)
+
+	a.SetColorRGBA(255, 0, 0, 255)
 	th0 := math2d.RightAngle / 3
 	th1 := math2d.RightAngle
-	a.Arc(image.Pt(200, 200), 50, 50, 100, 100, th0, th1, true)
+	a.Arc(image.Pt(200, 10), 70, 50, 140, 100, th0, th1, true)
+	th1 += math2d.RightAngle
+	a.Arc(image.Pt(200, 150), 70, 50, 140, 100, th0, th1, true)
+	th1 += math2d.RightAngle
+	a.Arc(image.Pt(200, 390), 70, 50, 140, 100, th0, th1, true)
+	th1 += math2d.RightAngle / 2
+	a.Arc(image.Pt(200, 630), 70, 50, 140, 100, th0, th1, true)
+	th0 = -math2d.FullAngle / 2
+	a.Arc(image.Pt(200, 870), 70, 50, 140, 100, th0, th1, true)
 
 	f, err := os.OpenFile(filepath.Join(dir, "arc.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
