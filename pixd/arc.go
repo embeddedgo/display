@@ -19,6 +19,20 @@ func mulfi(p image.Point, mx, my int) image.Point {
 	return p
 }
 
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
 func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fill bool) {
 	// bounding box
 	var box image.Rectangle
@@ -26,17 +40,58 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 	box.Max.X = maxa
 	box.Min.Y = -maxb
 	box.Max.Y = maxb
-	if a0, a1 := uint32(th0), uint32(th1); a0 < a1 && a1 <= math2d.FullAngle/2 {
-		box.Min.Y = 0
-	} else if th0 < th1 && th1 <= 0 {
-		box.Max.Y = 0
-	}
-	tr0 := th0 + math2d.RightAngle
-	tr1 := th1 + math2d.RightAngle
-	if a0, a1 := uint32(tr0), uint32(tr1); a0 < a1 && a1 <= math2d.FullAngle/2 {
-		box.Min.X = 0
-	} else if tr0 < tr1 && tr1 <= 0 {
-		box.Max.X = 0
+	// setup two sides
+	var w0, w1, dx0, dx1, dy0, dy1, of int
+	if th0 != th1 {
+		one := image.Pt(1<<frac, 0)
+		cosSin := math2d.Rotate(one, th0)
+		pmin0 := mulfi(cosSin, mina, minb)
+		pmax0 := mulfi(cosSin, maxa, maxb)
+		cosSin = math2d.Rotate(one, th1)
+		pmin1 := mulfi(cosSin, mina, minb)
+		pmax1 := mulfi(cosSin, maxa, maxb)
+		//	more fitted box
+		top := th0 < th1 && th1 <= 0
+		bottom := uint32(th0) < uint32(th1) && uint32(th1) <= math2d.FullAngle/2
+		tr0, tr1 := th0+math2d.RightAngle, th1+math2d.RightAngle
+		left := tr0 < tr1 && tr1 <= 0
+		right := uint32(tr0) < uint32(tr1) && uint32(tr1) <= math2d.FullAngle/2
+		if bottom {
+			box.Min.X = pmax1.X
+			box.Max.X = pmax0.X
+		} else if top {
+			box.Min.X = pmax0.X
+			box.Max.X = pmax1.X
+		}
+		if right {
+			box.Min.Y = pmax0.Y
+			box.Max.Y = pmax1.Y
+		} else if left {
+			box.Min.Y = pmax1.Y
+			box.Max.Y = pmax0.Y
+		}
+		if bottom {
+			box.Min.Y = min(pmin0.Y, pmin1.Y)
+		} else if top {
+			box.Max.Y = max(pmin0.Y, pmin1.Y)
+		}
+		if right {
+			box.Min.X = min(pmin0.X, pmin1.X)
+		} else if left {
+			box.Max.X = max(pmin0.X, pmin1.X)
+		}
+		dx0 = pmax0.X - pmin0.X
+		dx1 = pmin1.X - pmax1.X
+		dy0 = pmin0.Y - pmax0.Y
+		dy1 = pmax1.Y - pmin1.Y
+		w0 = dx0*(box.Min.Y-pmin0.Y) + dy0*(box.Min.X-pmin0.X)
+		w1 = dx1*(box.Min.Y-pmin1.Y) + dy1*(box.Min.X-pmin1.X) - 1
+		of = int(th1 - th0)
+		if of < 0 {
+			dy0, dy1 = -dy0, -dy1
+			dx0, dx1 = -dx0, -dx1
+			w0, w1 = -1-w0, -1-w1
+		}
 	}
 	box.Max.X++
 	box.Max.Y++
@@ -49,7 +104,7 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 	xx := box.Min.X * box.Min.X
 	yy := box.Min.Y * box.Min.Y
 	wmin := (xx*minbb + yy*minaa) - minaa*minbb
-	wmax := maxaa*maxbb - (xx*maxbb + yy*maxaa)
+	wmax := maxaa*maxbb - (xx*maxbb + yy*maxaa) - 1
 	minaa2 := minaa * 2
 	minbb2 := minbb * 2
 	maxaa2 := maxaa * 2
@@ -58,48 +113,91 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 	dwymax := maxaa2*box.Min.Y + maxaa
 	dwxmin := minbb2*box.Min.X + minbb
 	dwxmax := maxbb2*box.Min.X + maxbb
-	// setup two sides
-	one := image.Pt(1<<frac, 0)
-	cosSin := math2d.Rotate(one, th0)
-	pmin0 := mulfi(cosSin, mina, minb)
-	pmax0 := mulfi(cosSin, maxa, maxb)
-	cosSin = math2d.Rotate(one, th1)
-	pmin1 := mulfi(cosSin, mina, minb)
-	pmax1 := mulfi(cosSin, maxa, maxb)
-	dx0 := pmax0.X - pmin0.X
-	dx1 := pmin1.X - pmax1.X
-	dy0 := pmin0.Y - pmax0.Y
-	dy1 := pmax1.Y - pmin1.Y
-	w0 := dx0*(box.Min.Y-pmin0.Y) + dy0*(box.Min.X-pmin0.X)
-	w1 := dx1*(box.Min.Y-pmin1.Y) + dy1*(box.Min.X-pmin1.X)
-	of := int(th1 - th0)
-	if of < 0 {
-		dy0, dy1 = -dy0, -dy1
-		dx0, dx1 = -dx0, -dx1
-		w0, w1 = -w0, -w1
-	}
 	// fill
-	for y := box.Min.Y; y < box.Max.Y; y++ {
-		m0, m1 := w0, w1
-		mmin, mmax := wmin, wmax
-		dmmin, dmmax := dwxmin, dwxmax
-		for x := box.Min.X; x < box.Max.X; x++ {
-			if (m0|m1)^of|(mmin|mmax) >= 0 {
-				a.Pixel(p.X+x, p.Y+y)
+	box = box.Add(p)
+	var r image.Rectangle
+	if box.Dx() >= box.Dy() {
+		for r.Min.Y = box.Min.Y; r.Min.Y < box.Max.Y; r.Min.Y++ {
+			m0, m1 := w0, w1
+			mmin, mmax := wmin, wmax
+			dmmin, dmmax := dwxmin, dwxmax
+			r.Min.X = box.Max.X
+			r.Max.X = box.Min.X
+			for {
+				m := (m0 | m1) ^ of | (mmin | mmax)
+				if r.Min.X == box.Max.X {
+					if r.Max.X == box.Max.X {
+						break
+					}
+					if m >= 0 {
+						r.Min.X = r.Max.X
+					}
+				} else {
+					if m < 0 || r.Max.X == box.Max.X {
+						r.Max.Y = r.Min.Y + 1
+						a.Fill(r)
+						if r.Max.X == box.Max.X {
+							break
+						}
+						r.Min.X = box.Max.X
+					}
+				}
+				m0 += dy0
+				m1 += dy1
+				mmin += dmmin
+				mmax -= dmmax
+				dmmin += minbb2
+				dmmax += maxbb2
+				r.Max.X++
 			}
-			m0 += dy0
-			m1 += dy1
-			mmin += dmmin
-			mmax -= dmmax
-			dmmin += minbb2
-			dmmax += maxbb2
+			w0 += dx0
+			w1 += dx1
+			wmin += dwymin
+			wmax -= dwymax
+			dwymin += minaa2
+			dwymax += maxaa2
 		}
-		w0 += dx0
-		w1 += dx1
-		wmin += dwymin
-		wmax -= dwymax
-		dwymin += minaa2
-		dwymax += maxaa2
+	} else {
+		for r.Min.X = box.Min.X; r.Min.X < box.Max.X; r.Min.X++ {
+			m0, m1 := w0, w1
+			mmin, mmax := wmin, wmax
+			dmmin, dmmax := dwymin, dwymax
+			r.Min.Y = box.Max.Y
+			r.Max.Y = box.Min.Y
+			for {
+				m := (m0 | m1) ^ of | (mmin | mmax)
+				if r.Min.Y == box.Max.Y {
+					if r.Max.Y == box.Max.Y {
+						break
+					}
+					if m >= 0 {
+						r.Min.Y = r.Max.Y
+					}
+				} else {
+					if m < 0 || r.Max.Y == box.Max.Y {
+						r.Max.X = r.Min.X + 1
+						a.Fill(r)
+						if r.Max.Y == box.Max.Y {
+							break
+						}
+						r.Min.Y = box.Max.Y
+					}
+				}
+				m0 += dx0
+				m1 += dx1
+				mmin += dmmin
+				mmax -= dmmax
+				dmmin += minaa2
+				dmmax += maxaa2
+				r.Max.Y++
+			}
+			w0 += dy0
+			w1 += dy1
+			wmin += dwxmin
+			wmax -= dwxmax
+			dwxmin += minbb2
+			dwxmax += maxbb2
+		}
 	}
 }
 

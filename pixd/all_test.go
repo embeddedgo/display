@@ -347,18 +347,47 @@ func TestArc(t *testing.T) {
 	a.SetColorRGBA(255, 255, 255, 255)
 	a.RoundRect(a.Bounds().Min, a.Bounds().Max.Sub(image.Pt(1, 1)), 0, 0, false)
 
-	a.SetColorRGBA(255, 0, 0, 255)
 	th0 := math2d.RightAngle / 3
 	th1 := math2d.RightAngle
+
+	a.SetColorRGBA(210, 0, 0, 210)
 	a.Arc(image.Pt(200, 10), 70, 50, 140, 100, th0, th1, true)
+	a.SetColorRGBA(0, 0, 150, 150)
+	a.Arc(image.Pt(200, 10), 70, 50, 140, 100, th1, th1+1e8, true)
+
 	th1 += math2d.RightAngle
+
+	a.SetColorRGBA(210, 0, 0, 210)
 	a.Arc(image.Pt(200, 150), 70, 50, 140, 100, th0, th1, true)
+	a.SetColorRGBA(0, 0, 150, 150)
+	a.Arc(image.Pt(200, 150), 70, 50, 140, 100, th0-1e8, th0, true)
+
 	th1 += math2d.RightAngle
-	a.Arc(image.Pt(200, 390), 70, 50, 140, 100, th0, th1, true)
+
+	a.SetColorRGBA(210, 0, 0, 210)
+	a.Arc(image.Pt(200, 390), 75, 55, 135, 95, th0, th1, true)
+	a.SetColorRGBA(0, 0, 150, 150)
+	a.Arc(image.Pt(200, 390), 75, 55, 135, 95, th1, th0, true)
+	a.SetColorRGBA(0, 100, 0, 100)
+	a.Arc(image.Pt(200, 390), 70, 50, 75, 55, 0, 0, true)
+	a.Arc(image.Pt(200, 390), 135, 95, 140, 100, 0, 0, true)
+
 	th1 += math2d.RightAngle / 2
+
+	a.SetColorRGBA(210, 0, 0, 210)
 	a.Arc(image.Pt(200, 630), 70, 50, 140, 100, th0, th1, true)
+	a.SetColorRGBA(0, 0, 150, 150)
+	a.Arc(image.Pt(200, 630), 70, 50, 140, 100, th1, th0, true)
+	a.SetColorRGBA(200, 200, 0, 255)
+	a.Arc(image.Pt(200, 630), 60, 40, 61, 41, 0, 0, true)
+	a.Arc(image.Pt(200, 630), 150, 110, 151, 111, 0, 0, true)
+
 	th0 = -math2d.FullAngle / 2
+
+	a.SetColorRGBA(210, 0, 0, 210)
 	a.Arc(image.Pt(200, 870), 70, 50, 140, 100, th0, th1, true)
+	a.SetColorRGBA(0, 0, 150, 150)
+	a.Arc(image.Pt(200, 870), 70, 50, 140, 100, th1, th1+1e8, true)
 
 	f, err := os.OpenFile(filepath.Join(dir, "arc.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
