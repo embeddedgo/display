@@ -12,27 +12,6 @@ import (
 
 const frac = 18 // maxa, maxb up to 8191 without 64-bit multiplication
 
-func mulfi(p image.Point, mx, my int) image.Point {
-	const round = 1 << (frac - 1)
-	p.X = (p.X*mx + round) >> frac
-	p.Y = (p.Y*my + round) >> frac
-	return p
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
-}
-
 func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fill bool) {
 	// bounding box
 	var box image.Rectangle
@@ -50,12 +29,62 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 		cosSin = math2d.Rotate(one, th1)
 		pmin1 := mulfi(cosSin, mina, minb)
 		pmax1 := mulfi(cosSin, maxa, maxb)
-		//	more fitted box
+		dx0 = pmax0.X - pmin0.X
+		dx1 = pmin1.X - pmax1.X
+		dy0 = pmin0.Y - pmax0.Y
+		dy1 = pmax1.Y - pmin1.Y
+		of = int(th1 - th0)
+		if of < 0 {
+			dy0, dy1 = -dy0, -dy1
+			dx0, dx1 = -dx0, -dx1
+		}
 		top := th0 < th1 && th1 <= 0
 		bottom := uint32(th0) < uint32(th1) && uint32(th1) <= math2d.FullAngle/2
 		tr0, tr1 := th0+math2d.RightAngle, th1+math2d.RightAngle
 		left := tr0 < tr1 && tr1 <= 0
 		right := uint32(tr0) < uint32(tr1) && uint32(tr1) <= math2d.FullAngle/2
+		if !fill {
+			a.Line(pmin0.Add(p), pmax0.Add(p))
+			w0 := -dx0*pmin0.Y - dy0*pmin0.X
+			w1 := -dx1*pmin1.Y - dy1*pmin1.X
+			if !top {
+				if !left {
+					arc(a, p, mina, minb, w0, dx0, dy0, w1, dx1, dy1, of, -1, 1)
+				}
+				if !right {
+					arc(a, p, mina, minb, w0, dx0, dy0, w1, dx1, dy1, of, 1, 1)
+				}
+			}
+			if !bottom {
+				if !right {
+					arc(a, p, mina, minb, w0, dx0, dy0, w1, dx1, dy1, of, 1, -1)
+				}
+				if !left {
+					arc(a, p, mina, minb, w0, dx0, dy0, w1, dx1, dy1, of, -1, -1)
+				}
+			}
+			w0 = -dx0*pmax0.Y - dy0*pmax0.X
+			w1 = -dx1*pmax1.Y - dy1*pmax1.X
+			if !top {
+				if !left {
+					arc(a, p, maxa, maxb, w0, dx0, dy0, w1, dx1, dy1, of, -1, 1)
+				}
+				if !right {
+					arc(a, p, maxa, maxb, w0, dx0, dy0, w1, dx1, dy1, of, 1, 1)
+				}
+			}
+			if !bottom {
+				if !right {
+					arc(a, p, maxa, maxb, w0, dx0, dy0, w1, dx1, dy1, of, 1, -1)
+				}
+				if !left {
+					arc(a, p, maxa, maxb, w0, dx0, dy0, w1, dx1, dy1, of, -1, -1)
+				}
+			}
+			a.Line(pmin1.Add(p), pmax1.Add(p))
+			return
+		}
+		// more fitted box
 		if bottom {
 			box.Min.X = pmax1.X
 			box.Max.X = pmax0.X
@@ -80,18 +109,17 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 		} else if left {
 			box.Max.X = max(pmin0.X, pmin1.X)
 		}
-		dx0 = pmax0.X - pmin0.X
-		dx1 = pmin1.X - pmax1.X
-		dy0 = pmin0.Y - pmax0.Y
-		dy1 = pmax1.Y - pmin1.Y
 		w0 = dx0*(box.Min.Y-pmin0.Y) + dy0*(box.Min.X-pmin0.X)
-		w1 = dx1*(box.Min.Y-pmin1.Y) + dy1*(box.Min.X-pmin1.X) - 1
-		of = int(th1 - th0)
+		w1 = dx1*(box.Min.Y-pmin1.Y) + dy1*(box.Min.X-pmin1.X)
 		if of < 0 {
-			dy0, dy1 = -dy0, -dy1
-			dx0, dx1 = -dx0, -dx1
-			w0, w1 = -1-w0, -1-w1
+			w0--
+		} else {
+			w1--
 		}
+	} else if !fill {
+		a.RoundRect(p, p, mina, minb, false)
+		a.RoundRect(p, p, maxa, maxb, false)
+		return
 	}
 	box.Max.X++
 	box.Max.Y++
@@ -201,40 +229,86 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 	}
 }
 
-/*
+func mulfi(p image.Point, mx, my int) image.Point {
+	const round = 1 << (frac - 1)
+	p.X = (p.X*mx + round) >> frac
+	p.Y = (p.Y*my + round) >> frac
+	return p
+}
 
-func (a *Area) DrawEllipse(p image.Point, ra, rb int) {
-	setColor(a)
-	// Alois Zingl algorithm
-	x := -ra
-	y := 0
-	e2 := rb
-	dx := (1 + 2*x) * e2 * e2
-	dy := x * x
-	err := dx + dy
+func min(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func arc(a *Area, p image.Point, ra, rb, w0, dx0, dy0, w1, dx1, dy1, of int, dirx, diry int8) {
+	if ra|rb == 0 {
+		a.Pixel(p.X, p.Y)
+		return
+	}
+	// based on Alois Zingl algorithm
+	dx := (1 - 2*ra) * rb * rb
+	dy := ra * ra
+	e := dx + dy
 	bb2 := 2 * rb * rb
 	aa2 := 2 * ra * ra
-	for x <= 0 {
-		drawPixel(a, p.Add(image.Point{-x, y}))
-		drawPixel(a, p.Add(image.Point{x, y}))
-		drawPixel(a, p.Add(image.Point{x, -y}))
-		drawPixel(a, p.Add(image.Point{-x, -y}))
-		e2 = 2 * err
+	x := -ra * int(dirx)
+	y := 0
+	w0 += dy0 * x
+	w1 += dy1 * x
+	if of >= 0 {
+		w0--
+		w1--
+	}
+	dx0 *= int(diry)
+	dx1 *= int(diry)
+	dy0 *= int(dirx)
+	dy1 *= int(dirx)
+	if dirx != diry && (w0|w1)^of >= 0 {
+		a.Pixel(p.X+x, p.Y)
+	}
+	for {
+		e2 := 2 * e
 		if e2 >= dx {
-			x++
+			x += int(dirx)
+			if x == 0 && dirx == diry {
+				return
+			}
 			dx += bb2
-			err += dx
+			e += dx
+			w0 += dy0
+			w1 += dy1
 		}
 		if e2 <= dy {
-			y++
+			y += int(diry)
 			dy += aa2
-			err += dy
+			e += dy
+			w0 += dx0
+			w1 += dx1
+		}
+		if (w0|w1)^of >= 0 {
+			a.Pixel(p.X+x, p.Y+y)
+		}
+		if x == 0 {
+			break
 		}
 	}
-	for y < rb {
-		y++
-		drawPixel(a, p.Add(image.Point{0, y}))
-		drawPixel(a, p.Add(image.Point{0, -y}))
+	rb *= int(diry)
+	for y != rb {
+		y += int(diry)
+		w0 += dx0
+		w1 += dx1
+		if (w0|w1)^of >= 0 {
+			a.Pixel(p.X, p.Y+y)
+		}
 	}
 }
-*/
