@@ -24,12 +24,11 @@ type Driver struct {
 	cfast uint16
 	cinfo byte
 	pf    PF
-	mv    byte
 	dir   [1]byte
 	parg  [1]byte
 	xarg  [4]byte
 	buf   [54 * 3]byte // must be multiple of two and three
-} // ont 32-bit MCU the size of this struct is 189 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
+} // ont 32-bit MCU the size of this struct is 188 B, almost full 192 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // New returns new Driver.
 func New(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *Driver {
@@ -56,11 +55,10 @@ func (d *Driver) Init(cmds []byte) {
 
 func (d *Driver) SetDir(dir int) image.Rectangle {
 	if d.c.SetDir != nil {
-		if mv := byte(dir & 1); mv != d.mv {
-			d.mv = mv
-			d.w, d.h = d.h, d.w
-		}
 		d.c.SetDir(d.dci, &d.parg, &d.dir, dir)
+		if dir&1 != 0 {
+			return image.Rectangle{Max: image.Pt(int(d.h), int(d.w))}
+		}
 	}
 	return image.Rectangle{Max: image.Pt(int(d.w), int(d.h))}
 }

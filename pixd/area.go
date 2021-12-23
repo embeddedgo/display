@@ -20,9 +20,10 @@ type areaDisplay struct {
 // independent of its position on the display. Only one goroutine can use an
 // area at the same time.
 type Area struct {
-	ad     areaDisplay
-	color  color.Color
 	bounds image.Rectangle // area coordinates
+	tr     image.Point     // translation to the display coordinates
+	color  color.Color     // drawing color
+	ad     areaDisplay     // linked list of displays covered by this area
 }
 
 // NewArea creates new area that covers the given rectangle on the displays.
@@ -44,23 +45,19 @@ func NewArea(r image.Rectangle, displays ...*Display) *Area {
 
 // Rect returns the rectangle set by SetRect.
 func (a *Area) Rect() image.Rectangle {
-	a.ad.disp.mt.Lock()
-	dispTr := a.ad.disp.tr
-	a.ad.disp.mt.Unlock()
-	tr := a.ad.tr.Sub(dispTr) // translation to the display coordinates
-	return a.bounds.Add(tr)
+	return a.bounds.Add(a.tr)
 }
 
 // SetRect sets the rectangle covered by the area on the displays.
 func (a *Area) SetRect(r image.Rectangle) {
-	tr := r.Min.Sub(a.bounds.Min)
+	a.tr = r.Min.Sub(a.bounds.Min)
 	a.bounds.Max = a.bounds.Min.Add(r.Size())
 	for ad := &a.ad; ad != nil; ad = ad.link {
 		ad.disp.mt.Lock()
 		dispTr := ad.disp.tr
 		drvBounds := ad.disp.drvBounds
 		ad.disp.mt.Unlock()
-		ad.tr = tr.Add(dispTr)
+		ad.tr = a.tr.Add(dispTr)
 		ad.visible = r.Add(dispTr).Intersect(drvBounds)
 	}
 }

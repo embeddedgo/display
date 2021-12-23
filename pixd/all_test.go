@@ -364,7 +364,7 @@ func TestArc(t *testing.T) {
 	a.SetColorRGBA(0, 0, 150, 150)
 	a.Arc(image.Pt(200, 150), 70, 50, 140, 100, th0-1e8, th0, fill)
 
-	th1 += math2d.RightAngle-1e8
+	th1 += math2d.RightAngle - 1e8
 
 	a.SetColorRGBA(210, 0, 0, 210)
 	a.Arc(image.Pt(200, 390), 75, 55, 135, 95, th0, th1, fill)
@@ -392,6 +392,35 @@ func TestArc(t *testing.T) {
 	a.Arc(image.Pt(200, 870), 70, 50, 140, 100, th1, th1+1e8, fill)
 
 	f, err := os.OpenFile(filepath.Join(dir, "arc.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, screen))
+	failErr(t, f.Close())
+}
+
+func TestDispRect(t *testing.T) {
+	os.Mkdir(dir, 0755)
+
+	screen := image.NewNRGBA(image.Rect(0, 0, 240, 320))
+	disp := pixd.NewDisplay(imgdrv.New(screen))
+	disp.SetRect(image.Rect(0, 40, 240, 240+40))
+
+	a := disp.NewArea(disp.Bounds())
+	a.SetColorRGBA(0, 100, 0, 255)
+	a.Fill(a.Bounds())
+
+	r := a.Bounds()
+	r.Max = r.Max.Sub(image.Pt(1, 1))
+	a.SetColorRGBA(255, 0, 0, 255)
+	a.RoundRect(r.Min, r.Max, 0, 0, false)
+	r = r.Inset(1)
+	a.SetColorRGBA(255, 255, 255, 255)
+	a.Line(r.Min, r.Max)
+	p0 := r.Min
+	p1 := p0.Add(image.Pt(10, 6))
+	p2 := p0.Add(image.Pt(6, 10))
+	a.Quad(p0, p0, p1, p2, true)
+
+	f, err := os.OpenFile(filepath.Join(dir, "disprect.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
 	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())

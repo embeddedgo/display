@@ -79,12 +79,11 @@ type DriverOver struct {
 	cfast   uint16
 	cinfo   byte
 	pf      PF
-	mv      byte
 	dir     [1]byte
 	parg    [1]byte
 	xarg    [4]byte
 	buf     [bufLen]byte
-} // ont 32-bit MCU the size of this struct is 255 B (bufLen=222), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
+} // ont 32-bit MCU the size of this struct is 254 B (bufLen=222), almost full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
 func NewOver(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *DriverOver {
@@ -112,11 +111,10 @@ func (d *DriverOver) Init(cmds []byte) {
 
 func (d *DriverOver) SetDir(dir int) image.Rectangle {
 	if d.c.SetDir != nil {
-		if mv := byte(dir & 1); mv != d.mv {
-			d.mv = mv
-			d.w, d.h = d.h, d.w
-		}
 		d.c.SetDir(d.dci, &d.parg, &d.dir, dir)
+		if dir&1 != 0 {
+			return image.Rectangle{Max: image.Pt(int(d.h), int(d.w))}
+		}
 	}
 	return image.Rectangle{Max: image.Pt(int(d.w), int(d.h))}
 }

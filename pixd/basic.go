@@ -12,14 +12,14 @@ import (
 // Fill fills the given rectangle.
 func (a *Area) Fill(r image.Rectangle) {
 	for ad := &a.ad; ad != nil; ad = ad.link {
-		tr := r.Add(ad.tr).Intersect(ad.visible)
-		if !tr.Empty() {
+		rt := r.Add(ad.tr).Intersect(ad.visible)
+		if !rt.Empty() {
 			ad.disp.mt.Lock()
 			if ad.disp.lastColor != a.color {
 				ad.disp.lastColor = a.color
 				ad.disp.drv.SetColor(a.color)
 			}
-			ad.disp.drv.Fill(r)
+			ad.disp.drv.Fill(rt)
 			ad.disp.mt.Unlock()
 		}
 	}
@@ -68,20 +68,20 @@ func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, mask ima
 		mp = mp.Add(delta)
 	}
 	for ad := &a.ad; ad != nil; ad = ad.link {
-		trt := r.Add(ad.tr)
-		orig := trt.Min
-		trt = trt.Intersect(ad.visible)
-		if trt.Empty() {
+		rt := r.Add(ad.tr)
+		orig := rt.Min
+		rt = rt.Intersect(ad.visible)
+		if rt.Empty() {
 			continue
 		}
-		delta := trt.Min.Sub(orig)
-		tsp := sp.Add(delta)
-		var tmp image.Point
+		delta := rt.Min.Sub(orig)
+		spt := sp.Add(delta)
+		var mpt image.Point
 		if mask != nil {
-			tmp = mp.Add(delta)
+			mpt = mp.Add(delta)
 		}
 		ad.disp.mt.Lock()
-		ad.disp.drv.Draw(trt, src, tsp, mask, tmp, op)
+		ad.disp.drv.Draw(rt, src, spt, mask, mpt, op)
 		ad.disp.mt.Unlock()
 	}
 }

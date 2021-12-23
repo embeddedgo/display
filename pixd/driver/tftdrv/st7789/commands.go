@@ -37,7 +37,7 @@ const (
 	TEOFF     = philips.TEOFF   // Tearing Effect Line OFF
 	TEON      = philips.TEON    // Tearing Effect Line ON
 	MADCTL    = philips.MADCTL  // Memory Access Control
-	VSCRSADD  = philips.SEP     // Vertical Scrolling Start Address
+	VSCSAD    = philips.SEP     // Vertical Scrolling Start Address
 	IDMOFF    = philips.IDMOFF  // Idle Mode OFF
 	IDMON     = philips.IDMON   // Idle Mode ON
 	COLMOD    = philips.COLMOD  // Pixel Format Set
