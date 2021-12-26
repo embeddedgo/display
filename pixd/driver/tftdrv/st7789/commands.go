@@ -110,14 +110,17 @@ const (
 	RGB18 = 0x60 // set 18-bit 666 pixel format for RGB interface
 )
 
+const ms = 255
+
 // GFX contains initialization commands taken from Adafruit GFX library.
 var GFX = []byte{
+	5, ms, // wait 5 ms after reset
 	INVON, 0,
-	10, 255, // wait 10 ms
+	10, ms,
 	NORON, 0,
-	120, 255, // wait 120 ms
+	105, ms, // wait 120 ms from reset
 	SLPOUT, 0,
-	5, 255, // wait 5 ms
+	5, ms,
 	DISPON, 0,
 	MADCTL, 1, 0, // default display orientation, must be the last one
 }

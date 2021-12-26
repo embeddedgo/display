@@ -113,10 +113,13 @@ const (
 	RGB18 = 0x60 // set 18-bit 666 pixel format for RGB interface
 )
 
+const ms = 255
+
 // GFX contains initialization commands taken from Adafruit GFX library.
 var GFX = []byte{
-	SWRESET, 0,
-	5, 255, // wait 5 ms
+	5, ms, // wait 5 ms after hardware reset
+	SWRESET, 0, // in case there is no hardware reset available
+	5, ms,
 	SFD, 3, 0x03, 0x80, 0x02,
 	PWCTRB, 3, 0x00, 0xC1, 0x30,
 	PONSEQ, 4, 0x64, 0x03, 0x12, 0x81,
@@ -134,9 +137,9 @@ var GFX = []byte{
 	GAMSET, 1, 0x01,
 	PGAMCTRL, 15, 0x0F, 0x31, 0x2B, 0x0C, 0x0E, 0x08, 0x4E, 0xF1, 0x37, 0x07, 0x10, 0x03, 0x0E, 0x09, 0x00,
 	NGAMCTRL, 15, 0x00, 0x0E, 0x14, 0x03, 0x11, 0x07, 0x31, 0xC1, 0x48, 0x08, 0x0F, 0x0C, 0x31, 0x36, 0x0F,
-	120, 255, // wait 120 ms
+	115, ms, // wait 120 ms from reset
 	SLPOUT, 0,
-	5, 255, // wait 5 ms
+	5, ms,
 	DISPON, 0,
 	MADCTL, 1, BGR | MX, // default display orientation, must be the last one
 }
@@ -144,8 +147,9 @@ var GFX = []byte{
 // MSP2807 contains initialization commands for MSP2807 module (QD-TFT2803)
 // taken from http://www.lcdwiki.com/2.8inch_SPI_Module_ILI9341_SKU:MSP2807
 var MSP2807 = []byte{
-	SWRESET, 0,
-	5, 255, // wait 5 ms
+	5, ms, // wait 5 ms after hardware reset
+	SWRESET, 0, // in case there is no hardware reset available
+	5, ms,
 	PWCTRB, 3, 0x00, 0xC9, 0x30,
 	PONSEQ, 4, 0x64, 0x03, 0x12, 0x81,
 	DRVTIM, 3, 0x85, 0x10, 0x7A,
@@ -162,8 +166,9 @@ var MSP2807 = []byte{
 	GAMSET, 1, 0x01,
 	PGAMCTRL, 15, 0x0F, 0x2A, 0x28, 0x08, 0x0E, 0x08, 0x54, 0xA9, 0x43, 0x0A, 0x0F, 0x00, 0x00, 0x00, 0x00,
 	NGAMCTRL, 15, 0x00, 0x15, 0x17, 0x07, 0x11, 0x06, 0x2B, 0x56, 0x3C, 0x05, 0x10, 0x0F, 0x3F, 0x3F, 0x0F,
+	115, ms, // wait 120 ms from reset
 	SLPOUT, 0,
-	5, 255, // wait 5 ms
+	5, ms,
 	DISPON, 0,
 	MADCTL, 1, BGR | MX, // default display orientation, must be the last one
 }

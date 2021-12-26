@@ -126,11 +126,14 @@ const (
 	RGB18 = 0x60 // set 18-bit 666 pixel format for RGB interface
 )
 
+const ms = 255
+
 // MSP4022 are the initialization commands for MSP4022 module (QD-TFT3956)
 // taken from http://www.lcdwiki.com/4.0inch_SPI_Module_ILI9486
 var MSP4022 = []byte{
-	SWRESET, 0,
-	5, 255, // wait 5 ms
+	5, ms, // wait 5 ms after reset
+	SWRESET, 0, // in case there is no hardware reset available
+	5, ms,
 	//philips.OTPSHTIN, 6, 0x36, 0x04, 0x00, 0x3C, 0x0F, 0x8F,
 	EN3G, 9, 0x18, 0xA3, 0x12, 0x02, 0xB2, 0x12, 0xFF, 0x10, 0x00,
 	0xF8, 2, 0x21, 0x04,
@@ -141,17 +144,18 @@ var MSP4022 = []byte{
 	PGAMCTRL, 15, 0x0F, 0x1F, 0x1C, 0x0C, 0x0F, 0x08, 0x48, 0x98, 0x37, 0x0A, 0x13, 0x04, 0x11, 0x0D, 0x00,
 	NGAMCTRL, 15, 0x0F, 0x32, 0x2E, 0x0B, 0x0D, 0x05, 0x47, 0x75, 0x37, 0x06, 0x10, 0x03, 0x24, 0x20, 0x00,
 	PIXSET, 1, MCU18,
-	120, 255, // wait 120 ms
+	115, ms,
 	SLPOUT, 0,
-	5, 255, // wait 5 ms
+	5, ms,
 	DISPON, 0,
 	MADCTL, 1, BGR | MX, // default display orientation, must be the last one
 }
 
 // IAW are the initialization commands taken from https://github.com/ImpulseAdventure/Waveshare_ILI9486
 var IAW = []byte{
-	SWRESET, 0,
-	5, 255, // wait 5 ms
+	5, ms, // wait 5 ms after reset
+	SWRESET, 0, // in case there is no hardware reset available
+	5, ms,
 	PWCTR1, 2, 0x19, 0x1a,
 	PWCTR2, 2, 0x45, 0x00,
 	PWCTR3, 1, 0x33,
@@ -162,9 +166,9 @@ var IAW = []byte{
 	PGAMCTRL, 15, 0x1F, 0x25, 0x22, 0x0B, 0x06, 0x0A, 0x4E, 0xC6, 0x39, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 	NGAMCTRL, 15, 0x1F, 0x3F, 0x3F, 0x0F, 0x1F, 0x0F, 0x46, 0x49, 0x31, 0x05, 0x09, 0x03, 0x1C, 0x1A, 0x00,
 	PIXSET, 1, MCU18,
-	120, 255, // wait 120 ms
+	115, ms, // wait 120 ms from reset
 	SLPOUT, 0,
-	5, 255, // wait 5 ms
+	5, ms,
 	DISPON, 0,
 	MADCTL, 1, BGR, // default display orientation, must be the last one
 }
