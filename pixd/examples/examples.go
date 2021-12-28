@@ -31,12 +31,12 @@ var (
 // Pay attention to the position of all elements, the order of RGB bars (the
 // red one should be closest to the arrow, the blue one farthest) and the
 // direction of rotation.
-func RotateDisplay(disp *pixd.Display) {
+func RotateDisplay(disp *pixd.Display, n int) {
 	r := disp.Bounds()
 	a := disp.NewArea(r)
 	w := r.Max.X / 10
 	h := r.Dy() / 3
-	for i := 0; ; i++ {
+	for i := 0; i != n; i++ {
 		disp.SetDir(i)
 		a.SetRect(a.Rect()) // SetRect is mandatory after SetDir
 		r = a.Bounds()
@@ -124,9 +124,9 @@ func clearAndPrint(a *pixd.Area, face *font.Face, s string) {
 	time.Sleep(10 * time.Second)
 }
 
-func DrawText(disp *pixd.Display) {
+func DrawText(disp *pixd.Display, n int) {
 	a := disp.NewArea(disp.Bounds())
-	for {
+	for i := 0; i != n; i++ {
 		clearAndPrint(a, fdejavu, akermanianSteppesEN)
 		clearAndPrint(a, fdejavu, akermanianSteppesPL)
 		clearAndPrint(a, fvga, akermanianSteppesEN)

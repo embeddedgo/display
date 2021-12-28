@@ -9,11 +9,13 @@ import (
 
 	"github.com/embeddedgo/display/pixd"
 	"github.com/embeddedgo/display/pixd/driver/tftdrv"
+	"github.com/embeddedgo/display/pixd/driver/tftdrv/ili9341"
+	"github.com/embeddedgo/display/pixd/driver/tftdrv/ili9486"
 	"github.com/embeddedgo/display/pixd/driver/tftdrv/st7789"
 )
 
 // Adafruit 1.54" 240x240 Wide Angle TFT LCD Display with MicroSD - ST7789
-func Adafruit154IPS(dci tftdrv.DCI) *pixd.Display {
+func Adafruit_1i54_240x240_IPS_ST7789(dci tftdrv.DCI) *pixd.Display {
 	drv := st7789.New(dci)
 	drv.Init(st7789.GFX)
 
@@ -28,5 +30,21 @@ func Adafruit154IPS(dci tftdrv.DCI) *pixd.Display {
 	return disp
 }
 
-// ER-TFTM1.54-1 IPS LCD Module
-func ERTFTM154(dci tftdrv.DCI) *pixd.Display { return Adafruit154IPS(dci) }
+// ER-TFTM1.54-1 IPS LCD Module - ST7789
+func ERTFTM_1i54_240x240_IPS_ST7789(dci tftdrv.DCI) *pixd.Display {
+	return Adafruit_1i54_240x240_IPS_ST7789(dci)
+}
+
+// Adafruit 2.8" TFT LCD with Touchscreen Breakout Board with MicroSD - ILI9341
+func Adafruit_2i8_240x320_TFT_ILI9341(dci tftdrv.DCI) *pixd.Display {
+	drv := ili9341.NewOver(dci)
+	drv.Init(ili9341.GFX)
+	return pixd.NewDisplay(drv)
+}
+
+// MSP4022 4.0" TFT LCD SPI Module - ILI9486
+func MSP4022_4i0_320x480_TFT_ILI9486(dci tftdrv.DCI) *pixd.Display {
+	drv := ili9486.NewOver(dci)
+	drv.Init(ili9486.MSP4022)
+	return pixd.NewDisplay(drv)
+}
