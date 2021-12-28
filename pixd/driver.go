@@ -50,6 +50,8 @@ type Driver interface {
 	// memory is problematic or inefficient.
 	Flush()
 
+	//Read(r image.Rectangle, dst draw.Image, dp image.Point)
+
 	// Err returns the saved error and clears it if the clear is true. If an
 	// error has occured it is recommended that the Driver avoids any further
 	// operations until the error is cleared.
