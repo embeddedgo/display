@@ -34,16 +34,22 @@ var (
 func RotateDisplay(disp *pixd.Display, n int) {
 	r := disp.Bounds()
 	a := disp.NewArea(r)
+
+	// the dimensions of arrow and bars will be constant, related to w, h, but
+	// they position will adapt to current orientation of screen
 	w := r.Max.X / 10
 	h := r.Dy() / 3
 	for i := 0; i != n; i++ {
+		// change display direction (orientation)
 		disp.SetDir(i)
-		a.SetRect(a.Rect()) // SetRect is mandatory after SetDir
-		r = a.Bounds()
+		a.SetRect(disp.Bounds()) // a.SetRect is mandatory after disp.SetDir
+		r = a.Bounds()           // new dimensions of a
 
+		// clear the screen
 		a.SetColorRGBA(0, 0, 0, 255)
 		a.Fill(r)
 
+		// draw the arrow
 		a.SetColorRGBA(255, 255, 255, 255)
 		p0 := image.Pt(w/2, w/2)
 		p1 := image.Pt(w, w*3/4)
@@ -51,6 +57,7 @@ func RotateDisplay(disp *pixd.Display, n int) {
 		a.Quad(p0, p0, p1, p2, true)
 		a.Line(p0, p1.Add(p2))
 
+		// draw the RGB bars
 		var bar image.Rectangle
 		bar.Max.X = r.Max.X - w/2
 		bar.Min.X = bar.Max.X - w
@@ -68,6 +75,7 @@ func RotateDisplay(disp *pixd.Display, n int) {
 		a.SetColor(red)
 		a.Fill(bar)
 
+		// draw the rounded rectangle around the screen
 		r = r.Inset(8)
 		r.Max.X--
 		r.Max.Y--
