@@ -24,6 +24,10 @@ func New(dci tftdrv.DCI) *tftdrv.Driver {
 // interface. The returned driver fully supports the draw.Over operator but
 // requires reading pixel data from the frame memory. If the display has
 // write-only interface use New instead.
+//
+// ILI9486 controller seems to require a 2 ms delay before start writing to
+// frame memory just after reading from it. It's undocumented behavior and
+// slows down the draw.Over operation much.
 func NewOver(dci tftdrv.DCI) *tftdrv.DriverOver {
 	return tftdrv.NewOver(dci, 320, 480, tftdrv.W18|tftdrv.R18, ctrlOver)
 }
@@ -48,13 +52,5 @@ func read(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
 
 	// Workaround for the undocumented behavior. Deaserting CSN probably does
 	// not stop reading immediately (it takes as much as 1.5 ms).
-	time.Sleep(1500 * time.Microsecond)
-
-	// In case of a ticking system timer the above sleep lasts about 2 ms
-	// (customary tick period) and the drawing is 1.3 times slower compared to
-	// the busy wait below.
-	//
-	//	t0 := time.Now()
-	//	for time.Now().Sub(t0) < 1500*time.Microsecond {}
+	time.Sleep(2 * time.Millisecond)
 }
-
