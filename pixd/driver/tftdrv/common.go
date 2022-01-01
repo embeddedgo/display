@@ -23,25 +23,19 @@ const (
 	W24                // Write RGB 888, 3 bytes/pixel
 )
 
+const (
+	ctrans = iota
+	cfast
+	cslow
+	cinbuf
+)
+
 type Ctrl struct {
 	StartWrite func(dci DCI, xarg *[4]byte, r image.Rectangle)
 	Read       func(dci DCI, xarg *[4]byte, r image.Rectangle, buf []byte)
-	SetPF      func(dci DCI, parg *[1]byte, size int)
-	SetDir     func(dci DCI, parg, darg *[1]byte, dir int)
+	SetPF      func(dci DCI, rpf *[1]byte, size int)
+	SetDir     func(dci DCI, rpf, rdir *[1]byte, dir int)
 }
-
-const (
-	transparent = 0
-
-	osize = 0
-	otype = 6 // Fill relies on the type field takes two MSbits
-
-	// do not reorder
-	fastByte = 0
-	fastWord = 1
-	bufInit  = 2 // getBuf relies on the one bit difference to the bufFull
-	bufFull  = 3 // Fill relies on the both bits set
-)
 
 func initialize(dci DCI, cmds []byte) {
 	i := 0
@@ -139,8 +133,7 @@ type dst struct {
 
 // drawSrc draws masked image to the prepared region of GRAM. dst.PixSize must
 // be 3 (RGB 888) or 2 (RGB 565).
-func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, getBuf func() []byte, minChunk int) {
-	var buf []byte
+func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, buf []byte) (bufUsed bool) {
 	i := 0
 	width := dst.size.X
 	height := dst.size.Y
@@ -150,6 +143,7 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 			width *= sip.pixSize
 			if sip.pixSize == dst.pixSize {
 				// can write sip directly to the graphics RAM
+				minChunk := len(buf) * 3 / 4
 				if len(sip.p) != 0 {
 					if width == sip.stride {
 						// write the entire sip
@@ -187,7 +181,7 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 				}
 			}
 			// buffered write
-			buf = getBuf()
+			bufUsed = true
 			j := 0
 			k := width
 			max := height * sip.stride
@@ -221,7 +215,7 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 			}
 		} else {
 			// unknown type of source image - generic algorithm
-			buf = getBuf()
+			bufUsed = true
 			r := image.Rectangle{sp, sp.Add(dst.size)}
 			for y := r.Min.Y; y < r.Max.Y; y++ {
 				for x := r.Min.X; x < r.Max.X; x++ {
@@ -239,7 +233,7 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 		}
 	} else {
 		// non-nil mask
-		buf = getBuf()
+		bufUsed = true
 		for y := 0; y < height; y++ {
 			j := y * sip.stride
 			for x := 0; x < width; x++ {
@@ -276,4 +270,5 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 	if i != 0 {
 		dci.WriteBytes(buf[:i])
 	}
+	return
 }

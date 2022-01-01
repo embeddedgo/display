@@ -51,6 +51,6 @@ func read(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
 	dci.End()
 
 	// Workaround for the undocumented behavior. Deaserting CSN probably does
-	// not stop reading immediately (it takes as much as 1.5 ms).
+	// not stop reading immediately (it takes as much as 2 ms).
 	time.Sleep(2 * time.Millisecond)
 }

@@ -140,21 +140,21 @@ func StartRead16(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
 	dci.Cmd(RAMRD)
 }
 
-func SetDir(dci tftdrv.DCI, parg, madctl *[1]byte, dir int) {
-	org := madctl[0]
+func SetDir(dci tftdrv.DCI, rpf, rdir *[1]byte, dir int) {
+	org := rdir[0]
 	if org&V != 0 {
 		dir = -dir
 	}
 	switch dir & 3 {
 	case 1:
-		madctl[0] = org ^ (V | MX)
+		rdir[0] = org ^ (V | MX)
 	case 2:
-		madctl[0] = org ^ (MX | MY)
+		rdir[0] = org ^ (MX | MY)
 	case 3:
-		madctl[0] = org ^ (V | MY)
+		rdir[0] = org ^ (V | MY)
 	}
 	dci.Cmd(MADCTL)
-	dci.WriteBytes(madctl[:])
-	madctl[0] = org
+	dci.WriteBytes(rdir[:])
+	rdir[0] = org
 	dci.End()
 }
