@@ -23,21 +23,23 @@ const (
 	W24                // Write RGB 888, 3 bytes/pixel
 )
 
-const (
-	ctrans = iota
-	cfast
-	cslow
-	cinbuf
-)
-
-type Ctrl struct {
-	StartWrite func(dci DCI, xarg *[4]byte, r image.Rectangle)
-	Read       func(dci DCI, xarg *[4]byte, r image.Rectangle, buf []byte)
-	SetPF      func(dci DCI, rpf *[1]byte, size int)
-	SetDir     func(dci DCI, rpf, rdir *[1]byte, dir int)
+// Reg contains local copy of some controller registers to allow working with
+// write-only displays.
+type Reg struct {
+	PF   [1]byte    // pixel format relaed register
+	Dir  [1]byte    // direction/orientation related register
+	Xarg [4]byte // scratch buffer to avoid allocation
 }
 
-func initialize(dci DCI, cmds []byte) {
+// Ctrl contains display specific control functions.
+type Ctrl struct {
+	StartWrite func(dci DCI, reg *Reg, r image.Rectangle)
+	Read       func(dci DCI, reg *Reg, r image.Rectangle, buf []byte)
+	SetPF      func(dci DCI, reg *Reg, size int)
+	SetDir     func(dci DCI, reg *Reg, dir int)
+}
+
+func initialize(dci DCI, reg *Reg, cmds []byte) {
 	i := 0
 	for i < len(cmds) {
 		cmd := cmds[i]
@@ -56,6 +58,125 @@ func initialize(dci DCI, cmds []byte) {
 		}
 	}
 	dci.End()
+	reg.Dir[0] = cmds[len(cmds)-1]
+}
+
+const (
+	alphaTrans  = 0x0404
+	alphaOpaque = 0xfc00
+)
+
+const (
+	ctrans = iota
+	cfast
+	cslow
+	cinbuf
+)
+
+type fillColor struct {
+	r, g, b, a uint16
+	typ        byte
+	siz        int8
+	npp        int8
+	pf         PF
+}
+
+func setColor(c *fillColor, r, g, b, a uint32, dci DCI) {
+	c.a = uint16(a)
+	if a >= alphaOpaque {
+		r >>= 8
+		g >>= 8
+		b >>= 8
+		if c.pf&W16 != 0 {
+			x := ((r ^ r>>5) | (b ^ b>>5)) & 7
+			if c.pf&W24 == 0 {
+				x &= 4
+			} else {
+				x |= (g ^ g>>6) & 3
+			}
+			if x == 0 {
+				r &^= 7
+				g &^= 3
+				b &^= 7
+				rgb565 := uint16(r<<8 | g<<3 | b>>3)
+				c.siz = 2
+				if _, ok := dci.(WordNWriter); ok {
+					c.typ = cfast
+					c.npp = 1
+					c.r = rgb565
+					return
+				}
+				h := rgb565 >> 8
+				l := rgb565 & 0xff
+				if h == l {
+					if _, ok := dci.(ByteNWriter); ok {
+						c.typ = cfast
+						c.npp = 2
+						c.r = h
+						return
+					}
+				}
+				c.typ = cslow
+				c.npp = 2
+				c.r = uint16(h)
+				c.g = uint16(l)
+				return
+			}
+		}
+		if c.pf&W24 == 0 {
+			r &^= 3
+			g &^= 3
+			b &^= 3
+		}
+		if r == g && g == b {
+			if _, ok := dci.(ByteNWriter); ok {
+				c.typ = cfast
+				c.siz = 3
+				c.npp = 3
+				c.r = uint16(r)
+				return
+			}
+		}
+	}
+	c.typ = cslow
+	c.siz = 3
+	c.npp = 3
+	c.r = uint16(r)
+	c.g = uint16(g)
+	c.b = uint16(b)
+}
+
+func fillOpaque(dci DCI, c *fillColor, n int, buf []byte) {
+	n *= int(c.npp)
+	if c.typ == cfast {
+		if c.npp == 1 {
+			dci.(WordNWriter).WriteWordN(c.r, n)
+		} else {
+			dci.(ByteNWriter).WriteByteN(byte(c.r), n)
+		}
+	} else {
+		if c.typ == cslow {
+			c.typ = cinbuf
+			for i := 0; i < len(buf); i += int(c.siz) {
+				buf[i+0] = uint8(c.r)
+				buf[i+1] = uint8(c.g)
+				if c.siz == 3 {
+					buf[i+2] = uint8(c.b)
+				}
+			}
+		}
+		m := len(buf)
+		for {
+			if m > n {
+				m = n
+			}
+			dci.WriteBytes(buf[:m])
+			n -= m
+			if n == 0 {
+				break
+			}
+		}
+	}
 }
 
 type fastImage struct {

@@ -76,85 +76,85 @@ const (
 	MY  = 1 << 7 // mirror Y
 )
 
-func StartWrite8(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+func StartWrite8(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
 	dci.Cmd(CASET)
-	xarg[0] = uint8(r.Min.X)
-	xarg[1] = uint8(r.Max.X)
-	dci.WriteBytes(xarg[:2])
+	reg.Xarg[0] = uint8(r.Min.X)
+	reg.Xarg[1] = uint8(r.Max.X)
+	dci.WriteBytes(reg.Xarg[:2])
 	dci.Cmd(PASET)
-	xarg[0] = uint8(r.Min.Y)
-	xarg[1] = uint8(r.Max.Y)
-	dci.WriteBytes(xarg[:2])
+	reg.Xarg[0] = uint8(r.Min.Y)
+	reg.Xarg[1] = uint8(r.Max.Y)
+	dci.WriteBytes(reg.Xarg[:2])
 	dci.Cmd(RAMWR)
 }
 
-func StartRead8(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+func StartRead8(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
 	dci.Cmd(CASET)
-	xarg[0] = uint8(r.Min.X)
-	xarg[1] = uint8(r.Max.X)
-	dci.WriteBytes(xarg[:2])
+	reg.Xarg[0] = uint8(r.Min.X)
+	reg.Xarg[1] = uint8(r.Max.X)
+	dci.WriteBytes(reg.Xarg[:2])
 	dci.Cmd(PASET)
-	xarg[0] = uint8(r.Min.Y)
-	xarg[1] = uint8(r.Max.Y)
-	dci.WriteBytes(xarg[:2])
+	reg.Xarg[0] = uint8(r.Min.Y)
+	reg.Xarg[1] = uint8(r.Max.Y)
+	dci.WriteBytes(reg.Xarg[:2])
 	dci.Cmd(RAMRD)
 }
 
-func StartWrite16(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+func StartWrite16(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
 	dci.Cmd(CASET)
-	xarg[0] = uint8(r.Min.X >> 8)
-	xarg[1] = uint8(r.Min.X)
-	xarg[2] = uint8(r.Max.X >> 8)
-	xarg[3] = uint8(r.Max.X)
-	dci.WriteBytes(xarg[:])
+	reg.Xarg[0] = uint8(r.Min.X >> 8)
+	reg.Xarg[1] = uint8(r.Min.X)
+	reg.Xarg[2] = uint8(r.Max.X >> 8)
+	reg.Xarg[3] = uint8(r.Max.X)
+	dci.WriteBytes(reg.Xarg[:])
 	dci.Cmd(PASET)
-	xarg[0] = uint8(r.Min.Y >> 8)
-	xarg[1] = uint8(r.Min.Y)
-	xarg[2] = uint8(r.Max.Y >> 8)
-	xarg[3] = uint8(r.Max.Y)
-	dci.WriteBytes(xarg[:])
+	reg.Xarg[0] = uint8(r.Min.Y >> 8)
+	reg.Xarg[1] = uint8(r.Min.Y)
+	reg.Xarg[2] = uint8(r.Max.Y >> 8)
+	reg.Xarg[3] = uint8(r.Max.Y)
+	dci.WriteBytes(reg.Xarg[:])
 	dci.Cmd(RAMWR)
 }
 
-func StartRead16(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle) {
+func StartRead16(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
 	dci.Cmd(CASET)
-	xarg[0] = uint8(r.Min.X >> 8)
-	xarg[1] = uint8(r.Min.X)
-	xarg[2] = uint8(r.Max.X >> 8)
-	xarg[3] = uint8(r.Max.X)
-	dci.WriteBytes(xarg[:])
+	reg.Xarg[0] = uint8(r.Min.X >> 8)
+	reg.Xarg[1] = uint8(r.Min.X)
+	reg.Xarg[2] = uint8(r.Max.X >> 8)
+	reg.Xarg[3] = uint8(r.Max.X)
+	dci.WriteBytes(reg.Xarg[:])
 	dci.Cmd(PASET)
-	xarg[0] = uint8(r.Min.Y >> 8)
-	xarg[1] = uint8(r.Min.Y)
-	xarg[2] = uint8(r.Max.Y >> 8)
-	xarg[3] = uint8(r.Max.Y)
-	dci.WriteBytes(xarg[:])
+	reg.Xarg[0] = uint8(r.Min.Y >> 8)
+	reg.Xarg[1] = uint8(r.Min.Y)
+	reg.Xarg[2] = uint8(r.Max.Y >> 8)
+	reg.Xarg[3] = uint8(r.Max.Y)
+	dci.WriteBytes(reg.Xarg[:])
 	dci.Cmd(RAMRD)
 }
 
-func SetDir(dci tftdrv.DCI, rpf, rdir *[1]byte, dir int) {
-	org := rdir[0]
-	if org&V != 0 {
+func SetDir(dci tftdrv.DCI, reg *tftdrv.Reg, dir int) {
+	rdir := reg.Dir[0]
+	if rdir&V != 0 {
 		dir = -dir
 	}
 	switch dir & 3 {
 	case 1:
-		rdir[0] = org ^ (V | MX)
+		rdir ^= (V | MX)
 	case 2:
-		rdir[0] = org ^ (MX | MY)
+		rdir ^= (MX | MY)
 	case 3:
-		rdir[0] = org ^ (V | MY)
+		rdir ^= (V | MY)
 	}
+	reg.Xarg[0] = rdir
 	dci.Cmd(MADCTL)
-	dci.WriteBytes(rdir[:])
-	rdir[0] = org
+	dci.WriteBytes(reg.Xarg[:1])
 	dci.End()
 }

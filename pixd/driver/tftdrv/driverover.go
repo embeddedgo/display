@@ -70,29 +70,23 @@ func bestBufSize(rsiz image.Point) image.Point {
 // frame memory content. If the display has write-only interface use Driver
 // instead.
 type DriverOver struct {
-	dci        DCI
-	c          *Ctrl
-	w, h       uint16
-	r, g, b, a uint16
-	ctyp       byte
-	csiz       int8
-	cnpp       int8
-	pf         PF
-	rdir       [1]byte // current/initial value of direction relaed register
-	rpf        [1]byte // current/initial value of pixel format relaed register
-	xarg       [4]byte
-	buf        [bufLen]byte
+	dci   DCI
+	ctrl  *Ctrl
+	w, h  uint16
+	color fillColor
+	reg   Reg
+	buf   [bufLen]byte
 } // ont 32-bit MCU the size of this struct is 256 B (bufLen=222), a full 256 B allocation unit (see runtime/sizeclasses_mcu.go)
 
 // NewOver returns new DriverOver.
 func NewOver(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *DriverOver {
-	return &DriverOver{
-		dci: dci,
-		c:   ctrl,
-		w:   w,
-		h:   h,
-		pf:  pf,
-	}
+	d := new(DriverOver)
+	d.dci = dci
+	d.ctrl = ctrl
+	d.w = w
+	d.h = h
+	d.color.pf = pf
+	return d
 }
 
 func (d *DriverOver) Err(clear bool) error { return d.dci.Err(clear) }
@@ -104,13 +98,12 @@ func (d *DriverOver) Size() image.Point    { return image.Pt(int(d.w), int(d.h))
 // the display orientation and the color order must be the last one in the cmds
 // See ili9341.GFX, ili9486.MSP4022 as examples.
 func (d *DriverOver) Init(cmds []byte) {
-	initialize(d.dci, cmds)
-	d.rdir[0] = cmds[len(cmds)-1]
+	initialize(d.dci, &d.reg, cmds)
 }
 
 func (d *DriverOver) SetDir(dir int) image.Rectangle {
-	if d.c.SetDir != nil {
-		d.c.SetDir(d.dci, &d.rpf, &d.rdir, dir)
+	if d.ctrl.SetDir != nil {
+		d.ctrl.SetDir(d.dci, &d.reg, dir)
 		if dir&1 != 0 {
 			return image.Rectangle{Max: image.Pt(int(d.h), int(d.w))}
 		}
@@ -118,81 +111,17 @@ func (d *DriverOver) SetDir(dir int) image.Rectangle {
 	return image.Rectangle{Max: image.Pt(int(d.w), int(d.h))}
 }
 
-const alphaOpaque = 0xfb00
-
 func (d *DriverOver) SetColor(c color.Color) {
 	r, g, b, a := c.RGBA()
-	if a < 0x0404 {
-		d.ctyp = ctrans
+	if a < alphaTrans {
+		d.color.typ = ctrans
 		return
 	}
-	if a >= alphaOpaque {
-		d.a = 0
-		r >>= 8
-		g >>= 8
-		b >>= 8
-		if d.pf&W16 != 0 {
-			x := ((r ^ r>>5) | (b ^ b>>5)) & 7
-			if d.pf&W24 == 0 {
-				x &= 4
-			} else {
-				x |= (g ^ g>>6) & 3
-			}
-			if x == 0 {
-				r &^= 7
-				g &^= 3
-				b &^= 7
-				rgb565 := uint16(r<<8 | g<<3 | b>>3)
-				d.csiz = 2
-				if _, ok := d.dci.(WordNWriter); ok {
-					d.ctyp = cfast
-					d.cnpp = 1
-					d.r = rgb565
-					return
-				}
-				h := rgb565 >> 8
-				l := rgb565 & 0xff
-				if h == l {
-					if _, ok := d.dci.(ByteNWriter); ok {
-						d.ctyp = cfast
-						d.cnpp = 2
-						d.r = h
-						return
-					}
-				}
-				d.ctyp = cslow
-				d.cnpp = 2
-				d.r = uint16(h)
-				d.g = uint16(l)
-				return
-			}
-		}
-		if d.pf&W24 == 0 {
-			r &^= 3
-			g &^= 3
-			b &^= 3
-		}
-		if r == g && g == b {
-			if _, ok := d.dci.(ByteNWriter); ok {
-				d.ctyp = cfast
-				d.csiz = 3
-				d.cnpp = 3
-				d.r = uint16(r)
-				return
-			}
-		}
-	}
-	d.ctyp = cslow
-	d.csiz = 3
-	d.cnpp = 3
-	d.r = uint16(r)
-	d.g = uint16(g)
-	d.b = uint16(b)
-	d.a = uint16(a)
+	setColor(&d.color, r, g, b, a, d.dci)
 }
 
 func (d *DriverOver) Fill(r image.Rectangle) {
-	if d.ctyp == ctrans {
+	if d.color.typ == ctrans {
 		return
 	}
 	dstSize := r.Size()
@@ -200,49 +129,20 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 	if n == 0 {
 		return
 	}
-	if d.c.SetPF != nil {
-		d.c.SetPF(d.dci, &d.rpf, int(d.csiz))
+	if d.ctrl.SetPF != nil {
+		d.ctrl.SetPF(d.dci, &d.reg, int(d.color.siz))
 	}
-	if d.ctyp == cfast || d.a >= alphaOpaque {
+	if d.color.typ == cfast || d.color.a >= alphaOpaque {
 		// no alpha blending
-		d.c.StartWrite(d.dci, &d.xarg, r)
-		n *= int(d.cnpp)
-		if d.ctyp == cfast {
-			if d.cnpp == 1 {
-				d.dci.(WordNWriter).WriteWordN(d.r, n)
-			} else {
-				d.dci.(ByteNWriter).WriteByteN(byte(d.r), n)
-			}
-		} else {
-			if d.ctyp == cslow {
-				d.ctyp = cinbuf
-				for i := 0; i < len(d.buf); i += int(d.csiz) {
-					d.buf[i+0] = uint8(d.r)
-					d.buf[i+1] = uint8(d.g)
-					if d.csiz == 3 {
-						d.buf[i+2] = uint8(d.b)
-					}
-				}
-			}
-			m := len(d.buf)
-			for {
-				if m > n {
-					m = n
-				}
-				d.dci.WriteBytes(d.buf[:m])
-				n -= m
-				if n == 0 {
-					break
-				}
-			}
-		}
+		d.ctrl.StartWrite(d.dci, &d.reg, r)
+		fillOpaque(d.dci, &d.color, n, d.buf[:])
 	} else {
 		// alpha blending with the current display content
 		bufSize := bestBufSize(dstSize)
-		sr := uint(d.r)
-		sg := uint(d.g)
-		sb := uint(d.b)
-		a := 0xffff - uint(d.a)
+		sr := uint(d.color.r)
+		sg := uint(d.color.g)
+		sb := uint(d.color.b)
+		a := 0xffff - uint(d.color.a)
 		y := r.Min.Y
 		for {
 			height := r.Max.Y - y
@@ -267,7 +167,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 				}
 				x += width
 				n := width*height*3 + 1
-				d.c.Read(d.dci, &d.xarg, r1, d.buf[0:n])
+				d.ctrl.Read(d.dci, &d.reg, r1, d.buf[0:n])
 				for i := 1; i < n; i += 3 {
 					r := uint(d.buf[i+0])
 					g := uint(d.buf[i+1])
@@ -279,7 +179,7 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 					d.buf[i+1] = uint8(g >> 8)
 					d.buf[i+2] = uint8(b >> 8)
 				}
-				d.c.StartWrite(d.dci, &d.xarg, r1)
+				d.ctrl.StartWrite(d.dci, &d.reg, r1)
 				d.dci.WriteBytes(d.buf[1:n])
 			}
 			y += height
@@ -292,24 +192,24 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 	dst := dst{r.Size(), 3}
 	sip := imageAtPoint(src, sp)
 	if op == draw.Src {
-		if d.c.SetPF != nil {
+		if d.ctrl.SetPF != nil {
 			if mask == nil && sip.pixSize <= 3 {
 				dst.pixSize = sip.pixSize
 			}
-			d.c.SetPF(d.dci, &d.rpf, dst.pixSize)
+			d.ctrl.SetPF(d.dci, &d.reg, dst.pixSize)
 		}
-		d.c.StartWrite(d.dci, &d.xarg, r)
+		d.ctrl.StartWrite(d.dci, &d.reg, r)
 		bufUsed := drawSrc(d.dci, dst, src, sp, sip, mask, mp, d.buf[:])
-		if bufUsed && d.ctyp == cinbuf {
-			d.ctyp = cslow
+		if bufUsed && d.color.typ == cinbuf {
+			d.color.typ = cslow
 		}
 	} else {
-		if d.c.SetPF != nil {
-			d.c.SetPF(d.dci, &d.rpf, 3)
+		if d.ctrl.SetPF != nil {
+			d.ctrl.SetPF(d.dci, &d.reg, 3)
 		}
 		buf := d.buf[:]
-		if d.ctyp == cinbuf {
-			d.ctyp = cslow
+		if d.color.typ == cinbuf {
+			d.color.typ = cslow
 		}
 		bufSize := bestBufSize(dst.size)
 		y := 0
@@ -336,7 +236,7 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 				r1.Min.X = r.Min.X + x
 				r1.Max.X = r1.Min.X + width
 				n := width*height*3 + 1
-				d.c.Read(d.dci, &d.xarg, r1, buf[0:n])
+				d.ctrl.Read(d.dci, &d.reg, r1, buf[0:n])
 				i := 1
 				for y1 := y; y1 < y+height; y1++ {
 					j := y1*sip.stride + x*sip.pixSize
@@ -365,7 +265,7 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 						i += 3
 					}
 				}
-				d.c.StartWrite(d.dci, &d.xarg, r1)
+				d.ctrl.StartWrite(d.dci, &d.reg, r1)
 				d.dci.WriteBytes(buf[1:n])
 				x += width
 			}

@@ -27,21 +27,21 @@ func NewOver(dci tftdrv.DCI) *tftdrv.DriverOver {
 	return tftdrv.NewOver(dci, 240, 320, tftdrv.W16|tftdrv.W18|tftdrv.R18, ctrlOver)
 }
 
-func read(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
-	philips.StartRead16(dci, xarg, r)
+func read(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle, buf []byte) {
+	philips.StartRead16(dci, reg, r)
 	dci.ReadBytes(buf)
 	dci.End()
 }
 
-func setPF(dci tftdrv.DCI, parg *[1]byte, pixSize int) {
+func setPF(dci tftdrv.DCI, reg *tftdrv.Reg, pixSize int) {
 	pf := byte(MCU16)
 	if pixSize == 3 {
 		pf = MCU18
 	}
-	if parg[0] != pf {
-		parg[0] = pf
+	if reg.PF[0] != pf {
+		reg.PF[0] = pf
 		dci.Cmd(PIXSET)
-		dci.WriteBytes(parg[:])
+		dci.WriteBytes(reg.PF[:])
 	}
 }
 

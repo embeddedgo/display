@@ -45,8 +45,8 @@ var (
 	}
 )
 
-func read(dci tftdrv.DCI, xarg *[4]byte, r image.Rectangle, buf []byte) {
-	philips.StartRead16(dci, xarg, r)
+func read(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle, buf []byte) {
+	philips.StartRead16(dci, reg, r)
 	dci.ReadBytes(buf)
 	dci.End()
 
