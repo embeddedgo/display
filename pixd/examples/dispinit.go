@@ -11,6 +11,7 @@ import (
 	"github.com/embeddedgo/display/pixd/driver/tftdrv"
 	"github.com/embeddedgo/display/pixd/driver/tftdrv/ili9341"
 	"github.com/embeddedgo/display/pixd/driver/tftdrv/ili9486"
+	"github.com/embeddedgo/display/pixd/driver/tftdrv/ssd1351"
 	"github.com/embeddedgo/display/pixd/driver/tftdrv/st7789"
 )
 
@@ -49,16 +50,16 @@ func MSP4022_4i0_320x480_TFT_ILI9486(dci tftdrv.DCI) *pixd.Display {
 	return pixd.NewDisplay(drv)
 }
 
-/*func UG2828GDEDF11_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
+// Adafruit OLED Breakout Board - 16-bit Color 1.5" - UG-2828GDEDF11/SSD1351
+func Adafruit_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
 	drv := ssd1351.New(dci)
 	drv.Init(ssd1351.GFX)
 	return pixd.NewDisplay(drv)
 }
 
-func Adafruit_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
-	return UG2828GDEDF11_1i5_128x128_OLED_SSD1351(dci)
-}
-
+// Waveshare 128x128, General 1.5inch OLED display Module - UG-2828GDEDF11/SSD1351
 func Waveshare_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
-	return UG2828GDEDF11_1i5_128x128_OLED_SSD1351(dci)
-}*/
+	drv := ssd1351.New(dci)
+	drv.Init(ssd1351.Waveshare)
+	return pixd.NewDisplay(drv)
+}

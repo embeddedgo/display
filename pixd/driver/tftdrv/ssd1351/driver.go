@@ -4,8 +4,13 @@
 
 package ssd1351
 
+import (
+	"github.com/embeddedgo/display/pixd/driver/tftdrv"
+	"github.com/embeddedgo/display/pixd/driver/tftdrv/internal/epson"
+)
+
 func New(dci tftdrv.DCI) *tftdrv.Driver {
-	return tftdrv.New(dci, 240, 320, tftdrv.W16|tftdrv.W18, ctrl)
+	return tftdrv.New(dci, 128, 128, tftdrv.W18, ctrl)
 }
 
 var (
@@ -16,17 +21,18 @@ var (
 	}
 )
 
-func setPF(dci tftdrv.DCI, parg *[1]byte, pixSize int) {
-	pf := byte(0)
+func setPF(dci tftdrv.DCI, reg *tftdrv.Reg, pixSize int) {
+	dirpf := reg.Dir[0] ^ RGB18
 	if pixSize == 3 {
-		pf = MCU18
+		dirpf |= RGB18
 	}
-	if parg[0] != pf {
-		parg[0] = pf
-		dci.Cmd(PIXSET)
-		dci.WriteBytes(parg[:])
+	if reg.Dir[0] != dirpf {
+		reg.Dir[0] = dirpf
+		dci.Cmd(RMDCLM)
+		dci.WriteBytes(reg.Dir[:])
 	}
 }
 
+func setDir(dci tftdrv.DCI, reg *tftdrv.Reg, dir int) {
 
-setDir
+}
