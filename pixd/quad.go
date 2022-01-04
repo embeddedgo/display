@@ -180,3 +180,28 @@ func fillQuad(a *Area, p0, p1, p2, p3 image.Point, fillRules bool) {
 		}
 	}
 }
+
+// IsConvex reports whether the given vertices describe a convex polygon.
+func IsConvex(vertices ...image.Point) bool {
+	if len(vertices) == 0 {
+		return false
+	}
+	lastxp := 0
+	a := vertices[len(vertices)-1]
+	b := vertices[0]
+	for _, c := range vertices[1:] {
+		xp := (b.X-a.X)*(c.Y-a.Y) - (b.Y-a.Y)*(c.X-a.X)
+		a, b = b, c
+		if xp == 0 {
+			continue
+		}
+		if lastxp == 0 {
+			lastxp = xp
+			continue
+		}
+		if xp^lastxp < 0 {
+			return false
+		}
+	}
+	return true
+}

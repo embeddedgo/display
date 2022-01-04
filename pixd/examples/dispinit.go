@@ -49,7 +49,7 @@ func MSP4022_4i0_320x480_TFT_ILI9486(dci tftdrv.DCI) *pixd.Display {
 	return pixd.NewDisplay(drv)
 }
 
-func UG2828GDEDF11_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
+/*func UG2828GDEDF11_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
 	drv := ssd1351.New(dci)
 	drv.Init(ssd1351.GFX)
 	return pixd.NewDisplay(drv)
@@ -61,4 +61,4 @@ func Adafruit_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
 
 func Waveshare_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
 	return UG2828GDEDF11_1i5_128x128_OLED_SSD1351(dci)
-}
+}*/

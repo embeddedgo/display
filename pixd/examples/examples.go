@@ -128,10 +128,18 @@ var fvga = &font.Face{
 	},
 }
 
-func rndPt(r image.Rectangle) (p image.Point) {
+func randPoint(r image.Rectangle) (p image.Point) {
 	p.X = r.Min.X + rand.Int()%r.Dx()
 	p.Y = r.Min.Y + rand.Int()%r.Dy()
 	return
+}
+
+func randQuad(a *pixd.Area, r image.Rectangle) {
+	p0, p1, p2, p3 := randPoint(r), randPoint(r), randPoint(r), randPoint(r)
+	if !pixd.IsConvex(p0, p1, p2, p3) {
+		p0 = p1
+	}
+	a.Quad(p0, p1, p2, p3, true)
 }
 
 func clearAndPrint(a *pixd.Area, face *font.Face, s string) {
@@ -139,9 +147,10 @@ func clearAndPrint(a *pixd.Area, face *font.Face, s string) {
 	a.SetColor(white)
 	r := a.Bounds()
 	a.Fill(r)
-	a.SetColorRGBA(80, 160, 240, 255)
-	p0, p1, p2 := rndPt(r), rndPt(r), rndPt(r)
-	a.Quad(p0, p0, p1, p2, true)
+	a.SetColorRGBA(70, 140, 210, 210)
+	randQuad(a, r)
+	a.SetColorRGBA(210, 140, 70, 210)
+	randQuad(a, r)
 	a.SetColor(black)
 	w := a.NewTextWriter(face)
 	w.WriteString(s)
