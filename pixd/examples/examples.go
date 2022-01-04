@@ -25,7 +25,7 @@ var (
 )
 
 // RotateDisplay draws a white arrow pointing to the top left corner of the
-// screen, the red, green and blue bars on near top right corner of the screen
+// screen, the red, green and blue bars near top right corner of the screen
 // and a purple rounded rectangle around the screen. Next it sequentially
 // rotates the coordinate system 90 degrees clockwise and draws it all again.
 //
@@ -92,8 +92,8 @@ func RotateDisplay(disp *pixd.Display, n int) {
 
 }
 
-// The Akkerman Steppes original Polish by Adam Mickiewicz (1798-1855).
-const akkermanSteppesPL = `Wpłynąłem na suchego przestwór oceanu, Wóz nurza się w zieloność i jak łódka brodzi, Śród fali łąk szumiących, śród kwiatów powodzi, Omijam koralowe ostrowy burzanu.
+// The Akkerman Steppe original Polish by Adam Mickiewicz (1798-1855).
+const akkermanSteppePL = `Wpłynąłem na suchego przestwór oceanu, Wóz nurza się w zieloność i jak łódka brodzi, Śród fali łąk szumiących, śród kwiatów powodzi, Omijam koralowe ostrowy burzanu.
 
 Już mrok zapada, nigdzie drogi ni kurhanu; Patrzę w niebo, gwiazd szukam, przewodniczek łodzi; Tam z dala błyszczy obłok - tam jutrzenka wschodzi; To błyszczy Dniestr, to weszła lampa Akermanu.
 
@@ -101,8 +101,8 @@ Stójmy! - jak cicho! - słyszę ciągnące żurawie, Których by nie dościgły
 
 Kędy wąż śliską piersią dotyka się zioła. W takiej ciszy - tak ucho natężam ciekawie, Że słyszałbym głos z Litwy. - Jedźmy, nikt nie woła.`
 
-// The Akkerman Steppes translated to English by Leo Yankevich.
-const akkermanSteppesEN = `I launch myself across the dry and open narrows, My carriage plunging into green as if a ketch, Floundering through the meadow flowers in the stretch. I pass an archipelago of coral yarrows.
+// The Akkerman Steppe translated to English by Leo Yankevich.
+const akkermanSteppeEN = `I launch myself across the dry and open narrows, My carriage plunging into green as if a ketch, Floundering through the meadow flowers in the stretch. I pass an archipelago of coral yarrows.
 
 It's dusk now, not a road in sight, nor ancient barrows. I look up at the sky and look for stars to catch. There distant clouds glint-there tomorrow starts to etch; The Dnieper glimmers; Akkerman's lamp shines and harrows.
 
@@ -159,12 +159,21 @@ func clearAndPrint(a *pixd.Area, face *font.Face, s string) {
 	time.Sleep(10 * time.Second)
 }
 
+// DrawText draws English and Polish text of the Akkerman Steppe poem on the
+// whole screen using two different font faces. The background is white with two
+// random quadrilaterals or triangles with different semi-transparent colors.
+// The text is black. Dejavu is a proportional font with glyph data encoded as
+// 2 bpp image (anti-aliased, 4 transparency levels). VGA is a monospace font
+// with glyph data encoded as 1 bpp image (no anti-aliasing).
+//
+// Pay attention to the background visibility, font anti-aliasing (display
+// dependent), non-ASCII letters in Polish text.
 func DrawText(disp *pixd.Display, n int) {
 	a := disp.NewArea(disp.Bounds())
 	for i := 0; i != n; i++ {
-		clearAndPrint(a, fdejavu, akkermanSteppesEN)
-		clearAndPrint(a, fdejavu, akkermanSteppesPL)
-		clearAndPrint(a, fvga, akkermanSteppesEN)
-		clearAndPrint(a, fvga, akkermanSteppesPL)
+		clearAndPrint(a, fdejavu, akkermanSteppeEN)
+		clearAndPrint(a, fdejavu, akkermanSteppePL)
+		clearAndPrint(a, fvga, akkermanSteppeEN)
+		clearAndPrint(a, fvga, akkermanSteppePL)
 	}
 }
