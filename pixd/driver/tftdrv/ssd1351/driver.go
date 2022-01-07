@@ -10,7 +10,7 @@ import (
 )
 
 func New(dci tftdrv.DCI) *tftdrv.Driver {
-	return tftdrv.New(dci, 128, 128, tftdrv.W18, ctrl)
+	return tftdrv.New(dci, 128, 128, tftdrv.W18L, ctrl)
 }
 
 var (

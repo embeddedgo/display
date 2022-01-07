@@ -15,19 +15,21 @@ import (
 type PF byte
 
 const (
-	R16 PF = 1 << iota // Read  RGB 565, 2 bytes/pixel
-	W16                // Write RGB 565, 2 bytes/pixel
-	R18                // Read  RGB 666, 3 bytes/pixel
-	W18                // Write RGB 666, 3 bytes/pixel
-	R24                // Read  RGB 888, 3 bytes/pixel
-	W24                // Write RGB 888, 3 bytes/pixel
+	R16  PF = 1 << iota // Read  RGB 565, 2 bytes/pixel
+	W16                 // Write RGB 565, 2 bytes/pixel
+	R18L                // Read  RGB 666 in low bits, 3 bytes/pixel
+	W18L                // Write RGB 666 in low bits, 3 bytes/pixel
+	R18H                // Read  RGB 666 in high bits, 3 bytes/pixel
+	W18H                // Write RGB 666 in high bits, 3 bytes/pixel
+	R24                 // Read  RGB 888, 3 bytes/pixel
+	W24                 // Write RGB 888, 3 bytes/pixel
 )
 
 // Reg contains local copy of some controller registers to allow working with
 // write-only displays.
 type Reg struct {
-	PF   [1]byte    // pixel format relaed register
-	Dir  [1]byte    // direction/orientation related register
+	PF   [1]byte // pixel format relaed register
+	Dir  [1]byte // direction/orientation related register
 	Xarg [4]byte // scratch buffer to avoid allocation
 }
 
@@ -124,9 +126,15 @@ func setColor(c *fillColor, r, g, b, a uint32, dci DCI) {
 			}
 		}
 		if c.pf&W24 == 0 {
-			r &^= 3
-			g &^= 3
-			b &^= 3
+			if c.pf&W18L != 0 {
+				r >>= 2
+				g >>= 2
+				b >>= 2
+			} else {
+				r &^= 3
+				g &^= 3
+				b &^= 3
+			}
 		}
 		if r == g && g == b {
 			if _, ok := dci.(ByteNWriter); ok {
