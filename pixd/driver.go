@@ -10,7 +10,8 @@ import (
 	"image/draw"
 )
 
-// Driver lists the operations expected from a display controller driver.
+// Driver defines the interface to be implemented by display controller drivers
+// or anything else that wants to use pixd package drawing capability.
 type Driver interface {
 	// SetDir sets the display direction rotating its default coordinate system
 	// by dir*90 degrees. It returns the bounds of the frame memory for the new
@@ -50,10 +51,19 @@ type Driver interface {
 	// memory is problematic or inefficient.
 	Flush()
 
-	//Read(r image.Rectangle, dst draw.Image, dp image.Point)
-
 	// Err returns the saved error and clears it if the clear is true. If an
 	// error has occured it is recommended that the Driver avoids any further
 	// operations until the error is cleared.
 	Err(clear bool) error
+}
+
+// ReadDriver is an optional interface that driver can implement to allow read
+// the content of frame memory.
+type ReadDriver interface {
+	// NewImage returns a new image with the given bounds. The returned image
+	// type is best fitted to be used with Read method.
+	NewImage(r image.Rectangle) draw.Image
+
+	// Read reads the part of frame memory specified by r into dst at dp.
+	Read(r image.Rectangle, dst draw.Image, dp image.Point)
 }

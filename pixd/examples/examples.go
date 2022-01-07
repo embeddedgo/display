@@ -24,6 +24,44 @@ var (
 	blue  = color.RGBA{0, 0, 255, 255}
 )
 
+func Colors(disp *pixd.Display) {
+	a := disp.NewArea(disp.Bounds())
+	a.SetColor(black)
+	a.Fill(a.Bounds())
+	max := a.Bounds().Max
+	w := max.X / 4
+	div := max.Y - 1
+	c := color.RGBA64{A: 0xffff}
+	var r image.Rectangle
+	for y := 0; y < max.Y; y++ {
+		r.Min.Y = y
+		r.Max.Y = y + 1
+		c.R = uint16((y*0xffff + div/2) / div)
+		c.G = 0
+		c.B = 0
+		a.SetColor(c)
+		r.Min.X = 0
+		r.Max.X = w
+		a.Fill(r)
+		c.R, c.G = 0, c.R
+		a.SetColor(c)
+		r.Min.X += w
+		r.Max.X += w
+		a.Fill(r)
+		c.G, c.B = 0, c.G
+		a.SetColor(c)
+		r.Min.X += w
+		r.Max.X += w
+		a.Fill(r)
+		c.R, c.G = c.B, c.B
+		a.SetColor(c)
+		r.Min.X += w
+		r.Max.X = max.X
+		a.Fill(r)
+	}
+	time.Sleep(2 * time.Second)
+}
+
 // RotateDisplay draws a white arrow pointing to the top left corner of the
 // screen, the red, green and blue bars near top right corner of the screen
 // and a purple rounded rectangle around the screen. Next it sequentially
@@ -32,7 +70,7 @@ var (
 // Pay attention to the position of all elements, the order of RGB bars (the
 // red one should be closest to the arrow, the blue one farthest) and the
 // direction of rotation.
-func RotateDisplay(disp *pixd.Display, n int) {
+func RotateDisplay(disp *pixd.Display) {
 	r := disp.Bounds()
 	a := disp.NewArea(r)
 
@@ -40,7 +78,7 @@ func RotateDisplay(disp *pixd.Display, n int) {
 	// they position will adapt to current orientation of screen
 	w := r.Max.X / 10
 	h := r.Dy() / 3
-	for i := 0; i != n; i++ {
+	for i := 0; i < 5; i++ {
 		t1 := time.Now()
 
 		// change display direction (orientation)
@@ -168,12 +206,10 @@ func clearAndPrint(a *pixd.Area, face *font.Face, s string) {
 //
 // Pay attention to the background visibility, font anti-aliasing (display
 // dependent), non-ASCII letters in Polish text.
-func DrawText(disp *pixd.Display, n int) {
+func DrawText(disp *pixd.Display) {
 	a := disp.NewArea(disp.Bounds())
-	for i := 0; i != n; i++ {
-		clearAndPrint(a, fdejavu, akkermanSteppeEN)
-		clearAndPrint(a, fdejavu, akkermanSteppePL)
-		clearAndPrint(a, fvga, akkermanSteppeEN)
-		clearAndPrint(a, fvga, akkermanSteppePL)
-	}
+	clearAndPrint(a, fdejavu, akkermanSteppeEN)
+	clearAndPrint(a, fdejavu, akkermanSteppePL)
+	clearAndPrint(a, fvga, akkermanSteppeEN)
+	clearAndPrint(a, fvga, akkermanSteppePL)
 }
