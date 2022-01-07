@@ -10,7 +10,7 @@ import (
 )
 
 func New(dci tftdrv.DCI) *tftdrv.Driver {
-	return tftdrv.New(dci, 128, 128, tftdrv.W18L, ctrl)
+	return tftdrv.New(dci, 128, 128, tftdrv.W16|tftdrv.W18L, ctrl)
 }
 
 var (
@@ -22,17 +22,25 @@ var (
 )
 
 func setPF(dci tftdrv.DCI, reg *tftdrv.Reg, pixSize int) {
-	dirpf := reg.Dir[0] ^ RGB18
+	rmcd := reg.Dir[0] ^ RGB18
 	if pixSize == 3 {
-		dirpf |= RGB18
+		rmcd |= RGB18
 	}
-	if reg.Dir[0] != dirpf {
-		reg.Dir[0] = dirpf
-		dci.Cmd(RMDCLM)
+	if reg.Dir[0] != rmcd {
+		reg.Dir[0] = rmcd
+		dci.Cmd(RMCD)
 		dci.WriteBytes(reg.Dir[:])
 	}
 }
 
 func setDir(dci tftdrv.DCI, reg *tftdrv.Reg, dir int) {
+	rmcd := reg.Dir[0]
+	if dir&2 != 0 { // SSD1351 in hardware supports only 180 deg rotation
+		rmcd ^= (C127_SEG0 | COMn_COM0)
 
+	}
+	reg.Xarg[0] = rmcd
+	dci.Cmd(RMCD)
+	dci.WriteBytes(reg.Xarg[:1])
+	dci.End()
 }

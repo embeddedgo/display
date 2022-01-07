@@ -60,6 +60,32 @@ func Colors(disp *pixd.Display) {
 		a.Fill(r)
 	}
 	time.Sleep(2 * time.Second)
+	for y := 0; y < max.Y; y++ {
+		r.Min.Y = y
+		r.Max.Y = y + 1
+		c.R = uint16((y*0xffff + div/2) / div)
+		c.G, c.B = c.R, 0
+		a.SetColor(c)
+		r.Min.X = 0
+		r.Max.X = w
+		a.Fill(r)
+		c.R, c.B = 0, c.G
+		a.SetColor(c)
+		r.Min.X += w
+		r.Max.X += w
+		a.Fill(r)
+		c.G, c.R = 0, c.B
+		a.SetColor(c)
+		r.Min.X += w
+		r.Max.X += w
+		a.Fill(r)
+		c.R, c.G = c.B, c.B
+		a.SetColor(c)
+		r.Min.X += w
+		r.Max.X = max.X
+		a.Fill(r)
+	}
+	time.Sleep(2 * time.Second)
 }
 
 // RotateDisplay draws a white arrow pointing to the top left corner of the

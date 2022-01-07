@@ -60,6 +60,6 @@ func Adafruit_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
 // Waveshare 128x128, General 1.5inch OLED display Module - UG-2828GDEDF11/SSD1351
 func Waveshare_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pixd.Display {
 	drv := ssd1351.New(dci)
-	drv.Init(ssd1351.Waveshare)
+	drv.Init(ssd1351.UG2828GDEDF11)
 	return pixd.NewDisplay(drv)
 }

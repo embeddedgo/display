@@ -12,7 +12,7 @@ const (
 	PASET   = epson.PASET  // Set Row Address
 	RAMWR   = epson.RAMWR  // Write RAM Command
 	RAMRD   = epson.RAMRD  // Read RAM Command
-	RMDCLM  = 0xA0         // Set Re-map & Dual COM Line Mode
+	RMCD    = 0xA0         // Set Re-map & Color Depth
 	VSCSAD  = 0xA1         // Set Display Start Line
 	DOFFSET = 0xA2         // Set Display Offset
 	DISBLK  = 0xA4         // Set Entire Display Black
@@ -38,7 +38,7 @@ const (
 	CMDLCK  = 0xFD         // Set Command Lock
 )
 
-// RMDCLM arguments
+// RMCD arguments
 const (
 	VAI       = 1 << 0 // Vertical (instead of horizontal) address increment
 	C127_SEG0 = 1 << 1 // Column address 127 (instead of 0) is mapped to SEG0
@@ -53,8 +53,7 @@ const ms = 255
 
 // GFX contains initialization commands taken from Adafruit GFX library.
 var GFX = []byte{
-	150, ms, // wait 300 ms after reset
-	150, ms,
+	100, ms, // wait 100 ms after reset
 	CMDLCK, 1, 0x12,
 	CMDLCK, 1, 0xB1,
 	SLPIN, 0,
@@ -71,24 +70,36 @@ var GFX = []byte{
 	VSL, 3, 0xA0, 0xB5, 0x55,
 	PHA3LEN, 1, 0x01,
 	SLPOUT, 0,
-	RMDCLM, 1, COMSplit | COMn_COM0 | CBA, // default display orientation, must be the last one
+	RMCD, 1, COMSplit | COMn_COM0 | CBA, // default display orientation, must be the last one
 }
 
-var Waveshare = []byte{
-	150, ms, // wait 300 ms after reset
-	150, ms,
+// UG2828GDEDF11 contains the initialization commands taken from the
+// documentation of UG-2828GDEDF11 1.5" 128x128 RGB OLED. This display is used
+// by Waveshare and probably by Adafruit 1.5" RGB OLED modules.
+var UG2828GDEDF11 = []byte{
+	100, ms, // wait 100 ms after reset
 	CMDLCK, 1, 0x12,
 	CMDLCK, 1, 0xB1,
 	SLPIN, 0,
-	DISBLK, 0,
 	CLKDIV, 1, 0xF1,
 	MUXR, 1, 0x7F,
-	VSCSAD, 1, 0x00,
 	DOFFSET, 1, 0x00,
+	VSCSAD, 1, 0x00,
+	// RMCD, 1, 0xB4 moved to the end
+	GPIO, 1, 0x00,
 	FUNCSEL, 1, 0x01,
 	VSL, 3, 0xA0, 0xB5, 0x55,
-	CCABC, 3, 0xC8, 0x80, 0xC0,
+	CCABC, 3, 0xC8, 0x80, 0xC8,
 	MCCC, 1, 0x0F,
+	GRAYLUT, 63,
+	0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09,
+	0x0A, 0x0B, 0x0C, 0x0D, 0x0E, 0x0F, 0x10, 0x11,
+	0x12, 0x13, 0x15, 0x17, 0x19, 0x1B, 0x1D, 0x1F,
+	0x21, 0x23, 0x25, 0x27, 0x2A, 0x2D, 0x30, 0x33,
+	0x36, 0x39, 0x3C, 0x3F, 0x42, 0x45, 0x48, 0x4C,
+	0x50, 0x54, 0x58, 0x5C, 0x60, 0x64, 0x68, 0x6C,
+	0x70, 0x74, 0x78, 0x7D, 0x82, 0x87, 0x8C, 0x91,
+	0x96, 0x9B, 0xA0, 0xA5, 0xAA, 0xAF, 0xB4,
 	PHALEN, 1, 0x32,
 	DENH, 3, 0xA4, 0x00, 0x00,
 	VPREC, 1, 0x17,
@@ -96,5 +107,5 @@ var Waveshare = []byte{
 	VCOMH, 1, 0x05,
 	DISNOR, 0,
 	SLPOUT, 0,
-	RMDCLM, 1, COMSplit | COMn_COM0 | CBA, // default display orientation, must be the last one
+	RMCD, 1, COMSplit | COMn_COM0 | CBA, // default display orientation, must be the last one
 }
