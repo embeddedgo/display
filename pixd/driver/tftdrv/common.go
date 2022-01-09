@@ -121,6 +121,9 @@ func setColor(c *fillColor, r, g, b, a uint32, dci DCI) {
 						return
 					}
 				}
+				if c.typ == cinbuf && c.r == h && c.g == l && c.npp == 2 {
+					return // avoiding refilling the buffer with the same color
+				}
 				c.typ = cslow
 				c.npp = 2
 				c.r = uint16(h)
@@ -129,10 +132,12 @@ func setColor(c *fillColor, r, g, b, a uint32, dci DCI) {
 			}
 		}
 		if c.pf&X2L != 0 {
+			// only to increase probability of (r == g && g == b) below
 			r &^= 3
 			g &^= 3
 			b &^= 3
 		} else if c.pf&X2H != 0 {
+			// required by display controller
 			r >>= 2
 			g >>= 2
 			b >>= 2
@@ -145,6 +150,10 @@ func setColor(c *fillColor, r, g, b, a uint32, dci DCI) {
 				c.r = uint16(r)
 				return
 			}
+		}
+		if c.typ == cinbuf && uint32(c.r) == r && uint32(c.g) == g &&
+			uint32(c.b) == b && c.npp == 3 {
+			return // avoiding refilling the buffer with the same color
 		}
 	}
 	c.typ = cslow

@@ -155,7 +155,8 @@ var (
 	}
 )
 
-const AkermanianSteppesPL = `
+// The Akkerman Steppe Original Polish by Adam Mickiewicz (1798-1855)
+const AkermanianSteppePL = `
 Wpłynąłem na suchego przestwór oceanu,
 Wóz nurza się w zieloność i jak łódka brodzi,
 Śród fali łąk szumiących, śród kwiatów powodzi,
@@ -175,10 +176,28 @@ W takiej ciszy - tak ucho natężam ciekawie,
 Że słyszałbym głos z Litwy. - Jedźmy, nikt nie woła.
 `
 
-const AkermanianSteppesEN = `
-The Akkerman Steppes Original Polish (above) by Adam Mickiewicz
-(1798-1855) translated to English by Leo Yankevich (below).
+const AkermanianSteppeDE = `
+In kargen Raum gedrungen, ozeanisch weiten,
+taucht mein Wagen ein, ein schwerer Kahn, gezogen
+durch das Blütenmeer, rauschende Wiesenwogen,
+weicht Inseln, Riffen aus, muß mit den Stürmen streiten.
 
+Ein Dämmern senkt sich, doch kein Stern will mich geleiten
+hab ich den Himmel nach Vertrautem überflogen.
+Was glimmt dort? Zieht der Morgenstern schon seinen Bogen?
+Als Morgengruß woll'n Lichter übern Dnjestr gleiten.
+
+Sei still! Hoch ziehn die Kraniche in langen Ketten,
+So hoch daß sie selbst wachem Falkenblick entgehen,
+Ich hör, sich Schmetterlinge in die Winde betten.
+
+Schlüpft hier ` + "`" + `ne Schlange durch das Gras? ... Die Ähren wehen...
+Ich horche weit, auf Stimmen aus vertrauten Stätten;
+aus Litau'n...  Weiter! ... niemand ist zu hör'n, zu sehen.
+`
+
+// The Akkerman Steppe translated to English by Leo Yankevich
+const AkermanianSteppeEN = `
 I launch myself across the dry and open narrows,
 My carriage plunging into green as if a ketch,
 Floundering through the meadow flowers in the stretch.
@@ -198,10 +217,11 @@ Amid the hush I lean my ears down grassy lanes
 And listen for a voice from home. Nobody talks.
 `
 
+
 func TestFont(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 440, 810))
+	screen := image.NewNRGBA(image.Rect(0, 0, 470, 770))
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
@@ -211,13 +231,13 @@ func TestFont(t *testing.T) {
 	a.SetColorRGBA(0, 0, 100, 255)
 
 	w := a.NewTextWriter(Dejavu12)
-	w.WriteString(AkermanianSteppesPL)
+	w.WriteString(AkermanianSteppePL)
 
 	w.Face = AnonPro11
-	w.WriteString(AkermanianSteppesEN)
+	w.WriteString(AkermanianSteppeDE)
 
 	w.Face = VGA
-	w.WriteString(AkermanianSteppesPL)
+	w.WriteString(AkermanianSteppeEN)
 
 	f, err := os.OpenFile(filepath.Join(dir, "font.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
@@ -228,7 +248,7 @@ func TestFont(t *testing.T) {
 func TestRectTriangle(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 400, 800))
+	screen := image.NewNRGBA(image.Rect(0, 0, 500, 800))
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
@@ -261,7 +281,7 @@ func TestRectTriangle(t *testing.T) {
 
 	for _, tr := range triangles {
 		a.SetColorRGBA(0, 192, 0, 192)
-		a.Quad(tr[0], tr[1], tr[2], tr[0], true)
+		a.Quad(tr[0], tr[1], tr[1], tr[2], true)
 		a.SetColorRGBA(192, 0, 0, 192)
 		a.FillQuad(tr[0], tr[1], tr[2], tr[0])
 	}
@@ -273,11 +293,26 @@ func TestRectTriangle(t *testing.T) {
 	}
 
 	for _, tr := range triangles {
-		//a.SetColorRGBA(255, 0, 0, 255)
-		//a.Triangle(tr[0], tr[1], tr[2], true)
 		a.SetColorRGBA(192, 0, 0, 192)
 		a.FillQuad(tr[0], tr[1], tr[2], tr[2])
 	}
+
+	f, err := os.OpenFile(filepath.Join(dir, "triangle.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, screen))
+	failErr(t, f.Close())
+}
+
+func TestRoundRect(t *testing.T) {
+	os.Mkdir(dir, 0755)
+
+	screen := image.NewNRGBA(image.Rect(0, 0, 300, 400))
+	disp := pixd.NewDisplay(imgdrv.New(screen))
+
+	a := disp.NewArea(disp.Bounds())
+	a.SetOrigin(image.Pt(70, 50))
+	a.SetColorRGBA(0, 0, 0, 255)
+	a.Fill(a.Bounds())
 
 	a.SetColorRGBA(0, 0, 128, 128)
 	a.RoundRect(image.Pt(200, 100), image.Pt(300, 400), 30, 40, true)
@@ -285,11 +320,17 @@ func TestRectTriangle(t *testing.T) {
 	a.RoundRect(image.Pt(200, 100), image.Pt(300, 400), 30, 40, false)
 
 	a.SetColorRGBA(0, 0, 128, 128)
-	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 20, 20, true)
+	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 15, 15, true)
 	a.SetColorRGBA(0, 128, 0, 128)
-	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 20, 20, false)
+	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 15, 15, false)
 
-	f, err := os.OpenFile(filepath.Join(dir, "triangle.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	r := a.Bounds().Inset(10)
+	r.Max.X--
+	r.Max.Y--
+	a.SetColorRGBA(200, 0, 200, 200)
+	a.RoundRect(r.Min, r.Max, 10, 10, false)
+
+	f, err := os.OpenFile(filepath.Join(dir, "roundrect.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
 	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())

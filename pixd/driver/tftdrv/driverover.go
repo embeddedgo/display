@@ -178,13 +178,13 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 					b := uint(d.buf[i+2])
 					if d.color.pf&(X2L|X2H) != 0 {
 						if d.color.pf&X2H != 0 {
-							r >>= 2
-							g >>= 2
-							b >>= 2
-						} else {
 							r &= 63
 							g &= 63
 							b &= 63
+						} else {
+							r >>= 2
+							g >>= 2
+							b >>= 2
 						}
 						r = r<<10 | r<<4 | r>>2
 						g = g<<10 | g<<4 | g>>2
@@ -284,13 +284,13 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 						db := uint32(buf[i+2])
 						if d.color.pf&(X2L|X2H) != 0 {
 							if d.color.pf&X2H != 0 {
-								dr >>= 2
-								dg >>= 2
-								db >>= 2
-							} else {
 								dr &= 63
 								dg &= 63
 								db &= 63
+							} else {
+								dr >>= 2
+								dg >>= 2
+								db >>= 2
 							}
 							dr = dr<<10 | dr<<4 | dr>>2
 							dg = dg<<10 | dg<<4 | dg>>2
