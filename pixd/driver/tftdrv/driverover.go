@@ -144,6 +144,10 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 		sb := uint(d.color.b)
 		a := 0xffff - uint(d.color.a)
 		y := r.Min.Y
+		shift := 8
+		if d.color.pf&X2H != 0 {
+			shift = 10
+		}
 		for {
 			height := r.Max.Y - y
 			if height <= 0 {
@@ -172,12 +176,30 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 					r := uint(d.buf[i+0])
 					g := uint(d.buf[i+1])
 					b := uint(d.buf[i+2])
-					r = (r<<8|r)*a/0xffff + sr
-					g = (g<<8|g)*a/0xffff + sg
-					b = (b<<8|b)*a/0xffff + sb
-					d.buf[i+0] = uint8(r >> 8)
-					d.buf[i+1] = uint8(g >> 8)
-					d.buf[i+2] = uint8(b >> 8)
+					if d.color.pf&(X2L|X2H) != 0 {
+						if d.color.pf&X2H != 0 {
+							r >>= 2
+							g >>= 2
+							b >>= 2
+						} else {
+							r &= 63
+							g &= 63
+							b &= 63
+						}
+						r = r<<10 | r<<4 | r>>2
+						g = g<<10 | g<<4 | g>>2
+						b = b<<10 | b<<4 | b>>2
+					} else {
+						r |= r << 8
+						g |= g << 8
+						b |= b << 8
+					}
+					r = r*a/0xffff + sr
+					g = g*a/0xffff + sg
+					b = b*a/0xffff + sb
+					d.buf[i+0] = uint8(r >> shift)
+					d.buf[i+1] = uint8(g >> shift)
+					d.buf[i+2] = uint8(b >> shift)
 				}
 				d.ctrl.StartWrite(d.dci, &d.reg, r1)
 				d.dci.WriteBytes(d.buf[1:n])
@@ -189,7 +211,10 @@ func (d *DriverOver) Fill(r image.Rectangle) {
 }
 
 func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	dst := dst{r.Size(), 3}
+	dst := dst{size: r.Size(), pixSize: 3}
+	if d.color.pf&X2H != 0 {
+		dst.shift = 2
+	}
 	sip := imageAtPoint(src, sp)
 	if op == draw.Src {
 		if d.ctrl.SetPF != nil {
@@ -213,6 +238,7 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 		}
 		bufSize := bestBufSize(dst.size)
 		y := 0
+		shift := 8 + dst.shift
 		for {
 			height := dst.size.Y - y
 			if height <= 0 {
@@ -256,12 +282,30 @@ func (d *DriverOver) Draw(r image.Rectangle, src image.Image, sp image.Point, ma
 						dr := uint32(buf[i+0])
 						dg := uint32(buf[i+1])
 						db := uint32(buf[i+2])
-						dr = ((dr<<8|dr)*a + sr*ma) / 0xffff
-						dg = ((dg<<8|dg)*a + sg*ma) / 0xffff
-						db = ((db<<8|db)*a + sb*ma) / 0xffff
-						buf[i+0] = uint8(dr >> 8)
-						buf[i+1] = uint8(dg >> 8)
-						buf[i+2] = uint8(db >> 8)
+						if d.color.pf&(X2L|X2H) != 0 {
+							if d.color.pf&X2H != 0 {
+								dr >>= 2
+								dg >>= 2
+								db >>= 2
+							} else {
+								dr &= 63
+								dg &= 63
+								db &= 63
+							}
+							dr = dr<<10 | dr<<4 | dr>>2
+							dg = dg<<10 | dg<<4 | dg>>2
+							db = db<<10 | db<<4 | db>>2
+						} else {
+							dr |= dr << 8
+							dg |= dg << 8
+							db |= db << 8
+						}
+						dr = (dr*a + sr*ma) / 0xffff
+						dg = (dg*a + sg*ma) / 0xffff
+						db = (db*a + sb*ma) / 0xffff
+						buf[i+0] = uint8(dr >> shift)
+						buf[i+1] = uint8(dg >> shift)
+						buf[i+2] = uint8(db >> shift)
 						i += 3
 					}
 				}

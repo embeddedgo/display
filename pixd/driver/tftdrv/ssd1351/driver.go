@@ -22,14 +22,14 @@ var (
 )
 
 func setPF(dci tftdrv.DCI, reg *tftdrv.Reg, pixSize int) {
-	rmcd := reg.Dir[0] ^ RGB18
+	rmcd := reg.PF[0] &^ RGB18
 	if pixSize == 3 {
 		rmcd |= RGB18
 	}
-	if reg.Dir[0] != rmcd {
-		reg.Dir[0] = rmcd
+	if reg.PF[0] != rmcd {
+		reg.PF[0] = rmcd
 		dci.Cmd(RMCD)
-		dci.WriteBytes(reg.Dir[:])
+		dci.WriteBytes(reg.PF[:])
 	}
 }
 
@@ -39,8 +39,8 @@ func setDir(dci tftdrv.DCI, reg *tftdrv.Reg, dir int) {
 		rmcd ^= (C127_SEG0 | COMn_COM0)
 
 	}
-	reg.Xarg[0] = rmcd
+	reg.PF[0] = rmcd
 	dci.Cmd(RMCD)
-	dci.WriteBytes(reg.Xarg[:1])
+	dci.WriteBytes(reg.PF[:])
 	dci.End()
 }

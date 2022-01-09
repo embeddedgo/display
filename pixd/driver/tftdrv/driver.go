@@ -82,7 +82,10 @@ func (d *Driver) Fill(r image.Rectangle) {
 }
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	dst := dst{r.Size(), 3}
+	dst := dst{size: r.Size(), pixSize: 3}
+	if d.color.pf&X2H != 0 {
+		dst.shift = 2
+	}
 	sip := imageAtPoint(src, sp)
 	if op == draw.Src {
 		if d.ctrl.SetPF != nil {
@@ -107,6 +110,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 		i := 0
 		width := dst.size.X
 		height := dst.size.Y
+		shift := 8 + dst.shift
 		for y := 0; y < height; y++ {
 			j := y * sip.stride
 			drawing := false
@@ -139,10 +143,9 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 								d.dci.WriteBytes(buf[:i])
 								i = 0
 							}
-							r1 := image.Rectangle{
-								image.Pt(x, y),
-								image.Pt(x+width, y+1),
-							}.Add(r.Min)
+							r1 := r
+							r1.Min.X += x
+							r1.Min.Y += y
 							d.ctrl.StartWrite(d.dci, &d.reg, r1)
 						}
 						if dst.pixSize == 2 {
@@ -152,9 +155,9 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 							buf[i+0] = uint8(sr<<3 | sg>>3)
 							buf[i+1] = uint8(sg<<5 | sb)
 						} else {
-							buf[i+0] = uint8(sr >> 8)
-							buf[i+1] = uint8(sg >> 8)
-							buf[i+2] = uint8(sb >> 8)
+							buf[i+0] = uint8(sr >> shift)
+							buf[i+1] = uint8(sg >> shift)
+							buf[i+2] = uint8(sb >> shift)
 						}
 						i += dst.pixSize
 						if i == len(buf) {

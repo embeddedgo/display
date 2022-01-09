@@ -11,18 +11,21 @@ import (
 	"github.com/embeddedgo/display/pixd"
 )
 
-// PF describes supported pixel data formats
+// PF describes pixel data formats supported by display cpntroller.
 type PF byte
 
 const (
-	R16  PF = 1 << iota // Read  RGB 565, 2 bytes/pixel
-	W16                 // Write RGB 565, 2 bytes/pixel
-	R18L                // Read  RGB 666 in low bits, 3 bytes/pixel
-	W18L                // Write RGB 666 in low bits, 3 bytes/pixel
-	R18H                // Read  RGB 666 in high bits, 3 bytes/pixel
-	W18H                // Write RGB 666 in high bits, 3 bytes/pixel
-	R24                 // Read  RGB 888, 3 bytes/pixel
-	W24                 // Write RGB 888, 3 bytes/pixel
+	R16 PF = 1 << iota // Read  2 bytes/pixel, RGB 565
+	W16                // Write 2 bytes/pixel, RGB 565
+	R24                // Read  3 bytes/pixel, RGB nnn,
+	W24                // Write 3 bytes/pixel, RGB nnn,
+	X2L                // Unused 2 low  bits per subpixel
+	X2H                // Unused 2 high bits per subpixel
+
+	R18L = R24 | X2H // 3 bytes/pixel, 6 bits/subpixel in low  part of byte
+	W18L = W24 | X2H // 3 bytes/pixel, 6 bits/subpixel in low  part of byte
+	R18H = R24 | X2L // 3 bytes/pixel, 6 bits/subpixel in high part of byte
+	W18H = W24 | X2L // 3 bytes/pixel, 6 bits/subpixel in high part of byte
 )
 
 // Reg contains local copy of some controller registers to allow working with
@@ -125,16 +128,14 @@ func setColor(c *fillColor, r, g, b, a uint32, dci DCI) {
 				return
 			}
 		}
-		if c.pf&W24 == 0 {
-			if c.pf&W18L != 0 {
-				r >>= 2
-				g >>= 2
-				b >>= 2
-			} else {
-				r &^= 3
-				g &^= 3
-				b &^= 3
-			}
+		if c.pf&X2L != 0 {
+			r &^= 3
+			g &^= 3
+			b &^= 3
+		} else if c.pf&X2H != 0 {
+			r >>= 2
+			g >>= 2
+			b >>= 2
 		}
 		if r == g && g == b {
 			if _, ok := dci.(ByteNWriter); ok {
@@ -257,11 +258,11 @@ func fastRGBA(fi *fastImage, j int) (r, g, b, a uint32) {
 
 type dst struct {
 	size    image.Point
-	pixSize int
+	pixSize int  // 2 for W16, 3 for W24, W18L, W18H
+	shift   uint // noin-zero for W18L
 }
 
-// drawSrc draws masked image to the prepared region of GRAM. dst.PixSize must
-// be 3 (RGB 888) or 2 (RGB 565).
+// drawSrc draws masked image to the prepared region of frame memory.
 func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, mask image.Image, mp image.Point, buf []byte) (bufUsed bool) {
 	i := 0
 	width := dst.size.X
@@ -270,8 +271,8 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 		if sip.pixSize != 0 {
 			// known type of source image - we can speed up access to pixel data
 			width *= sip.pixSize
-			if sip.pixSize == dst.pixSize {
-				// can write sip directly to the graphics RAM
+			if dst.shift == 0 && dst.pixSize == sip.pixSize {
+				// can write sip directly to the frame memory
 				minChunk := len(buf) * 3 / 4
 				if len(sip.p) != 0 {
 					if width == sip.stride {
@@ -316,16 +317,16 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 			max := height * sip.stride
 			for {
 				if sip.p != nil {
-					buf[i+0] = sip.p[j+0]
-					buf[i+1] = sip.p[j+1]
+					buf[i+0] = sip.p[j+0] >> dst.shift
+					buf[i+1] = sip.p[j+1] >> dst.shift
 					if dst.pixSize == 3 {
-						buf[i+2] = sip.p[j+2]
+						buf[i+2] = sip.p[j+2] >> dst.shift
 					}
 				} else {
-					buf[i+0] = sip.s[j+0]
-					buf[i+1] = sip.s[j+1]
+					buf[i+0] = sip.s[j+0] >> dst.shift
+					buf[i+1] = sip.s[j+1] >> dst.shift
 					if dst.pixSize == 3 {
-						buf[i+2] = sip.s[j+2]
+						buf[i+2] = sip.s[j+2] >> dst.shift
 					}
 				}
 				i += dst.pixSize
@@ -346,12 +347,13 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 			// unknown type of source image - generic algorithm
 			bufUsed = true
 			r := image.Rectangle{sp, sp.Add(dst.size)}
+			shift := 8 + dst.shift
 			for y := r.Min.Y; y < r.Max.Y; y++ {
 				for x := r.Min.X; x < r.Max.X; x++ {
 					r, g, b, _ := src.At(x, y).RGBA()
-					buf[i+0] = uint8(r >> 8)
-					buf[i+1] = uint8(g >> 8)
-					buf[i+2] = uint8(b >> 8)
+					buf[i+0] = uint8(r >> shift)
+					buf[i+1] = uint8(g >> shift)
+					buf[i+2] = uint8(b >> shift)
 					i += 3
 					if i == len(buf) {
 						dci.WriteBytes(buf)
@@ -363,6 +365,7 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 	} else {
 		// non-nil mask
 		bufUsed = true
+		shift := 8 + dst.shift
 		for y := 0; y < height; y++ {
 			j := y * sip.stride
 			for x := 0; x < width; x++ {
@@ -378,9 +381,9 @@ func drawSrc(dci DCI, dst dst, src image.Image, sp image.Point, sip fastImage, m
 				g = g * ma / 0xffff
 				b = b * ma / 0xffff
 				if dst.pixSize != 2 {
-					buf[i+0] = uint8(r >> 8)
-					buf[i+1] = uint8(g >> 8)
-					buf[i+2] = uint8(b >> 8)
+					buf[i+0] = uint8(r >> shift)
+					buf[i+1] = uint8(g >> shift)
+					buf[i+2] = uint8(b >> shift)
 				} else {
 					r >>= 11
 					g >>= 10

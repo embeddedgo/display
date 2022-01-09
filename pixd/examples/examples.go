@@ -33,6 +33,7 @@ func Colors(disp *pixd.Display) {
 	div := max.Y - 1
 	c := color.RGBA64{A: 0xffff}
 	var r image.Rectangle
+	t1 := time.Now()
 	for y := 0; y < max.Y; y++ {
 		r.Min.Y = y
 		r.Max.Y = y + 1
@@ -59,7 +60,10 @@ func Colors(disp *pixd.Display) {
 		r.Max.X = max.X
 		a.Fill(r)
 	}
+	t2 := time.Now()
+	println("Colors:", t2.Sub(t1).String())
 	time.Sleep(2 * time.Second)
+	t1 = time.Now()
 	for y := 0; y < max.Y; y++ {
 		r.Min.Y = y
 		r.Max.Y = y + 1
@@ -85,6 +89,8 @@ func Colors(disp *pixd.Display) {
 		r.Max.X = max.X
 		a.Fill(r)
 	}
+	t2 = time.Now()
+	println("Colors:", t2.Sub(t1).String())
 	time.Sleep(2 * time.Second)
 }
 
@@ -208,8 +214,8 @@ func randQuad(a *pixd.Area, r image.Rectangle) {
 
 func clearAndPrint(a *pixd.Area, face *font.Face, s string) {
 	t1 := time.Now()
-	a.SetColor(white)
 	r := a.Bounds()
+	a.SetColor(white)
 	a.Fill(r)
 	a.SetColorRGBA(70, 140, 210, 210)
 	randQuad(a, r)
