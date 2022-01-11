@@ -116,5 +116,6 @@ func (a *Area) NewTextWriter(f FontFace) *TextWriter {
 		Face:  f,
 		Color: &image.Uniform{a.color},
 		Pos:   image.Pt(0, ascent),
+		Wrap:  WrapNewLine,
 	}
 }

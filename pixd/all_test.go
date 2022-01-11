@@ -23,6 +23,10 @@ import (
 )
 
 var dir = filepath.Join(os.TempDir(), "pixd_test")
+var (
+	white = color.Gray{255}
+	black = color.Gray{0}
+)
 
 func failErr(t *testing.T, err error) {
 	if err != nil {
@@ -217,7 +221,6 @@ Amid the hush I lean my ears down grassy lanes
 And listen for a voice from home. Nobody talks.
 `
 
-
 func TestFont(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
@@ -252,7 +255,7 @@ func TestRectTriangle(t *testing.T) {
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
-	a.SetColorRGBA(0, 0, 0, 255)
+	a.SetColor(black)
 	a.Fill(a.Bounds())
 
 	triangles := [][3]image.Point{
@@ -311,7 +314,7 @@ func TestRoundRect(t *testing.T) {
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetOrigin(image.Pt(70, 50))
-	a.SetColorRGBA(0, 0, 0, 255)
+	a.SetColor(black)
 	a.Fill(a.Bounds())
 
 	a.SetColorRGBA(0, 0, 128, 128)
@@ -343,7 +346,7 @@ func TestQuad(t *testing.T) {
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
-	a.SetColorRGBA(0, 0, 0, 255)
+	a.SetColor(black)
 	a.Fill(a.Bounds())
 
 	quads := [][4]image.Point{
@@ -376,18 +379,16 @@ func TestQuad(t *testing.T) {
 	failErr(t, f.Close())
 }
 
-func TestArc(t *testing.T) {
+func testArc(t *testing.T, fill bool) {
 	os.Mkdir(dir, 0755)
-
-	fill := true
 
 	screen := image.NewNRGBA(image.Rect(0, 0, 400, 880))
 	disp := pixd.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
-	a.SetColorRGBA(0, 0, 0, 255)
+	a.SetColor(black)
 	a.Fill(a.Bounds())
-	a.SetColorRGBA(255, 255, 255, 255)
+	a.SetColor(white)
 	a.RoundRect(a.Bounds().Min, a.Bounds().Max.Sub(image.Pt(1, 1)), 0, 0, false)
 
 	th0 := math2d.RightAngle / 3
@@ -432,10 +433,19 @@ func TestArc(t *testing.T) {
 	a.SetColorRGBA(0, 0, 150, 150)
 	a.Arc(image.Pt(200, 870), 70, 50, 140, 100, th1, th1+1e8, fill)
 
-	f, err := os.OpenFile(filepath.Join(dir, "arc.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	name := "arc.png"
+	if fill {
+		name = "arc_fill.png"
+	}
+	f, err := os.OpenFile(filepath.Join(dir, name), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
 	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())
+}
+
+func TestArc(t *testing.T) {
+	testArc(t, true)
+	testArc(t, false)
 }
 
 func TestDispRect(t *testing.T) {
@@ -454,7 +464,7 @@ func TestDispRect(t *testing.T) {
 	a.SetColorRGBA(255, 0, 0, 255)
 	a.RoundRect(r.Min, r.Max, 0, 0, false)
 	r = r.Inset(1)
-	a.SetColorRGBA(255, 255, 255, 255)
+	a.SetColor(white)
 	a.Line(r.Min, r.Max)
 	p0 := r.Min
 	p1 := p0.Add(image.Pt(10, 6))
@@ -462,6 +472,53 @@ func TestDispRect(t *testing.T) {
 	a.Quad(p0, p0, p1, p2, true)
 
 	f, err := os.OpenFile(filepath.Join(dir, "disprect.png"), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, screen))
+	failErr(t, f.Close())
+}
+
+func button(a *pixd.Area, center image.Point, s string, f pixd.FontFace) {
+	width := pixd.StringWidth(s, f)
+	height, ascent := f.Size()
+	p := center
+	p.X -= width / 2
+	p.Y -= height / 2
+	size := image.Pt(width, height)
+	a.SetColorRGBA(200, 200, 200, 200)
+	a.RoundRect(p, p.Add(size), 5, 5, true)
+	a.SetColor(black)
+	a.RoundRect(p, p.Add(size), 5, 5, false)
+	p.Y += ascent
+	w := &pixd.TextWriter{
+		Area:  a,
+		Face:  f,
+		Color: &image.Uniform{black},
+		Pos:   p,
+	}
+	w.WriteString(s)
+}
+
+func TestButton(t *testing.T) {
+	os.Mkdir(dir, 0755)
+
+	screen := image.NewNRGBA(image.Rect(0, 0, 100, 200))
+	disp := pixd.NewDisplay(imgdrv.New(screen))
+
+	a := disp.NewArea(disp.Bounds())
+	r := a.Bounds()
+	a.SetColorRGBA(200, 220, 250, 255)
+	a.Fill(r)
+	a.SetColorRGBA(240, 180, 140, 255)
+	a.Quad(image.Pt(40, 90), image.Pt(90, 10), image.Pt(80, 100), image.Pt(20, 190), true)
+
+	p := image.Pt(r.Max.X/2, r.Max.Y/4)
+	button(a, p, "Accept", Dejavu12)
+	p.Y = r.Max.Y / 2
+	button(a, p, "OK", VGA)
+	p.Y = r.Max.Y * 3 / 4
+	button(a, p, "Hello, World!", AnonPro11)
+
+	f, err := os.OpenFile(filepath.Join(dir, "button.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
 	failErr(t, png.Encode(f, screen))
 	failErr(t, f.Close())

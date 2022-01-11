@@ -10,22 +10,33 @@ import (
 	"unicode/utf8"
 )
 
-// WrapMode determines what the TextWriter does if the string does not fit in
+// Wrap determines what the TextWriter does if the string does not fit in
 // the area.
-type WrapMode uint8
+type Wrap uint8
 
 const (
-	WrapNewLine WrapMode = iota
+	NoWrap Wrap = iota
+	WrapNewLine
 	WrapSameLine
-	NoWrap
 )
 
 // StringWidth returns the number of horizontal pixels that would be occupied by
 // the string if it were drawn using the given font face and NoWrap mode.
-func StringWidth(f FontFace, s string) int {
+func StringWidth(s string, f FontFace) int {
 	x := 0
 	for _, r := range s {
 		x += f.Advance(r)
+	}
+	return x
+}
+
+// Width works like StringWidth but for byte slices.
+func Width(s []byte, f FontFace) int {
+	x := 0
+	for i := 0; i < len(s); {
+		r, size := utf8.DecodeRune(s[i:])
+		x += f.Advance(r)
+		i += size
 	}
 	return x
 }
@@ -45,26 +56,28 @@ type TextWriter struct {
 	Color  image.Image
 	Pos    image.Point
 	Filter func(glyph image.Image) image.Image
-	Wrap   WrapMode
+	Wrap   Wrap
 }
 
 func (w *TextWriter) Write(s []byte) (int, error) {
+	height, _ := w.Face.Size()
 	for i := 0; i < len(s); {
 		r, size := utf8.DecodeRune(s[i:])
-		drawRune(w, r)
+		drawRune(w, r, height)
 		i += size
 	}
 	return len(s), nil
 }
 
 func (w *TextWriter) WriteString(s string) (int, error) {
+	height, _ := w.Face.Size()
 	for _, r := range s {
-		drawRune(w, r)
+		drawRune(w, r, height)
 	}
 	return len(s), nil
 }
 
-func drawRune(w *TextWriter, r rune) {
+func drawRune(w *TextWriter, r rune, height int) {
 	mask, origin, advance := w.Face.Glyph(r)
 	if mask == nil {
 		mask, origin, advance = w.Face.Glyph(0)
@@ -78,8 +91,7 @@ func drawRune(w *TextWriter, r rune) {
 	nx := w.Pos.X + advance
 	if w.Wrap != NoWrap && (nx > w.Area.bounds.Max.X || r == '\n') {
 		if w.Wrap == WrapNewLine {
-			h, _ := w.Face.Size()
-			w.Pos.Y += h
+			w.Pos.Y += height
 		}
 		w.Pos.X = w.Area.bounds.Min.X
 		if r == '\n' {
