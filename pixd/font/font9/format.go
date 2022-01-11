@@ -15,12 +15,12 @@ type Fixed struct {
 	Bits  Image // image holding the glyphs, the baseline is at y = 0
 }
 
-// Advance implements subfont.Data interface
+// Advance implements font.Data interface
 func (d *Fixed) Advance(i int) int {
 	return int(d.Adv)
 }
 
-// Glyph implements subfont.Data interface
+// Glyph implements font.Data interface
 func (d *Fixed) Glyph(i int) (img image.Image, origin image.Point, advance int) {
 	r := d.Bits.Bounds()
 	r.Min.X += int(d.Width)*i + int(d.Left)
@@ -51,12 +51,12 @@ type Variable struct {
 	Bits Image
 }
 
-// Advance implements subfont.Data interface
+// Advance implements font.Data interface
 func (d *Variable) Advance(i int) int {
 	return int(d.Info[i*4+3])
 }
 
-// Glyph implements subfont.Data interface
+// Glyph implements font.Data interface
 func (d *Variable) Glyph(i int) (img image.Image, origin image.Point, advance int) {
 	r := d.Bits.Bounds()
 	i *= 4

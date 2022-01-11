@@ -6,8 +6,14 @@ package pixd
 
 import "image"
 
-// FontFace is an interface used to render text. FontFace represents the
-// specific size, style and weight of a font.
+// FontFace allows to convert an unicode codepoint (rune) to its graphical
+// representation (glyph) in some font face. A font face represents a specific
+// size, style and weight of a font.
+//
+// Multiple goroutines can use the same font face at the same time. If the
+// implementation does not allow to share one font face instance by multiple
+// goroutines it should provide a way to obtain multiple independent instances
+// of it.
 type FontFace interface {
 	// Size returns the font height (interline spacing) and the ascent (height
 	// above the baseline.
@@ -18,8 +24,9 @@ type FontFace interface {
 	// current character and the origin point of the next character.
 	Advance(r rune) int
 
-	// Glyph returns the data of the glyph for the given rune. The returned
-	// image is valid until the next Glyph call. The origin point is given in
-	// the img coordinates, can be (and usually is) outside of the glyph image.
+	// Glyph returns the graphical representation of the given rune in the alpha
+	// channel of returned image. The image is valid until the next Glyph call.
+	// The origin point is given in the img coordinates, can be outside of the
+	// image bounds.
 	Glyph(r rune) (img image.Image, origin image.Point, advance int)
 }

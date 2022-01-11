@@ -10,8 +10,7 @@ import (
 	"unicode/utf8"
 )
 
-// Wrap determines what the TextWriter does if the string does not fit in
-// the area.
+// Wrap determines what TextWriter does if the string does not fit in the area.
 type Wrap uint8
 
 const (
@@ -45,11 +44,11 @@ func Width(s []byte, f FontFace) int {
 // Color fields must be set before use it.
 //
 // Notice that the Color field type is image.Image, not color.Color. This gives
-// you greater flexibility when drawing text. Set it to &image.Uniform{color}
-// for traditional uniform color of glyphs.
+// greater flexibility when drawing text. Set it to &image.Uniform{color} for
+// traditional uniform color of glyphs.
 //
-// If Filter is not nil it is used to filter the glyphs obtained from Face
-// (scale, rotate, etc.)
+// If Filter is not nil it is used to filter (scale, rotate, etc.) the glyphs
+// obtained from Face.
 type TextWriter struct {
 	Area   *Area
 	Face   FontFace
@@ -57,6 +56,7 @@ type TextWriter struct {
 	Pos    image.Point
 	Filter func(glyph image.Image) image.Image
 	Wrap   Wrap
+	_      byte // literals must have keys to allow adding fields in the future
 }
 
 func (w *TextWriter) Write(s []byte) (int, error) {
