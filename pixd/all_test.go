@@ -5,6 +5,7 @@
 package pixd_test
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -480,20 +481,21 @@ func TestDispRect(t *testing.T) {
 func button(a *pixd.Area, center image.Point, s string, f pixd.FontFace) {
 	width := pixd.StringWidth(s, f)
 	height, ascent := f.Size()
-	p := center
-	p.X -= width / 2
-	p.Y -= height / 2
-	size := image.Pt(width, height)
+	fmt.Println(height, ascent)
+	p0 := center
+	p0.X -= (width + 1) / 2
+	p0.Y -= (height + 1) / 2
+	p1 := p0.Add(image.Pt(width-1, height-1))
 	a.SetColorRGBA(200, 200, 200, 200)
-	a.RoundRect(p, p.Add(size), 5, 5, true)
+	a.RoundRect(p0, p1, 5, 5, true)
 	a.SetColor(black)
-	a.RoundRect(p, p.Add(size), 5, 5, false)
-	p.Y += ascent
+	a.RoundRect(p0, p1, 5, 5, false)
+	p0.Y += ascent
 	w := &pixd.TextWriter{
 		Area:  a,
 		Face:  f,
 		Color: &image.Uniform{black},
-		Pos:   p,
+		Pos:   p0,
 	}
 	w.WriteString(s)
 }
@@ -512,11 +514,11 @@ func TestButton(t *testing.T) {
 	a.Quad(image.Pt(40, 90), image.Pt(90, 10), image.Pt(80, 100), image.Pt(20, 190), true)
 
 	p := image.Pt(r.Max.X/2, r.Max.Y/4)
-	button(a, p, "Accept", Dejavu12)
+	button(a, p, "Accept", AnonPro11)
 	p.Y = r.Max.Y / 2
-	button(a, p, "OK", VGA)
+	button(a, p, "Witaj Świecie!", Dejavu12)
 	p.Y = r.Max.Y * 3 / 4
-	button(a, p, "Hello, World!", AnonPro11)
+	button(a, p, " OK ", VGA)
 
 	f, err := os.OpenFile(filepath.Join(dir, "button.png"), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
