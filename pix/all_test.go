@@ -5,7 +5,6 @@
 package pix_test
 
 import (
-	"fmt"
 	"image"
 	"image/color"
 	"image/draw"
@@ -237,7 +236,7 @@ func TestFont(t *testing.T) {
 	w := a.NewTextWriter(Dejavu12)
 	w.WriteString(AkermanianSteppePL)
 
-	w.Face = AnonPro11
+	w.Face = pix.NewScaledFont(AnonPro11, 2)
 	w.WriteString(AkermanianSteppeDE)
 
 	w.Face = VGA

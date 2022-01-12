@@ -46,15 +46,11 @@ func Width(s []byte, f FontFace) int {
 // Notice that the Color field type is image.Image, not color.Color. This gives
 // greater flexibility when drawing text. Set it to &image.Uniform{color} for
 // traditional uniform color of glyphs.
-//
-// If Filter is not nil it is used to filter (scale, rotate, etc.) the glyphs
-// obtained from Face.
 type TextWriter struct {
 	Area   *Area
 	Face   FontFace
 	Color  image.Image
 	Pos    image.Point
-	Filter func(glyph image.Image) image.Image
 	Wrap   Wrap
 	_      byte // literals must have keys to allow adding fields in the future
 }
@@ -83,9 +79,6 @@ func drawRune(w *TextWriter, r rune, height int) {
 		mask, origin, advance = w.Face.Glyph(0)
 		if mask == nil {
 			return
-		}
-		if w.Filter != nil {
-			mask = w.Filter(mask)
 		}
 	}
 	nx := w.Pos.X + advance
