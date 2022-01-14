@@ -13,13 +13,14 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/embeddedgo/display/font"
 	"github.com/embeddedgo/display/math2d"
 	"github.com/embeddedgo/display/pix"
 	"github.com/embeddedgo/display/pix/driver/imgdrv"
-	"github.com/embeddedgo/display/pix/font"
-	"github.com/embeddedgo/display/pix/font/font9/anonpro11"
-	"github.com/embeddedgo/display/pix/font/font9/dejavu12"
-	"github.com/embeddedgo/display/pix/font/font9/vga"
+	"github.com/embeddedgo/display/pix/fonts"
+	"github.com/embeddedgo/display/pix/fonts/font9/anonpro11"
+	"github.com/embeddedgo/display/pix/fonts/font9/dejavu12"
+	"github.com/embeddedgo/display/pix/fonts/font9/vga"
 )
 
 var dir = filepath.Join(os.TempDir(), "pix_test")
@@ -133,26 +134,26 @@ func TestDrawImage(t *testing.T) {
 }
 
 var (
-	Dejavu12 = &font.Face{
+	Dejavu12 = &fonts.Face{
 		Height: dejavu12.Height,
 		Ascent: dejavu12.Ascent,
-		Subfonts: []*font.Subfont{
+		Subfonts: []*fonts.Subfont{
 			&dejavu12.X0000_0100,
 			&dejavu12.X0101_0201,
 		},
 	}
-	AnonPro11 = &font.Face{
+	AnonPro11 = &fonts.Face{
 		Height: anonpro11.Height,
 		Ascent: anonpro11.Ascent,
-		Subfonts: []*font.Subfont{
+		Subfonts: []*fonts.Subfont{
 			&anonpro11.X0000_0100,
 			&anonpro11.X0101_0201,
 		},
 	}
-	VGA = &font.Face{
+	VGA = &fonts.Face{
 		Height: vga.Height,
 		Ascent: vga.Ascent,
-		Subfonts: []*font.Subfont{
+		Subfonts: []*fonts.Subfont{
 			&vga.X0000_007f,
 			&vga.X00a0_021f,
 		},
@@ -160,8 +161,8 @@ var (
 )
 
 // The Akkerman Steppe Original Polish by Adam Mickiewicz (1798-1855)
-const AkermanianSteppePL = `
-Wpłynąłem na suchego przestwór oceanu,
+const AkermanianSteppePL = `` +
+`Wpłynąłem na suchego przestwór oceanu,
 Wóz nurza się w zieloność i jak łódka brodzi,
 Śród fali łąk szumiących, śród kwiatów powodzi,
 Omijam koralowe ostrowy burzanu.
@@ -224,22 +225,22 @@ And listen for a voice from home. Nobody talks.
 func TestFont(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 470, 770))
+	screen := image.NewNRGBA(image.Rect(0, 0, 470, 1000))
 	disp := pix.NewDisplay(imgdrv.New(screen))
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColorRGBA(250, 250, 200, 255)
 	a.Fill(a.Bounds())
-	a.SetRect(a.Rect().Inset(4))
+	a.SetRect(a.Rect().Inset(1))
 	a.SetColorRGBA(0, 0, 100, 255)
 
 	w := a.NewTextWriter(Dejavu12)
 	w.WriteString(AkermanianSteppePL)
 
-	w.Face = pix.NewScaledFont(AnonPro11, 2)
+	w.Face = AnonPro11
 	w.WriteString(AkermanianSteppeDE)
 
-	w.Face = VGA
+	w.Face = font.NewScaled(VGA, 2, font.Nearest)
 	w.WriteString(AkermanianSteppeEN)
 
 	f, err := os.OpenFile(filepath.Join(dir, "font.png"), os.O_WRONLY|os.O_CREATE, 0755)
@@ -477,7 +478,7 @@ func TestDispRect(t *testing.T) {
 	failErr(t, f.Close())
 }
 
-func button(a *pix.Area, center image.Point, s string, f pix.FontFace) {
+func button(a *pix.Area, center image.Point, s string, f font.Face) {
 	width := pix.StringWidth(s, f)
 	height, ascent := f.Size()
 	p0 := center

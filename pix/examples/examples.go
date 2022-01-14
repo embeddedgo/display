@@ -10,10 +10,11 @@ import (
 	"math/rand"
 	"time"
 
+	"github.com/embeddedgo/display/font"
 	"github.com/embeddedgo/display/pix"
-	"github.com/embeddedgo/display/pix/font"
-	"github.com/embeddedgo/display/pix/font/font9/dejavu12"
-	"github.com/embeddedgo/display/pix/font/font9/vga"
+	"github.com/embeddedgo/display/pix/fonts"
+	"github.com/embeddedgo/display/pix/fonts/font9/dejavu12"
+	"github.com/embeddedgo/display/pix/fonts/font9/vga"
 )
 
 var (
@@ -180,19 +181,19 @@ I stand in stillness, hear the migratory cranes, Their necks and wings beyond th
 
 Where on its underside a viper writhes through stalks. Amid the hush I lean my ears down grassy lanes And listen for a voice from home. Nobody talks.`
 
-var fdejavu = &font.Face{
+var fdejavu = &fonts.Face{
 	Height: dejavu12.Height,
 	Ascent: dejavu12.Ascent,
-	Subfonts: []*font.Subfont{
+	Subfonts: []*fonts.Subfont{
 		&dejavu12.X0000_0100,
 		&dejavu12.X0101_0201,
 	},
 }
 
-var fvga = &font.Face{
+var fvga = &fonts.Face{
 	Height: vga.Height,
 	Ascent: vga.Ascent,
-	Subfonts: []*font.Subfont{
+	Subfonts: []*fonts.Subfont{
 		&vga.X0000_007f,
 		&vga.X00a0_021f,
 	},
@@ -212,7 +213,7 @@ func randQuad(a *pix.Area, r image.Rectangle) {
 	a.Quad(p0, p1, p2, p3, true)
 }
 
-func clearAndPrint(a *pix.Area, face *font.Face, s string) {
+func clearAndPrint(a *pix.Area, face font.Face, s string) {
 	t1 := time.Now()
 	r := a.Bounds()
 	a.SetColor(white)

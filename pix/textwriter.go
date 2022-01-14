@@ -8,6 +8,8 @@ import (
 	"image"
 	"image/draw"
 	"unicode/utf8"
+
+	"github.com/embeddedgo/display/font"
 )
 
 // Wrap determines what TextWriter does if the string does not fit in the area.
@@ -21,7 +23,7 @@ const (
 
 // StringWidth returns the number of horizontal pixels that would be occupied by
 // the string if it were drawn using the given font face and NoWrap mode.
-func StringWidth(s string, f FontFace) int {
+func StringWidth(s string, f font.Face) int {
 	x := 0
 	for _, r := range s {
 		x += f.Advance(r)
@@ -30,7 +32,7 @@ func StringWidth(s string, f FontFace) int {
 }
 
 // Width works like StringWidth but for byte slices.
-func Width(s []byte, f FontFace) int {
+func Width(s []byte, f font.Face) int {
 	x := 0
 	for i := 0; i < len(s); {
 		r, size := utf8.DecodeRune(s[i:])
@@ -47,12 +49,12 @@ func Width(s []byte, f FontFace) int {
 // greater flexibility when drawing text. Set it to &image.Uniform{color} for
 // traditional uniform color of glyphs.
 type TextWriter struct {
-	Area   *Area
-	Face   FontFace
-	Color  image.Image
-	Pos    image.Point
-	Wrap   Wrap
-	_      byte // literals must have keys to allow adding fields in the future
+	Area  *Area
+	Face  font.Face
+	Color image.Image
+	Pos   image.Point
+	Wrap  Wrap
+	_     byte // literals must have keys to allow adding fields in the future
 }
 
 func (w *TextWriter) Write(s []byte) (int, error) {

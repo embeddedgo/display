@@ -7,6 +7,8 @@ package pix
 import (
 	"image"
 	"image/color"
+
+	"github.com/embeddedgo/display/font"
 )
 
 type areaDisplay struct {
@@ -109,7 +111,7 @@ func (a *Area) Color() color.Color {
 //	w.Face = f
 //	w.Color = &image.Uniform{a.Color()}
 //	_, w.Pos.Y = f.Size() // ascent
-func (a *Area) NewTextWriter(f FontFace) *TextWriter {
+func (a *Area) NewTextWriter(f font.Face) *TextWriter {
 	_, ascent := f.Size()
 	return &TextWriter{
 		Area:  a,
