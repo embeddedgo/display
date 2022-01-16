@@ -11,10 +11,10 @@ import (
 	"time"
 
 	"github.com/embeddedgo/display/font"
+	"github.com/embeddedgo/display/font/subfont"
+	"github.com/embeddedgo/display/font/subfont/font9/dejavu12"
+	"github.com/embeddedgo/display/font/subfont/font9/vga"
 	"github.com/embeddedgo/display/pix"
-	"github.com/embeddedgo/display/pix/fonts"
-	"github.com/embeddedgo/display/pix/fonts/font9/dejavu12"
-	"github.com/embeddedgo/display/pix/fonts/font9/vga"
 )
 
 var (
@@ -181,19 +181,19 @@ I stand in stillness, hear the migratory cranes, Their necks and wings beyond th
 
 Where on its underside a viper writhes through stalks. Amid the hush I lean my ears down grassy lanes And listen for a voice from home. Nobody talks.`
 
-var fdejavu = &fonts.Face{
+var fdejavu = &subfont.Face{
 	Height: dejavu12.Height,
 	Ascent: dejavu12.Ascent,
-	Subfonts: []*fonts.Subfont{
+	Subfonts: []*subfont.Subfont{
 		&dejavu12.X0000_0100,
 		&dejavu12.X0101_0201,
 	},
 }
 
-var fvga = &fonts.Face{
+var fvga = &subfont.Face{
 	Height: vga.Height,
 	Ascent: vga.Ascent,
-	Subfonts: []*fonts.Subfont{
+	Subfonts: []*subfont.Subfont{
 		&vga.X0000_007f,
 		&vga.X00a0_021f,
 	},

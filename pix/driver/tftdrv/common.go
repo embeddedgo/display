@@ -8,7 +8,7 @@ import (
 	"image"
 	"time"
 
-	"github.com/embeddedgo/display/pix"
+	"github.com/embeddedgo/display/images"
 )
 
 // PF describes pixel data formats supported by display cpntroller.
@@ -206,19 +206,19 @@ type fastImage struct {
 
 func imageAtPoint(img image.Image, pt image.Point) (fi fastImage) {
 	switch img := img.(type) {
-	case *pix.RGB16:
+	case *images.RGB16:
 		fi.pixSize = 2
 		fi.stride = img.Stride
 		fi.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
-	case *pix.ImmRGB16:
+	case *images.ImmRGB16:
 		fi.pixSize = 2
 		fi.stride = img.Stride
 		fi.s = img.Pix[img.PixOffset(pt.X, pt.Y):]
-	case *pix.RGB:
+	case *images.RGB:
 		fi.pixSize = 3
 		fi.stride = img.Stride
 		fi.p = img.Pix[img.PixOffset(pt.X, pt.Y):]
-	case *pix.ImmRGB:
+	case *images.ImmRGB:
 		fi.pixSize = 3
 		fi.stride = img.Stride
 		fi.s = img.Pix[img.PixOffset(pt.X, pt.Y):]

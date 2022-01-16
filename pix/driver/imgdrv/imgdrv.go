@@ -13,20 +13,20 @@ import (
 )
 
 type Driver struct {
-	img  draw.Image
-	fill image.Uniform
+	Image draw.Image
+	fill  image.Uniform
 }
 
 func New(img draw.Image) *Driver {
-	return &Driver{img: img}
+	return &Driver{Image: img}
 }
 
 func (d *Driver) SetDir(dir int) image.Rectangle {
-	return d.img.Bounds()
+	return d.Image.Bounds()
 }
 
 func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	draw.DrawMask(d.img, r, src, sp, mask, mp, op)
+	draw.DrawMask(d.Image, r, src, sp, mask, mp, op)
 }
 
 func (d *Driver) SetColor(c color.Color) {

@@ -14,13 +14,14 @@ import (
 	"testing"
 
 	"github.com/embeddedgo/display/font"
+	"github.com/embeddedgo/display/font/subfont"
+	"github.com/embeddedgo/display/font/subfont/font9/anonpro11"
+	"github.com/embeddedgo/display/font/subfont/font9/dejavu12"
+	"github.com/embeddedgo/display/font/subfont/font9/vga"
+	"github.com/embeddedgo/display/images"
 	"github.com/embeddedgo/display/math2d"
 	"github.com/embeddedgo/display/pix"
 	"github.com/embeddedgo/display/pix/driver/imgdrv"
-	"github.com/embeddedgo/display/pix/fonts"
-	"github.com/embeddedgo/display/pix/fonts/font9/anonpro11"
-	"github.com/embeddedgo/display/pix/fonts/font9/dejavu12"
-	"github.com/embeddedgo/display/pix/fonts/font9/vga"
 )
 
 var dir = filepath.Join(os.TempDir(), "pix_test")
@@ -35,13 +36,30 @@ func failErr(t *testing.T, err error) {
 	}
 }
 
+func newDisplay(width, height int) *pix.Display {
+	screen := image.NewNRGBA(image.Rect(0, 0, width, height))
+	return pix.NewDisplay(imgdrv.New(screen))
+}
+
+func saveImage(t *testing.T, img image.Image, name string) {
+	os.Mkdir(dir, 0755)
+	f, err := os.OpenFile(filepath.Join(dir, name), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, img))
+	failErr(t, f.Close())
+}
+
+func saveDisplay(t *testing.T, disp *pix.Display, name string) {
+	saveImage(t, disp.Driver().(*imgdrv.Driver).Image, name)
+}
+
 func TestDrawGeom(t *testing.T) {
 	os.Mkdir(dir, 0755)
 
-	screen := image.NewNRGBA(image.Rect(0, 0, 200, 410))
+	img := image.NewNRGBA(image.Rect(0, 0, 200, 410))
 
-	disp1 := pix.NewDisplay(imgdrv.New(screen.SubImage(image.Rect(0, 0, 200, 200)).(*image.NRGBA)))
-	disp2 := pix.NewDisplay(imgdrv.New(screen.SubImage(image.Rect(0, 210, 200, 410)).(*image.NRGBA)))
+	disp1 := pix.NewDisplay(imgdrv.New(img.SubImage(image.Rect(0, 0, 200, 200)).(*image.NRGBA)))
+	disp2 := pix.NewDisplay(imgdrv.New(img.SubImage(image.Rect(0, 210, 200, 410)).(*image.NRGBA)))
 	disp2.SetOrigin(image.Pt(0, 200))
 
 	a := pix.NewArea(image.Rect(0, 0, 200, 400), disp1, disp2)
@@ -83,23 +101,17 @@ func TestDrawGeom(t *testing.T) {
 		a.Line(image.Pt(max.X-1-2, y), image.Pt(max.X-1-x, 2))
 	}
 
-	f, err := os.OpenFile(filepath.Join(dir, "geom.png"), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	saveImage(t, img, "geom.png")
 }
 
 func TestDrawImage(t *testing.T) {
-	os.Mkdir(dir, 0755)
-
-	screen := image.NewNRGBA(image.Rect(0, 0, 40, 40))
-	disp := pix.NewDisplay(imgdrv.New(screen))
+	disp := newDisplay(40, 40)
 
 	a := disp.NewArea(disp.Bounds().Inset(4))
 	a.SetColorRGBA(0, 0, 128, 255)
 	a.Fill(a.Bounds())
 
-	img := pix.NewAlphaN(image.Rect(0, 0, 11, 11), 1)
+	img := images.NewAlphaN(image.Rect(0, 0, 11, 11), 1)
 	img.Set(0, 10, color.Alpha{1})
 	img.Set(2, 8, color.Gray{1})
 	img.Set(4, 6, color.Gray16{1})
@@ -111,7 +123,7 @@ func TestDrawImage(t *testing.T) {
 	a.Draw(disp.Bounds(), img, image.Point{}, nil, image.Point{}, draw.Over)
 	a.Draw(disp.Bounds().Add(image.Pt(20, 25)), img, image.Point{}, nil, image.Point{}, draw.Over)
 
-	imm := pix.NewImmAlphaN(img.Bounds(), 1, string(img.Pix))
+	imm := images.NewImmAlphaN(img.Bounds(), 1, string(img.Pix))
 
 	a.Draw(disp.Bounds().Add(image.Pt(5, 5)),
 		&image.Uniform{color.RGBA{255, 0, 0, 255}}, image.Point{}, // source
@@ -124,36 +136,33 @@ func TestDrawImage(t *testing.T) {
 		draw.Over,
 	)
 
-	imm = imm.SubImage(image.Rect(2, 2, 11, 11)).(*pix.ImmAlphaN)
+	imm = imm.SubImage(image.Rect(2, 2, 11, 11)).(*images.ImmAlphaN)
 	a.Draw(disp.Bounds().Add(image.Pt(16, 16)), imm, image.Pt(2, 2), nil, image.Point{}, draw.Src)
 
-	f, err := os.OpenFile(filepath.Join(dir, "image.png"), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	saveDisplay(t, disp, "image.png")
 }
 
 var (
-	Dejavu12 = &fonts.Face{
+	Dejavu12 = &subfont.Face{
 		Height: dejavu12.Height,
 		Ascent: dejavu12.Ascent,
-		Subfonts: []*fonts.Subfont{
+		Subfonts: []*subfont.Subfont{
 			&dejavu12.X0000_0100,
 			&dejavu12.X0101_0201,
 		},
 	}
-	AnonPro11 = &fonts.Face{
+	AnonPro11 = &subfont.Face{
 		Height: anonpro11.Height,
 		Ascent: anonpro11.Ascent,
-		Subfonts: []*fonts.Subfont{
+		Subfonts: []*subfont.Subfont{
 			&anonpro11.X0000_0100,
 			&anonpro11.X0101_0201,
 		},
 	}
-	VGA = &fonts.Face{
+	VGA = &subfont.Face{
 		Height: vga.Height,
 		Ascent: vga.Ascent,
-		Subfonts: []*fonts.Subfont{
+		Subfonts: []*subfont.Subfont{
 			&vga.X0000_007f,
 			&vga.X00a0_021f,
 		},
@@ -162,7 +171,7 @@ var (
 
 // The Akkerman Steppe Original Polish by Adam Mickiewicz (1798-1855)
 const AkermanianSteppePL = `` +
-`Wpłynąłem na suchego przestwór oceanu,
+	`Wpłynąłem na suchego przestwór oceanu,
 Wóz nurza się w zieloność i jak łódka brodzi,
 Śród fali łąk szumiących, śród kwiatów powodzi,
 Omijam koralowe ostrowy burzanu.
@@ -223,10 +232,7 @@ And listen for a voice from home. Nobody talks.
 `
 
 func TestFont(t *testing.T) {
-	os.Mkdir(dir, 0755)
-
-	screen := image.NewNRGBA(image.Rect(0, 0, 470, 1000))
-	disp := pix.NewDisplay(imgdrv.New(screen))
+	disp := newDisplay(470, 1000)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColorRGBA(250, 250, 200, 255)
@@ -237,23 +243,17 @@ func TestFont(t *testing.T) {
 	w := a.NewTextWriter(Dejavu12)
 	w.WriteString(AkermanianSteppePL)
 
-	w.Face = AnonPro11
-	w.WriteString(AkermanianSteppeDE)
-
-	w.Face = font.NewScaled(VGA, 2, font.Nearest)
+	w.Face = VGA
 	w.WriteString(AkermanianSteppeEN)
 
-	f, err := os.OpenFile(filepath.Join(dir, "font.png"), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	w.Face = font.NewScaled(AnonPro11, 2, font.Nearest)
+	w.WriteString(AkermanianSteppeDE)
+
+	saveDisplay(t, disp, "font.png")
 }
 
 func TestRectTriangle(t *testing.T) {
-	os.Mkdir(dir, 0755)
-
-	screen := image.NewNRGBA(image.Rect(0, 0, 500, 800))
-	disp := pix.NewDisplay(imgdrv.New(screen))
+	disp := newDisplay(500, 800)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColor(black)
@@ -301,17 +301,11 @@ func TestRectTriangle(t *testing.T) {
 		a.FillQuad(tr[0], tr[1], tr[2], tr[2])
 	}
 
-	f, err := os.OpenFile(filepath.Join(dir, "triangle.png"), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	saveDisplay(t, disp, "triangle.png")
 }
 
 func TestRoundRect(t *testing.T) {
-	os.Mkdir(dir, 0755)
-
-	screen := image.NewNRGBA(image.Rect(0, 0, 300, 400))
-	disp := pix.NewDisplay(imgdrv.New(screen))
+	disp := newDisplay(300, 400)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetOrigin(image.Pt(70, 50))
@@ -334,17 +328,11 @@ func TestRoundRect(t *testing.T) {
 	a.SetColorRGBA(200, 0, 200, 200)
 	a.RoundRect(r.Min, r.Max, 10, 10, false)
 
-	f, err := os.OpenFile(filepath.Join(dir, "roundrect.png"), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	saveDisplay(t, disp, "roundrect.png")
 }
 
 func TestQuad(t *testing.T) {
-	os.Mkdir(dir, 0755)
-
-	screen := image.NewNRGBA(image.Rect(0, 0, 400, 800))
-	disp := pix.NewDisplay(imgdrv.New(screen))
+	disp := newDisplay(400, 800)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColor(black)
@@ -374,17 +362,11 @@ func TestQuad(t *testing.T) {
 		a.FillQuad(q[0], q[1], q[2], q[3])
 	}
 
-	f, err := os.OpenFile(filepath.Join(dir, "quad.png"), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	saveDisplay(t, disp, "quad.png")
 }
 
 func testArc(t *testing.T, fill bool) {
-	os.Mkdir(dir, 0755)
-
-	screen := image.NewNRGBA(image.Rect(0, 0, 400, 880))
-	disp := pix.NewDisplay(imgdrv.New(screen))
+	disp := newDisplay(400, 800)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColor(black)
@@ -438,10 +420,7 @@ func testArc(t *testing.T, fill bool) {
 	if fill {
 		name = "arc_fill.png"
 	}
-	f, err := os.OpenFile(filepath.Join(dir, name), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	saveDisplay(t, disp, name)
 }
 
 func TestArc(t *testing.T) {
@@ -450,10 +429,7 @@ func TestArc(t *testing.T) {
 }
 
 func TestDispRect(t *testing.T) {
-	os.Mkdir(dir, 0755)
-
-	screen := image.NewNRGBA(image.Rect(0, 0, 240, 320))
-	disp := pix.NewDisplay(imgdrv.New(screen))
+	disp := newDisplay(240, 320)
 	disp.SetRect(image.Rect(0, 40, 240, 240+40))
 
 	a := disp.NewArea(disp.Bounds())
@@ -472,10 +448,7 @@ func TestDispRect(t *testing.T) {
 	p2 := p0.Add(image.Pt(6, 10))
 	a.Quad(p0, p0, p1, p2, true)
 
-	f, err := os.OpenFile(filepath.Join(dir, "disprect.png"), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	saveDisplay(t, disp, "disprect.png")
 }
 
 func button(a *pix.Area, center image.Point, s string, f font.Face) {
@@ -500,10 +473,7 @@ func button(a *pix.Area, center image.Point, s string, f font.Face) {
 }
 
 func TestButton(t *testing.T) {
-	os.Mkdir(dir, 0755)
-
-	screen := image.NewNRGBA(image.Rect(0, 0, 100, 200))
-	disp := pix.NewDisplay(imgdrv.New(screen))
+	disp := newDisplay(100, 200)
 
 	a := disp.NewArea(disp.Bounds())
 	r := a.Bounds()
@@ -519,8 +489,5 @@ func TestButton(t *testing.T) {
 	p.Y = r.Max.Y * 3 / 4
 	button(a, p, " OK ", VGA)
 
-	f, err := os.OpenFile(filepath.Join(dir, "button.png"), os.O_WRONLY|os.O_CREATE, 0755)
-	failErr(t, err)
-	failErr(t, png.Encode(f, screen))
-	failErr(t, f.Close())
+	saveDisplay(t, disp, "button.png")
 }
