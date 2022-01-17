@@ -98,4 +98,9 @@ func drawRune(w *TextWriter, r rune, height int) {
 	dr := mr.Add(w.Pos.Sub(origin))
 	w.Area.Draw(dr, w.Color, image.Point{}, mask, mr.Min, draw.Over)
 	w.Pos.X = nx
+	// draw bounding box
+	//c := w.Area.Color()
+	//w.Area.SetColorRGBA(192, 0, 0, 192)
+	//w.Area.RoundRect(dr.Min, dr.Max.Sub(image.Pt(1, 1)), 0, 0, false)
+	//w.Area.SetColor(c)
 }

@@ -480,7 +480,7 @@ func TestButton(t *testing.T) {
 	a.SetColorRGBA(200, 220, 250, 255)
 	a.Fill(r)
 	a.SetColorRGBA(240, 180, 140, 255)
-	a.Quad(image.Pt(40, 90), image.Pt(90, 10), image.Pt(80, 100), image.Pt(20, 190), true)
+	a.Quad(image.Pt(20, 80), image.Pt(70, 10), image.Pt(80, 100), image.Pt(40, 190), true)
 
 	p := image.Pt(r.Max.X/2, r.Max.Y/4)
 	button(a, p, "Accept", AnonPro11)
