@@ -6,6 +6,7 @@ package pix
 
 import (
 	"image"
+	"image/color"
 	"image/draw"
 	"unicode/utf8"
 
@@ -55,6 +56,17 @@ type TextWriter struct {
 	Pos   image.Point
 	Wrap  Wrap
 	_     byte // literals must have keys to allow adding fields in the future
+}
+
+// SetColor is a convenient way to set drawing color. If the w.Color contains
+// value of type *image.Uniform it sets the color of the current image to c.
+// Otherwise it sets w.Color to &image.Uniform{c}.
+func (w *TextWriter) SetColor(c color.Color) {
+	if img, ok := w.Color.(*image.Uniform); ok {
+		img.C = c
+	} else {
+		w.Color = image.NewUniform(c)
+	}
 }
 
 func (w *TextWriter) Write(s []byte) (int, error) {
