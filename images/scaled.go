@@ -24,13 +24,14 @@ const (
 // factor.
 type ScaledUp struct {
 	Image image.Image
-	Mul   int
+	Scale int
 	Mode  byte
 }
 
-// NewScaledUp wraps img to scale it up by mul factor usind given scaling mode.
-func NewScaledUp(img image.Image, mul int, mode byte) *ScaledUp {
-	return &ScaledUp{img, mul, mode}
+// NewScaledUp wraps img to scale it up by scale factor usind given scaling
+// mode.
+func NewScaledUp(img image.Image, scale int, mode byte) *ScaledUp {
+	return &ScaledUp{img, scale, mode}
 }
 
 // ColorModel implements image.Image interface.
@@ -41,19 +42,22 @@ func (p *ScaledUp) ColorModel() color.Model {
 // Bounds implements image.Image interface.
 func (p *ScaledUp) Bounds() image.Rectangle {
 	r := p.Image.Bounds()
-	r.Min = r.Min.Mul(p.Mul)
-	r.Max = r.Max.Mul(p.Mul)
+	r.Min = r.Min.Mul(p.Scale)
+	r.Max = r.Max.Mul(p.Scale)
 	return r
 }
 
 // At implements image.Image interface.
 func (p *ScaledUp) At(x, y int) color.Color {
+	if p.Scale == 1 {
+		return p.Image.At(x, y)
+	}
 	if p.Mode != Nearest {
-		center := p.Mul / 2
+		center := p.Scale / 2
 		x -= center
 		y -= center
 	}
-	round := p.Mul - 1
+	round := p.Scale - 1
 	x0 := x
 	if x0 < 0 {
 		x0 -= round // make division round down even for negative x0
@@ -62,8 +66,8 @@ func (p *ScaledUp) At(x, y int) color.Color {
 	if y0 < 0 {
 		y0 -= round // make division round down even for negative y0
 	}
-	x0 /= p.Mul
-	y0 /= p.Mul
+	x0 /= p.Scale
+	y0 /= p.Scale
 	if p.Mode == Nearest {
 		return p.Image.At(x0, y0)
 	}
@@ -73,10 +77,10 @@ func (p *ScaledUp) At(x, y int) color.Color {
 	r10, g10, b10, a10 := p.Image.At(x1, y0).RGBA()
 	r01, g01, b01, a01 := p.Image.At(x0, y1).RGBA()
 	r11, g11, b11, a11 := p.Image.At(x1, y1).RGBA()
-	x0 *= p.Mul
-	x1 *= p.Mul
-	y0 *= p.Mul
-	y1 *= p.Mul
+	x0 *= p.Scale
+	x1 *= p.Scale
+	y0 *= p.Scale
+	y1 *= p.Scale
 	dx0 := uint(x - x0)
 	dx1 := uint(x1 - x)
 	dy0 := uint(y - y0)
@@ -89,7 +93,7 @@ func (p *ScaledUp) At(x, y int) color.Color {
 	g1 := uint(g01)*dx1 + uint(g11)*dx0
 	b1 := uint(b01)*dx1 + uint(b11)*dx0
 	a1 := uint(a01)*dx1 + uint(a11)*dx0
-	div := uint(p.Mul) * uint(p.Mul)
+	div := uint(p.Scale) * uint(p.Scale)
 	r := (r0*dy1 + r1*dy0) / div
 	g := (g0*dy1 + g1*dy0) / div
 	b := (b0*dy1 + b1*dy0) / div
