@@ -18,11 +18,14 @@ import (
 )
 
 var (
-	black = color.Gray{0}
-	white = color.Gray{255}
-	red   = color.RGBA{255, 0, 0, 255}
-	green = color.RGBA{0, 255, 0, 255}
-	blue  = color.RGBA{0, 0, 255, 255}
+	black   = color.Gray{0}
+	white   = color.Gray{255}
+	red     = color.RGBA{255, 0, 0, 255}
+	green   = color.RGBA{0, 255, 0, 255}
+	blue    = color.RGBA{0, 0, 255, 255}
+	yellow  = color.RGBA{255, 255, 0, 255}
+	cyan    = color.RGBA{0, 255, 255, 255}
+	magenta = color.RGBA{255, 0, 255, 255}
 )
 
 func Colors(disp *pix.Display) {
@@ -120,11 +123,11 @@ func RotateDisplay(disp *pix.Display) {
 		r = a.Bounds()           // new dimensions of a
 
 		// clear the screen
-		a.SetColorRGBA(0, 0, 0, 255)
+		a.SetColor(black)
 		a.Fill(r)
 
 		// draw the arrow
-		a.SetColorRGBA(255, 255, 255, 255)
+		a.SetColor(white)
 		p0 := image.Pt(w/2, w/2)
 		p1 := image.Pt(w, w*3/4)
 		p2 := image.Pt(p1.Y, p1.X)
@@ -227,7 +230,7 @@ func clearAndPrint(a *pix.Area, face font.Face, s string) {
 	w.WriteString(s)
 	t2 := time.Now()
 	println("DrawText:", t2.Sub(t1).String())
-	time.Sleep(10 * time.Second)
+	time.Sleep(5 * time.Second)
 }
 
 // DrawText draws English and Polish text of the Akkerman Steppe poem on the
