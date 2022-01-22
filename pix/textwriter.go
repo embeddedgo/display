@@ -88,6 +88,11 @@ func (w *TextWriter) WriteString(s string) (int, error) {
 }
 
 func drawRune(w *TextWriter, r rune, height int) {
+	if r == '\n' && w.Wrap == WrapNewLine {
+		w.Pos.X = w.Area.bounds.Min.X
+		w.Pos.Y += height
+		return
+	}
 	mask, origin, advance := w.Face.Glyph(r)
 	if mask == nil {
 		mask, origin, advance = w.Face.Glyph(0)
@@ -96,15 +101,12 @@ func drawRune(w *TextWriter, r rune, height int) {
 		}
 	}
 	nx := w.Pos.X + advance
-	if w.Wrap != NoWrap && (nx > w.Area.bounds.Max.X || r == '\n') {
+	if w.Wrap != NoWrap && nx > w.Area.bounds.Max.X {
+		w.Pos.X = w.Area.bounds.Min.X
+		nx = w.Area.bounds.Min.X + advance
 		if w.Wrap == WrapNewLine {
 			w.Pos.Y += height
 		}
-		w.Pos.X = w.Area.bounds.Min.X
-		if r == '\n' {
-			return
-		}
-		nx = w.Pos.X + advance
 	}
 	mr := mask.Bounds()
 	dr := mr.Add(w.Pos.Sub(origin))
