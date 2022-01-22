@@ -13,7 +13,7 @@ import (
 	"github.com/embeddedgo/display/font"
 	"github.com/embeddedgo/display/font/subfont"
 	"github.com/embeddedgo/display/font/subfont/font9/dejavu12"
-	"github.com/embeddedgo/display/font/subfont/font9/vga"
+	"github.com/embeddedgo/display/font/subfont/font9/terminus12"
 	"github.com/embeddedgo/display/pix"
 )
 
@@ -193,12 +193,13 @@ var fdejavu = &subfont.Face{
 	},
 }
 
-var fvga = &subfont.Face{
-	Height: vga.Height,
-	Ascent: vga.Ascent,
+var fterm = &subfont.Face{
+	Height: terminus12.Height,
+	Ascent: terminus12.Ascent,
 	Subfonts: []*subfont.Subfont{
-		&vga.X0000_007f,
-		&vga.X00a0_021f,
+		&terminus12.X0020_007e,
+		&terminus12.X00a0_0175,
+		&terminus12.X0178_017f,
 	},
 }
 
@@ -246,6 +247,6 @@ func DrawText(disp *pix.Display) {
 	a := disp.NewArea(disp.Bounds())
 	clearAndPrint(a, fdejavu, akkermanSteppeEN)
 	clearAndPrint(a, fdejavu, akkermanSteppePL)
-	clearAndPrint(a, fvga, akkermanSteppeEN)
-	clearAndPrint(a, fvga, akkermanSteppePL)
+	clearAndPrint(a, fterm, akkermanSteppeEN)
+	clearAndPrint(a, fterm, akkermanSteppePL)
 }
