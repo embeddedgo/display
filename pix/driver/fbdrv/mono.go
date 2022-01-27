@@ -18,34 +18,34 @@ const (
 	ctrans = 2
 )
 
-type DriverMono struct {
+type Mono struct {
 	frame images.Mono
 	flush func(frame *images.Mono) error
 	color uint8
 	err   error
 }
 
-func NewDriverMono(width, height int, flush func(frame *images.Mono) error) *DriverMono {
-	d := new(DriverMono)
+func NewMono(width, height int, flush func(frame *images.Mono) error) *Mono {
+	d := new(Mono)
 	d.frame.Rect.Max.X = width
 	d.frame.Rect.Max.Y = height
-	d.frame.Stride = width / 8
+	d.frame.Stride = (width + 7) >> 3
 	d.frame.Pix = make([]uint8, d.frame.Stride*height)
 	d.flush = flush
 	return d
 }
 
-func (d *DriverMono) SetDir(dir int) image.Rectangle {
+func (d *Mono) SetDir(dir int) image.Rectangle {
 	return d.frame.Rect
 }
 
-func (d *DriverMono) Flush() {
-	if d.flush != nil && d.err != nil {
+func (d *Mono) Flush() {
+	if d.flush != nil && d.err == nil {
 		d.err = d.flush(&d.frame)
 	}
 }
 
-func (d *DriverMono) Err(clear bool) error {
+func (d *Mono) Err(clear bool) error {
 	err := d.err
 	if clear {
 		d.err = nil
@@ -53,15 +53,15 @@ func (d *DriverMono) Err(clear bool) error {
 	return err
 }
 
-func (d *DriverMono) Frame() draw.Image {
+func (d *Mono) Frame() draw.Image {
 	return &d.frame
 }
 
-func (d *DriverMono) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+func (d *Mono) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	// TODO
 }
 
-func (d *DriverMono) SetColor(c color.Color) {
+func (d *Mono) SetColor(c color.Color) {
 	if g, ok := c.(color.Gray); ok {
 		d.color = g.Y >> 7
 		return
@@ -75,11 +75,46 @@ func (d *DriverMono) SetColor(c color.Color) {
 	}
 }
 
-func (d *DriverMono) Fill(r image.Rectangle) {
+func (d *Mono) Fill(r image.Rectangle) {
 	if d.color == ctrans {
 		return
 	}
-	i, s := d.frame.PixOffset(r.Min.X, r.Min.Y)
-	_ = i
-	_ = s
+	color := uint8(-int(d.color))
+	offset, shift := d.frame.PixOffset(r.Min.X, r.Min.Y)
+	width := r.Dx()
+	length := d.frame.Stride * r.Dy()
+	n := 8 - int(shift)
+	if width < n {
+		n = width
+	}
+	if n < 8 {
+		rs := uint(8 - n)
+		color0 := color >> rs << shift
+		mask := uint8(0xff) >> rs << shift
+		maxi := offset + length
+		for i := offset; i < maxi; i += d.frame.Stride {
+			d.frame.Pix[i] = d.frame.Pix[i]&^mask | color0
+		}
+		width -= n
+		offset++
+	}
+	if n = width / 8; n != 0 {
+		maxi := offset + length
+		for i := offset; i < maxi; i += d.frame.Stride {
+			for k, maxk := i, i+n; k < maxk; k++ {
+				d.frame.Pix[k] = color
+			}
+		}
+		offset += n
+		width -= n * 8
+	}
+	if width != 0 {
+		rs := uint(8 - width)
+		color >>= rs
+		mask := uint8(0xff) >> rs
+		maxi := offset + length
+		for i := offset; i < maxi; i += d.frame.Stride {
+			d.frame.Pix[i] = d.frame.Pix[i]&^mask | color
+		}
+	}
 }

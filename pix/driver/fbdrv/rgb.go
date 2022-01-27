@@ -12,15 +12,15 @@ import (
 	"github.com/embeddedgo/display/images"
 )
 
-type DriverRGB struct {
+type RGB struct {
 	frame images.RGB
 	flush func(frame *images.RGB) error
 	color     color.RGBA64
 	err   error
 }
 
-func NewDriverRGB(width, height int, flush func(frame *images.RGB) error) *DriverRGB {
-	d := new(DriverRGB)
+func NewRGB(width, height int, flush func(frame *images.RGB) error) *RGB {
+	d := new(RGB)
 	d.frame.Rect.Max.X = width
 	d.frame.Rect.Max.Y = height
 	d.frame.Stride = 3 * width
@@ -29,17 +29,17 @@ func NewDriverRGB(width, height int, flush func(frame *images.RGB) error) *Drive
 	return d
 }
 
-func (d *DriverRGB) SetDir(dir int) image.Rectangle {
+func (d *RGB) SetDir(dir int) image.Rectangle {
 	return d.frame.Rect
 }
 
-func (d *DriverRGB) Flush() {
+func (d *RGB) Flush() {
 	if d.flush != nil && d.err != nil {
 		d.err = d.flush(&d.frame)
 	}
 }
 
-func (d *DriverRGB) Err(clear bool) error {
+func (d *RGB) Err(clear bool) error {
 	err := d.err
 	if clear {
 		d.err = nil
@@ -47,15 +47,15 @@ func (d *DriverRGB) Err(clear bool) error {
 	return err
 }
 
-func (d *DriverRGB) Frame() draw.Image {
+func (d *RGB) Frame() draw.Image {
 	return &d.frame
 }
 
-func (d *DriverRGB) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
+func (d *RGB) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	// TODO
 }
 
-func (d *DriverRGB) SetColor(c color.Color) {
+func (d *RGB) SetColor(c color.Color) {
 	r, g, b, a := c.RGBA()
 	d.color.R = uint16(r)
 	d.color.G = uint16(g)
@@ -63,6 +63,6 @@ func (d *DriverRGB) SetColor(c color.Color) {
 	d.color.A = uint16(a)
 }
 
-func (d *DriverRGB) Fill(r image.Rectangle) {
+func (d *RGB) Fill(r image.Rectangle) {
 	// TODO
 }
