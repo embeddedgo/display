@@ -64,10 +64,23 @@ func (a *Area) SetRect(r image.Rectangle) {
 	}
 }
 
+// Flush runs through all the displays covered by a and calls thier Flush
+// methods.
 func (a *Area) Flush() {
 	for ad := &a.ad; ad != nil; ad = ad.link {
 		ad.disp.Flush()
 	}
+}
+
+// Err runs through all the displays covered by a and calls thier Err
+// methods until it encounters non-nil error.
+func (a *Area) Err(clear bool) error {
+	for ad := &a.ad; ad != nil; ad = ad.link {
+		if err := ad.disp.Err(clear); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // Bounds return the area bounds.
