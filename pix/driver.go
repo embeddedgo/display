@@ -22,10 +22,10 @@ type Driver interface {
 	// Draw works like draw.DrawMask with dst set to the image representing the
 	// whole frame memory.
 	//
-	// The draw.Over operator can be implemented in a limited way but it must
+	// The draw.Over operator may be implemented in a limited way but it must
 	// at least support 1-bit transparency.
 	//
-	// Draw can assume the r is a non-empty rectangle that fits entirely on the
+	// Draw may assume the r is a non-empty rectangle that fits entirely on the
 	// display and is entirely covered by src and mask.
 	//
 	// Draw is actually the only drawing operation required from a display
@@ -57,7 +57,7 @@ type Driver interface {
 	Err(clear bool) error
 }
 
-// ReadDriver is an optional interface that driver can implement to allow read
+// ReadDriver is an optional interface that driver may implement to allow read
 // the content of frame memory.
 type ReadDriver interface {
 	// NewImage returns a new image with the given bounds. The returned image

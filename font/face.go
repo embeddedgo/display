@@ -26,7 +26,7 @@ type Face interface {
 
 	// Glyph returns the graphical representation of the given rune in the alpha
 	// channel of returned image. The image is valid until the next Glyph call.
-	// The origin point is given in the img coordinates, can be outside of the
+	// The origin point is given in the img coordinates, may be outside of the
 	// image bounds.
 	Glyph(r rune) (img image.Image, origin image.Point, advance int)
 }
