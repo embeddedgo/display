@@ -95,17 +95,16 @@ func (d *Display) SetOrigin(origin image.Point) {
 func (d *Display) SetDir(dir int) {
 	dir90 := byte(dir & 1)
 	d.mt.Lock()
+	drvBoundsMin := d.drvBounds.Min
 	if d.dir90 != dir90 {
 		d.dir90 = dir90
-		d.drvBounds.Min.X, d.drvBounds.Min.Y = d.drvBounds.Min.Y, d.drvBounds.Min.X
-		d.drvBounds.Max.X, d.drvBounds.Max.Y = d.drvBounds.Max.Y, d.drvBounds.Max.X
 		d.bounds.Min.X, d.bounds.Min.Y = d.bounds.Min.Y, d.bounds.Min.X
 		d.bounds.Max.X, d.bounds.Max.Y = d.bounds.Max.Y, d.bounds.Max.X
 		d.tr.X, d.tr.Y = d.tr.Y, d.tr.X
+		drvBoundsMin.X, drvBoundsMin.Y = drvBoundsMin.Y, drvBoundsMin.X
 	}
-	drvBounds := d.drv.SetDir(dir)
-	d.tr = d.tr.Add(drvBounds.Min.Sub(d.drvBounds.Min))
-	d.drvBounds = drvBounds
+	d.drvBounds = d.drv.SetDir(dir)
+	d.tr = d.tr.Add(d.drvBounds.Min.Sub(drvBoundsMin))
 	d.mt.Unlock()
 }
 
