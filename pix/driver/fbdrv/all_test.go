@@ -7,18 +7,18 @@ package fbdrv_test
 import (
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/embeddedgo/display/images"
 	"github.com/embeddedgo/display/pix"
 	"github.com/embeddedgo/display/pix/driver/fbdrv"
 )
 
-var dir = filepath.Join(os.TempDir(), "pix_test")
+var workDir = filepath.Join(os.TempDir(), "pix_test")
 
 var (
 	white = color.Gray{255}
@@ -54,7 +54,7 @@ func (fb *frameBuffer) SetDir(dir int) (pix []byte, width, height, stride int, s
 }
 
 func (fb *frameBuffer) Flush() ([]byte, error) {
-	os.Mkdir(dir, 0755)
+	os.Mkdir(workDir, 0755)
 	f, err := os.OpenFile(fb.path, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
 		return fb.img.Pix, err
@@ -63,31 +63,66 @@ func (fb *frameBuffer) Flush() ([]byte, error) {
 	return fb.img.Pix, png.Encode(f, fb.img)
 }
 
-func TestMono(t *testing.T) {
+func TestMonoRotate(t *testing.T) {
+	dir := 0 // change this to test different directions
 	fb := &frameBuffer{
 		img:  images.NewMono(image.Rect(0, 0, 41, 81)),
-		path: filepath.Join(dir, "mono.png"),
+		path: filepath.Join(workDir, "mono.png"),
 	}
 	disp := pix.NewDisplay(fbdrv.NewMono(fb))
-	for i := 0; i < 5; i++ {
-		println(i)
-		disp.SetDir(i)
-		a := disp.NewArea(disp.Bounds().Inset(1))
-		a.SetColor(white)
-		r := a.Bounds()
-		a.Fill(r)
-		a.SetColor(black)
-		p0 := image.Pt(5, 10)
-		p1 := image.Pt(25, 5)
-		p2 := image.Pt(35, 10)
-		p3 := image.Pt(25, 15)
-		a.Quad(p0, p1, p2, p3, true)
-		p := r.Min.Add(r.Max).Mul(3).Div(4)
-		a.RoundRect(p, p, 5, 8, false)
-		p.X = p.X / 3
-		a.RoundRect(p, p, 4, 6, true)
-		a.Flush()
-		failErr(t, a.Err(false))
-		time.Sleep(5 * time.Second)
+	disp.SetDir(dir)
+	a := disp.NewArea(disp.Bounds().Inset(1))
+	a.SetColor(white)
+	r := a.Bounds()
+	a.Fill(r)
+	a.SetColor(black)
+	p0 := image.Pt(5, 10)
+	p1 := image.Pt(25, 5)
+	p2 := image.Pt(35, 10)
+	p3 := image.Pt(25, 15)
+	a.Quad(p0, p1, p2, p3, true)
+	p := r.Min.Add(r.Max).Mul(3).Div(4)
+	a.RoundRect(p, p, 5, 8, false)
+	p.X = p.X / 3
+	a.RoundRect(p, p, 4, 6, true)
+	a.Flush()
+	failErr(t, a.Err(false))
+}
+
+var img = &image.Alpha{
+	Pix: []uint8{
+		0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00, 0x00,
+		0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00, 0x00,
+		0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00, 0x00,
+		0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0x00,
+		0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff,
+		0xff, 0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00,
+		0xff, 0x00, 0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,
+		0x00, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+	},
+	Stride: 9,
+	Rect:   image.Rectangle{Max: image.Point{9, 12}},
+}
+
+func TestMonoDraw(t *testing.T) {
+	fb := &frameBuffer{
+		img:  images.NewMono(image.Rect(0, 0, 21, 21)),
+		path: filepath.Join(workDir, "mono_img.png"),
 	}
+	disp := pix.NewDisplay(fbdrv.NewMono(fb))
+	a := disp.NewArea(disp.Bounds())
+	r := image.Rectangle{Max: img.Bounds().Size()}
+	p := image.Pt(8, 1)
+	a.Draw(r.Add(p), img, image.Point{}, nil, image.Point{}, draw.Src)
+	p = image.Pt(1, 8)
+	u := &image.Uniform{color.Gray{255}}
+	a.Draw(r.Add(p), u, image.Point{}, img, image.Point{}, draw.Src)
+	p = image.Pt(11, 7)
+	a.Draw(r.Add(p), u, image.Point{}, img, image.Point{}, draw.Over)
+	a.Flush()
+	failErr(t, a.Err(false))
 }

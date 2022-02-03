@@ -13,14 +13,14 @@ const (
 
 // FrameBuffer defines the interface to an in RAM frame buffer.
 type FrameBuffer interface {
-	// SetDir returns the frame buffer in pix and its geometry in width, height
+	// SetDir returns the frame buffer in buf and its geometry in width, height
 	// and stride. In case of sub-byte pixels the bit shift to the first pixel
-	// in pix[0] is provided in shift. The mvxy translation (described as
+	// in buf[0] is provided in shift. The mvxy translation (described as
 	// a combination of MV, MX, MY constants) should be aplied when drawing
 	// in the returned buffer to obtain the desired direction (rotation) of the
-	// image on the display. Every SetDir call may return a different pix with
-	// a different geometry and random content.
-	SetDir(dir int) (pix []byte, width, height, stride int, shitf, mvxy uint8)
+	// image on the display. Every SetDir call may return a different buffer
+	// with a different geometry and random content.
+	SetDir(dir int) (buf []byte, width, height, stride int, shitf, mvxy uint8)
 
 	// Flush exports the content of the internal RAM buffer to the actual
 	// display or to an other media like image file, etc. The data in buffer may
@@ -30,5 +30,5 @@ type FrameBuffer interface {
 	// do nothing. Flush returns a buffer which should be used for subsequent
 	// drawing operations and error if occured. The returned buffer may contain
 	// random data.
-	Flush() (pix []byte, err error)
+	Flush() (buf []byte, err error)
 }

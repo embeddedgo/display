@@ -57,6 +57,8 @@ type Driver interface {
 	Err(clear bool) error
 }
 
+/*
+
 // ReadDriver is an optional interface that driver may implement to allow read
 // the content of frame memory.
 type ReadDriver interface {
@@ -67,3 +69,5 @@ type ReadDriver interface {
 	// Read reads the part of frame memory specified by r into dst at dp.
 	Read(r image.Rectangle, dst draw.Image, dp image.Point)
 }
+
+*/

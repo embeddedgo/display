@@ -8,8 +8,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-
-	"github.com/embeddedgo/display/images"
 )
 
 const (
@@ -19,29 +17,37 @@ const (
 )
 
 type Mono struct {
-	frame images.Mono
-	flush func(frame *images.Mono) error
-	color uint8
-	err   error
+	fb     FrameBuffer
+	pix    []byte
+	width  int
+	height int
+	stride int
+	shift  uint8
+	mvxy   uint8
+	color  uint8
+	err    error
 }
 
-func NewMono(width, height int, flush func(frame *images.Mono) error) *Mono {
-	d := new(Mono)
-	d.frame.Rect.Max.X = width
-	d.frame.Rect.Max.Y = height
-	d.frame.Stride = (width + 7) >> 3
-	d.frame.Pix = make([]uint8, d.frame.Stride*height)
-	d.flush = flush
-	return d
+func NewMono(fb FrameBuffer) *Mono {
+	return &Mono{fb: fb}
 }
 
 func (d *Mono) SetDir(dir int) image.Rectangle {
-	return d.frame.Rect
+	d.pix, d.width, d.height, d.stride, d.shift, d.mvxy = d.fb.SetDir(dir)
+	var r image.Rectangle
+	if d.mvxy&MV == 0 {
+		r.Max.X = d.width
+		r.Max.Y = d.height
+	} else {
+		r.Max.X = d.height
+		r.Max.Y = d.width
+	}
+	return r
 }
 
 func (d *Mono) Flush() {
-	if d.flush != nil && d.err == nil {
-		d.err = d.flush(&d.frame)
+	if d.err == nil {
+		d.pix, d.err = d.fb.Flush()
 	}
 }
 
@@ -53,12 +59,65 @@ func (d *Mono) Err(clear bool) error {
 	return err
 }
 
-func (d *Mono) Frame() draw.Image {
-	return &d.frame
+func (d *Mono) pixOffset(x, y int) (offset int, shift uint) {
+	x += int(d.shift)
+	offset = y*d.stride + x>>3
+	shift = uint(x & 7)
+	return
 }
 
 func (d *Mono) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	// TODO
+	var (
+		sy, sa     uint
+		srcUniform bool
+	)
+	srcGray, _ := src.(interface{ GrayAt(x, y int) color.Gray })
+	if srcGray == nil {
+		if u, ok := src.(*image.Uniform); ok {
+			r, g, b, a := u.At(0, 0).RGBA()
+			sy = lum32(r, g, b) >> 16
+			sa = uint(a)
+			srcUniform = true
+		}
+	}
+	offset, shift := d.pixOffset(r.Min.X, r.Min.Y)
+	width, height := r.Dx(), r.Dy()
+	for y := 0; y < height; y++ {
+		for x := 0; x < width; x++ {
+			if !srcUniform {
+				sa = 0xffff
+				if srcGray != nil {
+					sy = uint(srcGray.GrayAt(sp.X+x, sp.Y+y).Y)
+					sy |= sy << 8
+				} else {
+					r, g, b, a := src.At(sp.X+x, sp.Y+y).RGBA()
+					sy = lum32(r, g, b) >> 16
+					sa = uint(a)
+				}
+			}
+			ma := uint(0xffff)
+			if mask != nil {
+				_, _, _, a := mask.At(mp.X+x, mp.Y+y).RGBA()
+				ma = uint(a)
+			}
+			o := x + int(shift)
+			s := uint(o & 7)
+			o = offset + o>>3
+			pix8 := uint(d.pix[o])
+			dy := sy
+			if sa&ma != 0xffff {
+				if op == draw.Over {
+					dy = -(pix8 >> s & 1) & 0xffff
+					a := 0xffff - (sa * ma / 0xffff)
+					dy = (dy*a + sy*ma) / 0xffff
+				} else if ma != 0xffff {
+					dy = sy * ma / 0xffff
+				}
+			}
+			d.pix[o] = uint8(pix8&^(1<<s) | (dy>>15)<<s)
+		}
+		offset += d.stride
+	}
 }
 
 func (d *Mono) SetColor(c color.Color) {
@@ -70,8 +129,7 @@ func (d *Mono) SetColor(c color.Color) {
 	if a>>15 == 0 {
 		d.color = ctrans
 	} else {
-		y := 19595*r + 38470*g + 7471*b + 1<<15
-		d.color = uint8(int32(y) >> 31)
+		d.color = uint8(lum32(r, g, b) >> 31)
 	}
 }
 
@@ -79,30 +137,40 @@ func (d *Mono) Fill(r image.Rectangle) {
 	if d.color == ctrans {
 		return
 	}
-	color := uint8(-int(d.color))
-	offset, shift := d.frame.PixOffset(r.Min.X, r.Min.Y)
+	if d.mvxy&MV != 0 {
+		r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+		r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
+	}
+	if d.mvxy&MX != 0 {
+		r.Max.X, r.Min.X = d.width-r.Min.X, d.width-r.Max.X
+	}
+	if d.mvxy&MY != 0 {
+		r.Max.Y, r.Min.Y = d.height-r.Min.Y, d.height-r.Max.Y
+	}
+	offset, shift := d.pixOffset(r.Min.X, r.Min.Y)
 	width := r.Dx()
-	length := d.frame.Stride * r.Dy()
+	length := d.stride * r.Dy()
 	n := 8 - int(shift)
 	if width < n {
 		n = width
 	}
+	color := uint8(-int(d.color))
 	if n < 8 {
 		rs := uint(8 - n)
 		color0 := color >> rs << shift
 		mask := uint8(0xff) >> rs << shift
 		maxi := offset + length
-		for i := offset; i < maxi; i += d.frame.Stride {
-			d.frame.Pix[i] = d.frame.Pix[i]&^mask | color0
+		for i := offset; i < maxi; i += d.stride {
+			d.pix[i] = d.pix[i]&^mask | color0
 		}
 		width -= n
 		offset++
 	}
 	if n = width / 8; n != 0 {
 		maxi := offset + length
-		for i := offset; i < maxi; i += d.frame.Stride {
+		for i := offset; i < maxi; i += d.stride {
 			for k, maxk := i, i+n; k < maxk; k++ {
-				d.frame.Pix[k] = color
+				d.pix[k] = color
 			}
 		}
 		offset += n
@@ -113,8 +181,12 @@ func (d *Mono) Fill(r image.Rectangle) {
 		color >>= rs
 		mask := uint8(0xff) >> rs
 		maxi := offset + length
-		for i := offset; i < maxi; i += d.frame.Stride {
-			d.frame.Pix[i] = d.frame.Pix[i]&^mask | color
+		for i := offset; i < maxi; i += d.stride {
+			d.pix[i] = d.pix[i]&^mask | color
 		}
 	}
+}
+
+func lum32(r, g, b uint32) uint {
+	return uint(19595*r + 38470*g + 7471*b + 1<<15)
 }
