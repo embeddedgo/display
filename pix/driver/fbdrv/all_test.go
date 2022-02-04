@@ -63,7 +63,7 @@ func (fb *frameBuffer) Flush() ([]byte, error) {
 	return fb.img.Pix, png.Encode(f, fb.img)
 }
 
-func TestMonoRotate(t *testing.T) {
+func TestMonoGraph(t *testing.T) {
 	dir := 0 // change this to test different directions
 	fb := &frameBuffer{
 		img:  images.NewMono(image.Rect(0, 0, 41, 81)),
@@ -109,11 +109,13 @@ var img = &image.Alpha{
 }
 
 func TestMonoDraw(t *testing.T) {
+	dir := 3 // change this to test different directions
 	fb := &frameBuffer{
 		img:  images.NewMono(image.Rect(0, 0, 21, 21)),
 		path: filepath.Join(workDir, "mono_img.png"),
 	}
 	disp := pix.NewDisplay(fbdrv.NewMono(fb))
+	disp.SetDir(dir)
 	a := disp.NewArea(disp.Bounds())
 	r := image.Rectangle{Max: img.Bounds().Size()}
 	p := image.Pt(8, 1)

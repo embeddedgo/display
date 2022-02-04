@@ -67,56 +67,73 @@ func (d *Mono) pixOffset(x, y int) (offset int, shift uint) {
 }
 
 func (d *Mono) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	var (
-		sy, sa     uint
-		srcUniform bool
-	)
+	var sl, sa uint = 0, 0xffff
+	srcIsUniform := false
 	srcGray, _ := src.(interface{ GrayAt(x, y int) color.Gray })
 	if srcGray == nil {
 		if u, ok := src.(*image.Uniform); ok {
 			r, g, b, a := u.At(0, 0).RGBA()
-			sy = lum32(r, g, b) >> 16
+			sl = lum32(r, g, b) >> 16
 			sa = uint(a)
-			srcUniform = true
+			srcIsUniform = true
 		}
 	}
-	offset, shift := d.pixOffset(r.Min.X, r.Min.Y)
+	minx, miny := r.Min.X, r.Min.Y
+	ox, oy := 1, d.stride*8
+	if d.mvxy&MV != 0 {
+		minx, miny = miny, minx
+	}
+	if d.mvxy&MX != 0 {
+		minx = d.width - 1 - minx
+		ox = -ox
+	}
+	if d.mvxy&MY != 0 {
+		miny = d.height - 1 - miny
+		oy = -oy
+	}
+	if d.mvxy&MV != 0 {
+		ox, oy = oy, ox
+	}
+	offset, shift := d.pixOffset(minx, miny)
+	offset = offset*8 + int(shift)
 	width, height := r.Dx(), r.Dy()
 	for y := 0; y < height; y++ {
+		o := offset
 		for x := 0; x < width; x++ {
-			if !srcUniform {
-				sa = 0xffff
-				if srcGray != nil {
-					sy = uint(srcGray.GrayAt(sp.X+x, sp.Y+y).Y)
-					sy |= sy << 8
-				} else {
-					r, g, b, a := src.At(sp.X+x, sp.Y+y).RGBA()
-					sy = lum32(r, g, b) >> 16
-					sa = uint(a)
-				}
+			switch {
+			case srcIsUniform:
+				// sl, sa are constant
+			case srcGray != nil:
+				sl = uint(srcGray.GrayAt(sp.X+x, sp.Y+y).Y)
+				sl |= sl << 8
+				// sa is constant
+			default:
+				r, g, b, a := src.At(sp.X+x, sp.Y+y).RGBA()
+				sl = lum32(r, g, b) >> 16
+				sa = uint(a)
 			}
 			ma := uint(0xffff)
 			if mask != nil {
 				_, _, _, a := mask.At(mp.X+x, mp.Y+y).RGBA()
 				ma = uint(a)
 			}
-			o := x + int(shift)
 			s := uint(o & 7)
-			o = offset + o>>3
-			pix8 := uint(d.pix[o])
-			dy := sy
-			if sa&ma != 0xffff {
-				if op == draw.Over {
-					dy = -(pix8 >> s & 1) & 0xffff
-					a := 0xffff - (sa * ma / 0xffff)
-					dy = (dy*a + sy*ma) / 0xffff
-				} else if ma != 0xffff {
-					dy = sy * ma / 0xffff
-				}
+			pix8 := uint(d.pix[o>>3])
+			dl := sl
+			switch {
+			case sa&ma == 0xffff:
+				// dl is ok
+			case op == draw.Over:
+				dl = -(pix8 >> s & 1) & 0xffff
+				a := 0xffff - (sa * ma / 0xffff)
+				dl = (dl*a + sl*ma) / 0xffff
+			case ma != 0xffff:
+				dl = sl * ma / 0xffff
 			}
-			d.pix[o] = uint8(pix8&^(1<<s) | (dy>>15)<<s)
+			d.pix[o>>3] = uint8(pix8&^(1<<s) | (dl>>15)<<s)
+			o += ox
 		}
-		offset += d.stride
+		offset += oy
 	}
 }
 

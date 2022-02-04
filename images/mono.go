@@ -73,24 +73,22 @@ func (p *Mono) Set(x, y int, c color.Color) {
 	if !(image.Pt(x, y).In(p.Rect)) {
 		return
 	}
-	var Y uint8
+	var bit uint8
 	if g, ok := c.(color.Gray); ok {
-		Y = uint8(int8(g.Y) >> 7)
+		bit = uint8(int8(g.Y) >> 7)
 	} else {
 		r, g, b, _ := c.RGBA()
-		Y = uint8(int32(19595*r+38470*g+7471*b+1<<15) >> 31)
+		bit = uint8(int32(19595*r+38470*g+7471*b+1<<15) >> 31)
 	}
 	i, s := p.PixOffset(x, y)
-	m := uint8(1 << s)
-	p.Pix[i] = p.Pix[i]&^m | Y&m
+	p.Pix[i] = p.Pix[i]&^(1<<s) | bit<<s
 }
 
 func (p *Mono) SetGray(x, y int, c color.Gray) {
 	if !(image.Pt(x, y).In(p.Rect)) {
 		return
 	}
-	Y := uint8(int8(c.Y) >> 7)
+	bit := uint8(int8(c.Y) >> 7)
 	i, s := p.PixOffset(x, y)
-	m := uint8(1 << s)
-	p.Pix[i] = p.Pix[i]&^m | Y&m
+	p.Pix[i] = p.Pix[i]&^(1<<s) | bit<<s
 }
