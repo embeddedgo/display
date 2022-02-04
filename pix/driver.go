@@ -11,7 +11,7 @@ import (
 )
 
 // Driver defines the interface to be implemented by display controller drivers
-// or anything else that wants to use pix package drawing capability.
+// or anything else that wants to use drawing functions of pix package.
 type Driver interface {
 	// SetDir sets the display direction rotating its default coordinate system
 	// by dir*90 degrees. It returns the bounds of the frame memory for the new
@@ -36,8 +36,8 @@ type Driver interface {
 	// SetColor sets the color used by Fill method.
 	SetColor(c color.Color)
 
-	// Fill helps to increase prformance when drawing filled rectangles which
-	// are heavily used when drawing various geometric shapes.
+	// Fill helps to increase prformance when drawing filled rectangles. Any
+	// other geometric shape is drawn as a set of filed rectangles.
 	//
 	// Fill(r) is intended to be a faster counterpart of
 	//

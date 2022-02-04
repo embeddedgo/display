@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package imgdrv is an example of a minimal driver based on Go image/draw
-// package. This package is intended mainly for tests. See ../fbdrv for similar
-// but more efficient drivers.
+// Package imgdrv provides a minimal driver based on Go image/draw package. See
+// ../fbdrv for similar drivers with more features.
 package imgdrv
 
 import (
@@ -14,7 +13,7 @@ import (
 )
 
 // Driver provides simplest possible implementation of pix.Driver. Its speed is
-// not important.
+// not important. The SetDir method does nothing.
 type Driver struct {
 	Image draw.Image
 	fill  image.Uniform
