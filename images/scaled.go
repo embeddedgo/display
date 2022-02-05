@@ -20,27 +20,27 @@ const (
 	Bilinear
 )
 
-// ScaledUp can be used to wrap image to scale it up at runtime by integer
+// Magnified can be used to wrap image to scale it up at runtime by integer
 // factor.
-type ScaledUp struct {
+type Magnified struct {
 	Image image.Image
 	Scale int
 	Mode  byte
 }
 
-// NewScaledUp wraps img to scale it up by scale factor usind given scaling
+// NewMagnified wraps img to scale it up by scale factor usind given scaling
 // mode.
-func NewScaledUp(img image.Image, scale int, mode byte) *ScaledUp {
-	return &ScaledUp{img, scale, mode}
+func NewMagnified(img image.Image, scale int, mode byte) *Magnified {
+	return &Magnified{img, scale, mode}
 }
 
 // ColorModel implements image.Image interface.
-func (p *ScaledUp) ColorModel() color.Model {
+func (p *Magnified) ColorModel() color.Model {
 	return p.Image.ColorModel()
 }
 
 // Bounds implements image.Image interface.
-func (p *ScaledUp) Bounds() image.Rectangle {
+func (p *Magnified) Bounds() image.Rectangle {
 	r := p.Image.Bounds()
 	r.Min = r.Min.Mul(p.Scale)
 	r.Max = r.Max.Mul(p.Scale)
@@ -48,7 +48,7 @@ func (p *ScaledUp) Bounds() image.Rectangle {
 }
 
 // At implements image.Image interface.
-func (p *ScaledUp) At(x, y int) color.Color {
+func (p *Magnified) At(x, y int) color.Color {
 	if p.Scale == 1 {
 		return p.Image.At(x, y)
 	}

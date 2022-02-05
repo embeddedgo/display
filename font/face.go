@@ -12,8 +12,8 @@ import "image"
 //
 // The implementation of Face is allowed to be UNSAFE for concurrent use (see
 // description of Glyph method). In such case a font repository should provide
-// a way to request multiple independend instances of Face that represents the
-// same font face in the repository.
+// a way to request multiple independend Face instances that represents the same
+// font face in the repository.
 type Face interface {
 	// Size returns the font height (interline spacing) and the ascent (height
 	// above the baseline.

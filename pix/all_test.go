@@ -246,7 +246,7 @@ func TestFont(t *testing.T) {
 	w.Face = VGA
 	w.WriteString(AkermanianSteppeEN)
 
-	w.Face = font.NewScaled(AnonPro11, 2, font.Nearest)
+	w.Face = font.NewMagnified(AnonPro11, 2, font.Nearest)
 	w.WriteString(AkermanianSteppeDE)
 
 	saveDisplay(t, disp, "font.png")
