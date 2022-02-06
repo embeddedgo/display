@@ -8,34 +8,39 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-
-	"github.com/embeddedgo/display/images"
 )
 
 type RGB struct {
-	frame images.RGB
-	flush func(frame *images.RGB) error
-	color     color.RGBA64
-	err   error
+	fb         FrameBuffer
+	pix        []byte
+	width      int
+	height     int
+	stride     int
+	r, g, b, a uint16
+	mvxy       uint8
+	err        error
 }
 
-func NewRGB(width, height int, flush func(frame *images.RGB) error) *RGB {
-	d := new(RGB)
-	d.frame.Rect.Max.X = width
-	d.frame.Rect.Max.Y = height
-	d.frame.Stride = 3 * width
-	d.frame.Pix = make([]uint8, d.frame.Stride*height)
-	d.flush = flush
-	return d
+func NewRGB(fb FrameBuffer) *RGB {
+	return &RGB{fb: fb}
 }
 
 func (d *RGB) SetDir(dir int) image.Rectangle {
-	return d.frame.Rect
+	d.pix, d.width, d.height, d.stride, _, d.mvxy = d.fb.SetDir(dir)
+	var r image.Rectangle
+	if d.mvxy&MV == 0 {
+		r.Max.X = d.width
+		r.Max.Y = d.height
+	} else {
+		r.Max.X = d.height
+		r.Max.Y = d.width
+	}
+	return r
 }
 
 func (d *RGB) Flush() {
-	if d.flush != nil && d.err != nil {
-		d.err = d.flush(&d.frame)
+	if d.err == nil {
+		d.pix, d.err = d.fb.Flush()
 	}
 }
 
@@ -47,22 +52,106 @@ func (d *RGB) Err(clear bool) error {
 	return err
 }
 
-func (d *RGB) Frame() draw.Image {
-	return &d.frame
-}
-
 func (d *RGB) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
-	// TODO
+	var sr, sg, sb, sa uint32
+	srcIsUniform := false
+	if u, ok := src.(*image.Uniform); ok {
+		sr, sg, sb, sa = u.At(0, 0).RGBA()
+		srcIsUniform = true
+	}
+	minx, miny := r.Min.X, r.Min.Y
+	ox, oy := 3, d.stride
+	if d.mvxy&MV != 0 {
+		minx, miny = miny, minx
+	}
+	if d.mvxy&MX != 0 {
+		minx = d.width - 1 - minx
+		ox = -ox
+	}
+	if d.mvxy&MY != 0 {
+		miny = d.height - 1 - miny
+		oy = -oy
+	}
+	if d.mvxy&MV != 0 {
+		ox, oy = oy, ox
+	}
+	offset := miny*d.stride + minx*3
+	width, height := r.Dx(), r.Dy()
+	for y := 0; y < height; y++ {
+		o := offset
+		for x := 0; x < width; x++ {
+			if !srcIsUniform {
+				sr, sg, sb, sa = src.At(sp.X+x, sp.Y+y).RGBA()
+			}
+			ma := uint32(0xffff)
+			if mask != nil {
+				_, _, _, ma = mask.At(mp.X+x, mp.Y+y).RGBA()
+			}
+			pix := d.pix[o : o+3 : o+3] // see https://golang.org/issue/27857
+			dr, dg, db := sr, sg, sb
+			if sa&ma != 0xffff {
+				dr = uint32(pix[0])
+				dg = uint32(pix[1])
+				db = uint32(pix[2])
+				if op == draw.Over {
+					a := 0xffff - (sa * ma / 0xffff)
+					dr = (dr*a + sr*ma) / 0xffff
+					dg = (dg*a + sg*ma) / 0xffff
+					db = (db*a + sb*ma) / 0xffff
+				} else if ma != 0xffff {
+					dr = sr * ma / 0xffff
+					dg = sg * ma / 0xffff
+					db = sb * ma / 0xffff
+				}
+			}
+			pix[0] = uint8(dr)
+			pix[1] = uint8(dg)
+			pix[2] = uint8(db)
+			o += ox
+		}
+		offset += oy
+	}
 }
 
 func (d *RGB) SetColor(c color.Color) {
 	r, g, b, a := c.RGBA()
-	d.color.R = uint16(r)
-	d.color.G = uint16(g)
-	d.color.B = uint16(b)
-	d.color.A = uint16(a)
+	d.r = uint16(r)
+	d.g = uint16(g)
+	d.b = uint16(b)
+	d.a = uint16(a)
 }
 
 func (d *RGB) Fill(r image.Rectangle) {
-	// TODO
+	if d.a == 0 {
+		return
+	}
+	if d.mvxy&MV != 0 {
+		r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+		r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
+	}
+	if d.mvxy&MX != 0 {
+		r.Max.X, r.Min.X = d.width-r.Min.X, d.width-r.Max.X
+	}
+	if d.mvxy&MY != 0 {
+		r.Max.Y, r.Min.Y = d.height-r.Min.Y, d.height-r.Max.Y
+	}
+	offset := r.Min.Y*d.stride + r.Min.X*3
+	maxi := offset + d.stride*r.Dy()
+	n := r.Dx() * 3
+	cr, cg, cb := uint(d.r), uint(d.g), uint(d.b)
+	a := 0xffff - uint(d.a)
+	for i := offset; i < maxi; i += d.stride {
+		for k, maxk := i, i+n; k < maxk; k += 3 {
+			pix := d.pix[k : k+3 : k+3] // see https://golang.org/issue/27857
+			r := uint(pix[0])
+			g := uint(pix[1])
+			b := uint(pix[2])
+			r = (r|r<<8)*a/0xffff + cr
+			g = (g|g<<8)*a/0xffff + cg
+			b = (b|b<<8)*a/0xffff + cb
+			pix[0] = uint8(r >> 8)
+			pix[1] = uint8(g >> 8)
+			pix[2] = uint8(b >> 8)
+		}
+	}
 }

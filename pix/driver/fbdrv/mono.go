@@ -59,7 +59,7 @@ func (d *Mono) Err(clear bool) error {
 	return err
 }
 
-func (d *Mono) pixOffset(x, y int) (offset int, shift uint) {
+func monoPixOffset(d *Mono, x, y int) (offset int, shift uint) {
 	x += int(d.shift)
 	offset = y*d.stride + x>>3
 	shift = uint(x & 7)
@@ -94,7 +94,7 @@ func (d *Mono) Draw(r image.Rectangle, src image.Image, sp image.Point, mask ima
 	if d.mvxy&MV != 0 {
 		ox, oy = oy, ox
 	}
-	offset, shift := d.pixOffset(minx, miny)
+	offset, shift := monoPixOffset(d, minx, miny)
 	offset = offset*8 + int(shift)
 	width, height := r.Dx(), r.Dy()
 	for y := 0; y < height; y++ {
@@ -164,7 +164,7 @@ func (d *Mono) Fill(r image.Rectangle) {
 	if d.mvxy&MY != 0 {
 		r.Max.Y, r.Min.Y = d.height-r.Min.Y, d.height-r.Max.Y
 	}
-	offset, shift := d.pixOffset(r.Min.X, r.Min.Y)
+	offset, shift := monoPixOffset(d, r.Min.X, r.Min.Y)
 	width := r.Dx()
 	length := d.stride * r.Dy()
 	n := 8 - int(shift)
