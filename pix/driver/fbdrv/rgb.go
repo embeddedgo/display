@@ -90,23 +90,24 @@ func (d *RGB) Draw(r image.Rectangle, src image.Image, sp image.Point, mask imag
 			pix := d.pix[o : o+3 : o+3] // see https://golang.org/issue/27857
 			dr, dg, db := sr, sg, sb
 			if sa&ma != 0xffff {
-				dr = uint32(pix[0])
-				dg = uint32(pix[1])
-				db = uint32(pix[2])
 				if op == draw.Over {
+					dr = uint32(pix[0])
+					dg = uint32(pix[1])
+					db = uint32(pix[2])
 					a := 0xffff - (sa * ma / 0xffff)
-					dr = (dr*a + sr*ma) / 0xffff
-					dg = (dg*a + sg*ma) / 0xffff
-					db = (db*a + sb*ma) / 0xffff
+					dr = ((dr|dr<<8)*a + sr*ma) / 0xffff
+					dg = ((dg|dg<<8)*a + sg*ma) / 0xffff
+					db = ((db|db<<8)*a + sb*ma) / 0xffff
 				} else if ma != 0xffff {
 					dr = sr * ma / 0xffff
 					dg = sg * ma / 0xffff
 					db = sb * ma / 0xffff
+				} else {
 				}
 			}
-			pix[0] = uint8(dr)
-			pix[1] = uint8(dg)
-			pix[2] = uint8(db)
+			pix[0] = uint8(dr >> 8)
+			pix[1] = uint8(dg >> 8)
+			pix[2] = uint8(db >> 8)
 			o += ox
 		}
 		offset += oy
