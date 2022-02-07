@@ -9,6 +9,7 @@ import (
 	"image/color"
 	"image/draw"
 	"image/png"
+	_ "image/png"
 	"os"
 	"path/filepath"
 	"testing"
@@ -192,14 +193,16 @@ func TestRGBGraph(t *testing.T) {
 }
 
 func TestRGBDraw(t *testing.T) {
-	dir := 4 // change this to test different directions
+	dir := 0 // change this to test different directions
 	fb := &rgbfb{
-		img:  images.NewRGB(image.Rect(0, 0, 21, 21)),
+		img:  images.NewRGB(image.Rect(0, 0, 64, 128)),
 		path: filepath.Join(workDir, "rgbdraw.png"),
 	}
 	disp := pix.NewDisplay(fbdrv.NewRGB(fb))
 	disp.SetDir(dir)
 	a := disp.NewArea(disp.Bounds())
+	a.SetColor(blue)
+	a.Fill(a.Bounds())
 	r := image.Rectangle{Max: img.Bounds().Size()}
 	p := image.Pt(8, 1)
 	a.Draw(r.Add(p), img, image.Point{}, nil, image.Point{}, draw.Src)
@@ -208,6 +211,16 @@ func TestRGBDraw(t *testing.T) {
 	a.Draw(r.Add(p), u, image.Point{}, img, image.Point{}, draw.Src)
 	p = image.Pt(11, 7)
 	a.Draw(r.Add(p), u, image.Point{}, img, image.Point{}, draw.Over)
+	f, err := os.Open("../../../testdata/gopher.png")
+	failErr(t, err)
+	defer f.Close()
+	gopher, _, err := image.Decode(f)
+	failErr(t, err)
+	r = image.Rectangle{Max: gopher.Bounds().Size()}
+	p = image.Pt(0, 45)
+	a.Draw(r.Add(p), gopher, image.Point{}, nil, image.Point{}, draw.Src)
+	p = image.Pt(20, 2)
+	a.Draw(r.Add(p), gopher, image.Point{}, nil, image.Point{}, draw.Over)
 	a.Flush()
 	failErr(t, a.Err(false))
 }
