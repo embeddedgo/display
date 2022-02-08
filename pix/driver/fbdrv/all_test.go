@@ -8,8 +8,8 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	_ "image/jpeg"
 	"image/png"
-	_ "image/png"
 	"os"
 	"path/filepath"
 	"testing"
@@ -213,14 +213,49 @@ func TestRGBDraw(t *testing.T) {
 	a.Draw(r.Add(p), u, image.Point{}, img, image.Point{}, draw.Over)
 	f, err := os.Open("../../../testdata/gopher.png")
 	failErr(t, err)
-	defer f.Close()
 	gopher, _, err := image.Decode(f)
+	f.Close()
 	failErr(t, err)
-	r = image.Rectangle{Max: gopher.Bounds().Size()}
+	r = gopher.Bounds()
 	p = image.Pt(0, 45)
-	a.Draw(r.Add(p), gopher, image.Point{}, nil, image.Point{}, draw.Src)
+	a.Draw(r.Add(p.Sub(r.Min)), gopher, r.Min, nil, image.Point{}, draw.Src)
 	p = image.Pt(20, 2)
 	a.Draw(r.Add(p), gopher, image.Point{}, nil, image.Point{}, draw.Over)
+	a.Flush()
+	failErr(t, a.Err(false))
+}
+
+func TestRGBDraw1(t *testing.T) {
+	f, err := os.Open("../../../testdata/gopherbug.jpg")
+	failErr(t, err)
+	gobug, _, err := image.Decode(f)
+	f.Close()
+	failErr(t, err)
+
+	gobugMask := new(images.AlphaN)
+	gobugMask.Rect.Min = image.Pt(31, 21)
+	gobugMask.Rect.Max = gobugMask.Rect.Min.Add(image.Pt(211, 251))
+	gobugMask.Stride = 27
+	gobugMask.Pix, err = os.ReadFile("../../../testdata/gopherbug.211x251s27b1")
+
+	dir := 0 // change this to test different directions
+	fb := &rgbfb{
+		img:  images.NewRGB(image.Rect(0, 0, 272*2, 272*2)),
+		path: filepath.Join(workDir, "gopherbug.png"),
+	}
+	disp := pix.NewDisplay(fbdrv.NewRGB(fb))
+	disp.SetDir(dir)
+	a := disp.NewArea(disp.Bounds())
+	a.SetColor(blue)
+	a.Fill(a.Bounds())
+	r := gobug.Bounds()
+	r = r.Sub(r.Min)
+	p := image.Pt(0, 0)
+	a.Draw(r.Add(p), gobug, image.Point{}, nil, image.Point{}, draw.Src)
+	p = image.Pt(272, 0)
+	a.Draw(r.Add(p), gobugMask, image.Point{}, nil, image.Point{}, draw.Src)
+	p = image.Pt(272, 272)
+	a.Draw(r.Add(p), gobug, image.Point{}, gobugMask, image.Point{}, draw.Over)
 	a.Flush()
 	failErr(t, a.Err(false))
 }
