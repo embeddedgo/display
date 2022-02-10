@@ -8,6 +8,7 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+	"image/jpeg"
 	"image/png"
 	"os"
 	"path/filepath"
@@ -17,6 +18,7 @@ import (
 	"github.com/embeddedgo/display/font/subfont"
 	"github.com/embeddedgo/display/font/subfont/font9/anonpro11"
 	"github.com/embeddedgo/display/font/subfont/font9/dejavu12"
+	"github.com/embeddedgo/display/font/subfont/font9/terminus12"
 	"github.com/embeddedgo/display/font/subfont/font9/vga"
 	"github.com/embeddedgo/display/images"
 	"github.com/embeddedgo/display/math2d"
@@ -24,7 +26,8 @@ import (
 	"github.com/embeddedgo/display/pix/driver/imgdrv"
 )
 
-var dir = filepath.Join(os.TempDir(), "pix_test")
+const testDir = "testdata"
+
 var (
 	white = color.Gray{255}
 	black = color.Gray{0}
@@ -41,9 +44,9 @@ func newDisplay(width, height int) *pix.Display {
 	return pix.NewDisplay(imgdrv.New(screen))
 }
 
+/*
 func saveImage(t *testing.T, img image.Image, name string) {
-	os.Mkdir(dir, 0755)
-	f, err := os.OpenFile(filepath.Join(dir, name), os.O_WRONLY|os.O_CREATE, 0755)
+	f, err := os.OpenFile(filepath.Join(testDir, name), os.O_WRONLY|os.O_CREATE, 0755)
 	failErr(t, err)
 	failErr(t, png.Encode(f, img))
 	failErr(t, f.Close())
@@ -52,17 +55,48 @@ func saveImage(t *testing.T, img image.Image, name string) {
 func saveDisplay(t *testing.T, disp *pix.Display, name string) {
 	saveImage(t, disp.Driver().(*imgdrv.Driver).Image, name)
 }
+*/
 
-func TestDrawGeom(t *testing.T) {
-	os.Mkdir(dir, 0755)
+func checkImage(t *testing.T, img image.Image, name string) {
+	f, err := os.Open(filepath.Join(testDir, name))
+	failErr(t, err)
+	saved, err := png.Decode(f)
+	f.Close()
+	failErr(t, err)
+	r0, r1 := saved.Bounds(), img.Bounds()
+	if r0.Size() != r1.Size() {
+		t.Error(name, "different sizes:", r0.Size(), r1.Size())
+		return
+	}
+	size := r0.Size()
+	for y := 0; y < size.Y; y++ {
+		for x := 0; x < size.X; x++ {
+			c0 := img.At(r0.Min.X+x, r0.Min.Y+y)
+			c1 := saved.At(r1.Min.X+x, r1.Min.Y+y)
+			r0, g0, b0, a0 := c0.RGBA()
+			r1, g1, b1, a1 := c1.RGBA()
+			if r0 != r1 || g0 != g1 || b0 != b1 || a0 != a1 {
+				t.Error(name, "different pixel color:", c0, c1, "at", x, y)
+				return
+			}
+		}
+	}
+}
 
-	img := image.NewNRGBA(image.Rect(0, 0, 200, 410))
+func checkDisplay(t *testing.T, disp *pix.Display, name string) {
+	checkImage(t, disp.Driver().(*imgdrv.Driver).Image, name)
+}
 
-	disp1 := pix.NewDisplay(imgdrv.New(img.SubImage(image.Rect(0, 0, 200, 200)).(*image.NRGBA)))
-	disp2 := pix.NewDisplay(imgdrv.New(img.SubImage(image.Rect(0, 210, 200, 410)).(*image.NRGBA)))
+func TestLineEllipse(t *testing.T) {
+	testFile := "line_ellipse.png"
+
+	img := image.NewNRGBA(image.Rect(0, 0, 300, 400))
+
+	disp1 := pix.NewDisplay(imgdrv.New(img.SubImage(image.Rect(0, 0, 300, 200)).(*image.NRGBA)))
+	disp2 := pix.NewDisplay(imgdrv.New(img.SubImage(image.Rect(0, 210, 300, 400)).(*image.NRGBA)))
 	disp2.SetOrigin(image.Pt(0, 200))
 
-	a := pix.NewArea(image.Rect(0, 0, 200, 400), disp1, disp2)
+	a := pix.NewArea(image.Rect(0, 0, 300, 390), disp1, disp2)
 	a.SetColor(color.Gray{220})
 	a.Fill(a.Bounds())
 
@@ -83,14 +117,22 @@ func TestDrawGeom(t *testing.T) {
 	xr := max.X * 3 / 4
 	for r := 0; r < 19; r++ {
 		y := 3 + (r+2)*r
+
 		a.SetColorRGBA(0, 100, 200, 255)
-		a.RoundRect(image.Pt(x, y), image.Pt(x, y), r, r, true)
-		a.RoundRect(image.Pt(xl, y), image.Pt(xl, y), r, r/2, true)
-		a.RoundRect(image.Pt(xr, y), image.Pt(xr, y), r/2, r, true)
+		p := image.Pt(x-r-1, y)
+		a.RoundRect(p, p, r, r, true)
+		p = image.Pt(xl-r-1, y)
+		a.RoundRect(p, p, r, r/2, true)
+		p = image.Pt(xr-r-1, y)
+		a.RoundRect(p, p, r/2, r, true)
+
 		a.SetColorRGBA(100, 50, 0, 255)
-		a.RoundRect(image.Pt(x, y), image.Pt(x, y), r, r, false)
-		a.RoundRect(image.Pt(xl, y), image.Pt(xl, y), r, r/2, false)
-		a.RoundRect(image.Pt(xr, y), image.Pt(xr, y), r/2, r, false)
+		p = image.Pt(x+r+1, y)
+		a.RoundRect(p, p, r, r, false)
+		p = image.Pt(xl+r+1, y)
+		a.RoundRect(p, p, r, r/2, false)
+		p = image.Pt(xr+r+1, y)
+		a.RoundRect(p, p, r/2, r, false)
 	}
 
 	a.SetColorRGBA(250, 100, 0, 255)
@@ -101,48 +143,59 @@ func TestDrawGeom(t *testing.T) {
 		a.Line(image.Pt(max.X-1-2, y), image.Pt(max.X-1-x, 2))
 	}
 
-	saveImage(t, img, "geom.png")
+	//saveImage(t, img, testFile)
+	checkImage(t, img, testFile)
 }
 
-func TestDrawImage(t *testing.T) {
-	disp := newDisplay(40, 40)
+func TestImage(t *testing.T) {
+	testFile := "image.png"
 
-	a := disp.NewArea(disp.Bounds().Inset(4))
+	f, err := os.Open("../testdata/gopherbug.jpg")
+	failErr(t, err)
+	gobug, err := jpeg.Decode(f)
+	f.Close()
+	failErr(t, err)
+
+	gobugMask := new(images.AlphaN)
+	gobugMask.Rect.Min = image.Pt(31, 21)
+	gobugMask.Rect.Max = gobugMask.Rect.Min.Add(image.Pt(211, 251))
+	gobugMask.Stride = 27
+	gobugMask.Pix, err = os.ReadFile("../testdata/gopherbug.211x251s27b1")
+	failErr(t, err)
+
+	disp := newDisplay(272*2, 272*2)
+	a := disp.NewArea(disp.Bounds())
 	a.SetColorRGBA(0, 0, 128, 255)
 	a.Fill(a.Bounds())
 
-	img := images.NewAlphaN(image.Rect(0, 0, 11, 11), 1)
-	img.Set(0, 10, color.Alpha{1})
-	img.Set(2, 8, color.Gray{1})
-	img.Set(4, 6, color.Gray16{1})
-	img.SetAlpha(6, 4, color.Alpha{1})
-	img.Set(8, 2, color.RGBA{0, 0, 0, 1})
-	img.Set(10, 0, color.RGBA64{0, 0, 0, 1})
-	img.SetAlpha(4, 4, color.Alpha{1})
+	r := gobug.Bounds()
+	p00 := image.Point{}
+	r = r.Sub(r.Min)
+	p := image.Pt(0, 0)
+	a.Draw(r.Add(p), gobug, p00, nil, p00, draw.Src)
+	p = image.Pt(272, 0)
+	a.Draw(r.Add(p), gobugMask, p00, nil, p00, draw.Src)
+	p = image.Pt(272, 272)
+	a.Draw(r.Add(p), gobug, p00, gobugMask, p00, draw.Over)
+	for i, b := range gobugMask.Pix {
+		gobugMask.Pix[i] = ^b
+	}
+	p = image.Pt(0, 272)
+	a.Draw(r.Add(p), gobug, p00, gobugMask, p00, draw.Over)
 
-	a.Draw(disp.Bounds(), img, image.Point{}, nil, image.Point{}, draw.Over)
-	a.Draw(disp.Bounds().Add(image.Pt(20, 25)), img, image.Point{}, nil, image.Point{}, draw.Over)
-
-	imm := images.NewImmAlphaN(img.Bounds(), 1, string(img.Pix))
-
-	a.Draw(disp.Bounds().Add(image.Pt(5, 5)),
-		&image.Uniform{color.RGBA{255, 0, 0, 255}}, image.Point{}, // source
-		imm, image.Point{}, // mask
-		draw.Over,
-	)
-	a.Draw(disp.Bounds().Add(image.Pt(10, 10)),
-		&image.Uniform{color.NRGBA{255, 0, 0, 150}}, image.Point{}, // source
-		imm, image.Point{}, // mask
-		draw.Over,
-	)
-
-	imm = imm.SubImage(image.Rect(2, 2, 11, 11)).(*images.ImmAlphaN)
-	a.Draw(disp.Bounds().Add(image.Pt(16, 16)), imm, image.Pt(2, 2), nil, image.Point{}, draw.Src)
-
-	saveDisplay(t, disp, "image.png")
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
 
 var (
+	AnonPro11 = &subfont.Face{
+		Height: anonpro11.Height,
+		Ascent: anonpro11.Ascent,
+		Subfonts: []*subfont.Subfont{
+			&anonpro11.X0000_0100,
+			&anonpro11.X0101_0201,
+		},
+	}
 	Dejavu12 = &subfont.Face{
 		Height: dejavu12.Height,
 		Ascent: dejavu12.Ascent,
@@ -151,12 +204,13 @@ var (
 			&dejavu12.X0101_0201,
 		},
 	}
-	AnonPro11 = &subfont.Face{
-		Height: anonpro11.Height,
-		Ascent: anonpro11.Ascent,
+	Terminus12 = &subfont.Face{
+		Height: terminus12.Height,
+		Ascent: terminus12.Ascent,
 		Subfonts: []*subfont.Subfont{
-			&anonpro11.X0000_0100,
-			&anonpro11.X0101_0201,
+			&terminus12.X0020_007e,
+			&terminus12.X00a0_0175,
+			&terminus12.X0178_017f,
 		},
 	}
 	VGA = &subfont.Face{
@@ -190,26 +244,6 @@ W takiej ciszy - tak ucho natężam ciekawie,
 Że słyszałbym głos z Litwy. - Jedźmy, nikt nie woła.
 `
 
-const AkermanianSteppeDE = `
-In kargen Raum gedrungen, ozeanisch weiten,
-taucht mein Wagen ein, ein schwerer Kahn, gezogen
-durch das Blütenmeer, rauschende Wiesenwogen,
-weicht Inseln, Riffen aus, muß mit den Stürmen streiten.
-
-Ein Dämmern senkt sich, doch kein Stern will mich geleiten
-hab ich den Himmel nach Vertrautem überflogen.
-Was glimmt dort? Zieht der Morgenstern schon seinen Bogen?
-Als Morgengruß woll'n Lichter übern Dnjestr gleiten.
-
-Sei still! Hoch ziehn die Kraniche in langen Ketten,
-So hoch daß sie selbst wachem Falkenblick entgehen,
-Ich hör, sich Schmetterlinge in die Winde betten.
-
-Schlüpft hier ` + "`" + `ne Schlange durch das Gras? ... Die Ähren wehen...
-Ich horche weit, auf Stimmen aus vertrauten Stätten;
-aus Litau'n...  Weiter! ... niemand ist zu hör'n, zu sehen.
-`
-
 // The Akkerman Steppe translated to English by Leo Yankevich
 const AkermanianSteppeEN = `
 I launch myself across the dry and open narrows,
@@ -231,8 +265,30 @@ Amid the hush I lean my ears down grassy lanes
 And listen for a voice from home. Nobody talks.
 `
 
-func TestFont(t *testing.T) {
-	disp := newDisplay(470, 1000)
+const AkermanianSteppeDE = `
+In kargen Raum gedrungen, ozeanisch weiten,
+taucht mein Wagen ein, ein schwerer Kahn, gezogen
+durch das Blütenmeer, rauschende Wiesenwogen,
+weicht Inseln, Riffen aus, muß mit den Stürmen streiten.
+
+Ein Dämmern senkt sich, doch kein Stern will mich geleiten
+hab ich den Himmel nach Vertrautem überflogen.
+Was glimmt dort? Zieht der Morgenstern schon seinen Bogen?
+Als Morgengruß woll'n Lichter übern Dnjestr gleiten.
+
+Sei still! Hoch ziehn die Kraniche in langen Ketten,
+So hoch daß sie selbst wachem Falkenblick entgehen,
+Ich hör, sich Schmetterlinge in die Winde betten.
+
+Schlüpft hier ` + "`" + `ne Schlange durch das Gras? ... Die Ähren wehen...
+Ich horche weit, auf Stimmen aus vertrauten Stätten;
+aus Litau'n...  Weiter! ... niemand ist zu hör'n, zu sehen.
+`
+
+func TestTextWriter(t *testing.T) {
+	testFile := "text_writer.png"
+
+	disp := newDisplay(460, 1300)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColorRGBA(250, 250, 200, 255)
@@ -246,14 +302,17 @@ func TestFont(t *testing.T) {
 	w.Face = VGA
 	w.WriteString(AkermanianSteppeEN)
 
-	w.Face = font.NewMagnified(AnonPro11, 2, font.Nearest)
+	w.Face = font.NewMagnified(Terminus12, 2, font.Nearest)
 	w.WriteString(AkermanianSteppeDE)
 
-	saveDisplay(t, disp, "font.png")
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
 
-func TestRectTriangle(t *testing.T) {
-	disp := newDisplay(500, 800)
+func TestTriangle(t *testing.T) {
+	testFile := "triangle.png"
+
+	disp := newDisplay(400, 710)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColor(black)
@@ -291,36 +350,51 @@ func TestRectTriangle(t *testing.T) {
 	}
 
 	triangles = [][3]image.Point{
-		{{100, 40}, {380, 240}, {10, 250}},
+		{{100, 40}, {100, 240}, {10, 250}},
+		{{100, 40}, {380, 260}, {100, 240}},
 		{{100, 260}, {380, 310}, {10, 590}},
 		{{390, 500}, {380, 310}, {10, 590}},
 	}
 
-	for _, tr := range triangles {
-		a.SetColorRGBA(192, 0, 0, 192)
-		a.FillQuad(tr[0], tr[1], tr[2], tr[2])
+	for i, tr := range triangles {
+		if i&1 == 0 {
+			a.SetColorRGBA(192, 0, 0, 192)
+		} else {
+			a.SetColorRGBA(0, 0, 192, 192)
+		}
+		a.FillQuad(tr[0], tr[0], tr[1], tr[2])
 	}
 
-	saveDisplay(t, disp, "triangle.png")
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
 
 func TestRoundRect(t *testing.T) {
-	disp := newDisplay(300, 400)
+	testFile := "roundrect.png"
+
+	disp := newDisplay(320, 420)
 
 	a := disp.NewArea(disp.Bounds())
-	a.SetOrigin(image.Pt(70, 50))
+	a.SetOrigin(image.Pt(60, 50))
 	a.SetColor(black)
 	a.Fill(a.Bounds())
 
+	o := image.Pt(20, 20)
+	p0 := image.Pt(150, 100)
+	p1 := image.Pt(250, 400)
+	ra, rb := 30, 40
 	a.SetColorRGBA(0, 0, 128, 128)
-	a.RoundRect(image.Pt(200, 100), image.Pt(300, 400), 30, 40, true)
+	a.RoundRect(p0, p1, ra, rb, true)
 	a.SetColorRGBA(0, 128, 0, 128)
-	a.RoundRect(image.Pt(200, 100), image.Pt(300, 400), 30, 40, false)
+	a.RoundRect(p0.Add(o), p1.Add(o), ra, rb, false)
 
-	a.SetColorRGBA(0, 0, 128, 128)
-	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 15, 15, true)
+	p0 = image.Pt(100, 300)
+	p1 = image.Pt(350, 400)
+	ra, rb = 15, 15
+	a.SetColorRGBA(128, 0, 0, 128)
+	a.RoundRect(p0, p1, ra, rb, true)
 	a.SetColorRGBA(0, 128, 0, 128)
-	a.RoundRect(image.Pt(100, 300), image.Pt(350, 400), 15, 15, false)
+	a.RoundRect(p0.Sub(o), p1.Sub(o), ra, rb, false)
 
 	r := a.Bounds().Inset(10)
 	r.Max.X--
@@ -328,11 +402,14 @@ func TestRoundRect(t *testing.T) {
 	a.SetColorRGBA(200, 0, 200, 200)
 	a.RoundRect(r.Min, r.Max, 10, 10, false)
 
-	saveDisplay(t, disp, "roundrect.png")
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
 
 func TestQuad(t *testing.T) {
-	disp := newDisplay(400, 800)
+	testFile := "quad.png"
+
+	disp := newDisplay(400, 420)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColor(black)
@@ -344,9 +421,9 @@ func TestQuad(t *testing.T) {
 	}
 
 	for _, q := range quads {
-		a.SetColorRGBA(192, 0, 0, 192)
+		a.SetColorRGBA(200, 0, 0, 200)
 		a.Quad(q[0], q[1], q[2], q[3], true)
-		a.SetColorRGBA(0, 192, 0, 192)
+		a.SetColorRGBA(0, 128, 0, 128)
 		a.Quad(q[0], q[1], q[2], q[3], false)
 	}
 
@@ -356,17 +433,23 @@ func TestQuad(t *testing.T) {
 		{{220, 320}, {320, 320}, {320, 400}, {220, 400}},
 	}
 	for _, q := range quads {
-		a.SetColorRGBA(0, 192, 0, 192)
+		a.SetColorRGBA(0, 200, 0, 200)
 		a.Quad(q[0], q[1], q[2], q[3], true)
 		a.SetColorRGBA(192, 0, 0, 192)
 		a.FillQuad(q[0], q[1], q[2], q[3])
 	}
 
-	saveDisplay(t, disp, "quad.png")
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
 
 func testArc(t *testing.T, fill bool) {
-	disp := newDisplay(400, 800)
+	testFile := "arc0.png"
+	if fill {
+		testFile = "arc1.png"
+	}
+
+	disp := newDisplay(400, 900)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColor(black)
@@ -416,11 +499,8 @@ func testArc(t *testing.T, fill bool) {
 	a.SetColorRGBA(0, 0, 150, 150)
 	a.Arc(image.Pt(200, 870), 70, 50, 140, 100, th1, th1+1e8, fill)
 
-	name := "arc.png"
-	if fill {
-		name = "arc_fill.png"
-	}
-	saveDisplay(t, disp, name)
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
 
 func TestArc(t *testing.T) {
@@ -429,6 +509,8 @@ func TestArc(t *testing.T) {
 }
 
 func TestDispRect(t *testing.T) {
+	testFile := "disp_rect.png"
+
 	disp := newDisplay(240, 320)
 	disp.SetRect(image.Rect(0, 40, 240, 240+40))
 
@@ -448,7 +530,8 @@ func TestDispRect(t *testing.T) {
 	p2 := p0.Add(image.Pt(6, 10))
 	a.Quad(p0, p0, p1, p2, true)
 
-	saveDisplay(t, disp, "disprect.png")
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
 
 func button(a *pix.Area, center image.Point, s string, f font.Face) {
@@ -472,7 +555,9 @@ func button(a *pix.Area, center image.Point, s string, f font.Face) {
 	w.WriteString(s)
 }
 
-func TestButton(t *testing.T) {
+func TestButtons(t *testing.T) {
+	testFile := "buttons.png"
+
 	disp := newDisplay(100, 200)
 
 	a := disp.NewArea(disp.Bounds())
@@ -489,5 +574,6 @@ func TestButton(t *testing.T) {
 	p.Y = r.Max.Y * 3 / 4
 	button(a, p, " OK ", VGA)
 
-	saveDisplay(t, disp, "button.png")
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
