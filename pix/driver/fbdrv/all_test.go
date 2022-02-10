@@ -38,6 +38,7 @@ func failErr(t *testing.T, err error) {
 type monofb struct {
 	img  *images.Mono
 	path string
+	err  error
 }
 
 func (fb *monofb) SetDir(dir int) (pix []byte, width, height, stride int, shift, mvxy uint8) {
@@ -57,14 +58,27 @@ func (fb *monofb) SetDir(dir int) (pix []byte, width, height, stride int, shift,
 	return
 }
 
-func (fb *monofb) Flush() ([]byte, error) {
+func (fb *monofb) Flush() []byte {
+	if fb.err != nil {
+		return fb.img.Pix
+	}
 	os.Mkdir(workDir, 0755)
 	f, err := os.OpenFile(fb.path, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
-		return fb.img.Pix, err
+		fb.err = err
+		return fb.img.Pix
 	}
-	defer f.Close()
-	return fb.img.Pix, png.Encode(f, fb.img)
+	fb.err = png.Encode(f, fb.img)
+	f.Close()
+	return fb.img.Pix
+}
+
+func (fb *monofb) Err(clear bool) error {
+	err := fb.err
+	if clear {
+		fb.err = nil
+	}
+	return err
 }
 
 func TestMonoGraph(t *testing.T) {
@@ -136,6 +150,7 @@ func TestMonoDraw(t *testing.T) {
 type rgbfb struct {
 	img  *images.RGB
 	path string
+	err  error
 }
 
 func (fb *rgbfb) SetDir(dir int) (pix []byte, width, height, stride int, shift, mvxy uint8) {
@@ -154,14 +169,27 @@ func (fb *rgbfb) SetDir(dir int) (pix []byte, width, height, stride int, shift, 
 	return
 }
 
-func (fb *rgbfb) Flush() ([]byte, error) {
+func (fb *rgbfb) Flush() []byte {
+	if fb.err != nil {
+		return fb.img.Pix
+	}
 	os.Mkdir(workDir, 0755)
 	f, err := os.OpenFile(fb.path, os.O_WRONLY|os.O_CREATE, 0755)
 	if err != nil {
-		return fb.img.Pix, err
+		fb.err = err
+		return fb.img.Pix
 	}
-	defer f.Close()
-	return fb.img.Pix, png.Encode(f, fb.img)
+	fb.err = png.Encode(f, fb.img)
+	f.Close()
+	return fb.img.Pix
+}
+
+func (fb *rgbfb) Err(clear bool) error {
+	err := fb.err
+	if clear {
+		fb.err = nil
+	}
+	return err
 }
 
 func TestRGBGraph(t *testing.T) {

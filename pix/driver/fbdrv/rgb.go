@@ -18,7 +18,6 @@ type RGB struct {
 	stride     int
 	r, g, b, a uint16
 	mvxy       uint8
-	err        error
 }
 
 func NewRGB(fb FrameBuffer) *RGB {
@@ -38,19 +37,8 @@ func (d *RGB) SetDir(dir int) image.Rectangle {
 	return r
 }
 
-func (d *RGB) Flush() {
-	if d.err == nil {
-		d.pix, d.err = d.fb.Flush()
-	}
-}
-
-func (d *RGB) Err(clear bool) error {
-	err := d.err
-	if clear {
-		d.err = nil
-	}
-	return err
-}
+func (d *RGB) Flush()               { d.pix = d.fb.Flush() }
+func (d *RGB) Err(clear bool) error { return d.fb.Err(clear) }
 
 func (d *RGB) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	var sr, sg, sb, sa uint32

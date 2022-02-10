@@ -25,7 +25,6 @@ type Mono struct {
 	shift  uint8
 	mvxy   uint8
 	color  uint8
-	err    error
 }
 
 func NewMono(fb FrameBuffer) *Mono {
@@ -45,19 +44,8 @@ func (d *Mono) SetDir(dir int) image.Rectangle {
 	return r
 }
 
-func (d *Mono) Flush() {
-	if d.err == nil {
-		d.pix, d.err = d.fb.Flush()
-	}
-}
-
-func (d *Mono) Err(clear bool) error {
-	err := d.err
-	if clear {
-		d.err = nil
-	}
-	return err
-}
+func (d *Mono) Flush()               { d.pix = d.fb.Flush() }
+func (d *Mono) Err(clear bool) error { return d.fb.Err(clear) }
 
 func monoPixOffset(d *Mono, x, y int) (offset int, shift uint) {
 	x += int(d.shift)
