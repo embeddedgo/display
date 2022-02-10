@@ -9,12 +9,13 @@ type DCI interface {
 	// Cmd starts a display controller command.
 	Cmd(cmd byte)
 
-	// WriteBytes writes the len(p) bytes from p to the display controller.
+	// WriteBytes writes the len(p) bytes from p to the display controller using
+	// data transfer mode.
 	WriteBytes(p []uint8)
 
-	// ReadBytes reads the len(p) bytes into p from the display controller.
-	// Some displays are write-only so the implementation designed exclusively
-	// for write-only displays can do nothing.
+	// ReadBytes reads the len(p) bytes into p from the display controller using
+	// data transfer mode. Some displays are write-only so the implementation
+	// designed exclusively for write-only displays may do nothing.
 	ReadBytes(p []byte)
 
 	// End ends the conversation with the display controller. The undelying
@@ -29,7 +30,8 @@ type DCI interface {
 // StringWriter is an optional interface that may be implemented by DCI to
 // speed up drawing of immutable images.
 //
-// WriteString writes the len(s) bytes from s to the display controller.
+// WriteString writes the len(s) bytes from s to the display controller using
+// data transfer mode.
 type StringWriter interface {
 	WriteString(s string)
 }
@@ -38,7 +40,8 @@ type StringWriter interface {
 // up drawing some colors (gray colors in case of 18/24-bit pixel format and
 // some other in case of 16-bit pixel format).
 //
-// WriteByteN writes n times the byte to the display controller.
+// WriteByteN writes n times the byte to the display controller using data
+// transfer mode.
 type ByteNWriter interface {
 	WriteByteN(b byte, n int)
 }
@@ -46,7 +49,8 @@ type ByteNWriter interface {
 // WordNWriter is an optional interface that may be implemented by a DCI to
 // improve drawing pertformance in case of 16-bit pixel format.
 //
-// WriteWordN writes n times the 16-bit word to the display controller.
+// WriteWordN writes n times the 16-bit word to the display controller using
+// data transfer mode.
 type WordNWriter interface {
 	WriteWordN(w uint16, n int)
 }
