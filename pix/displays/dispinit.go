@@ -20,6 +20,8 @@ import (
 	"image"
 
 	"github.com/embeddedgo/display/pix"
+	"github.com/embeddedgo/display/pix/driver/fbdrv"
+	"github.com/embeddedgo/display/pix/driver/fbdrv/ssd1306"
 	"github.com/embeddedgo/display/pix/driver/tftdrv"
 	"github.com/embeddedgo/display/pix/driver/tftdrv/ili9341"
 	"github.com/embeddedgo/display/pix/driver/tftdrv/ili9486"
@@ -74,4 +76,10 @@ func Waveshare_1i5_128x128_OLED_SSD1351(dci tftdrv.DCI) *pix.Display {
 	drv := ssd1351.New(dci)
 	drv.Init(ssd1351.UG2828GDEDF11)
 	return pix.NewDisplay(drv)
+}
+
+func Adafruit_0i96_128x64_OLED_SSD1306(dci tftdrv.DCI) *pix.Display {
+	fb := ssd1306.New(dci)
+	fb.Init(ssd1306.GFX128x64)
+	return pix.NewDisplay(fbdrv.NewMono(fb))
 }
