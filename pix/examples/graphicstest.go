@@ -107,6 +107,7 @@ func testFillScreen(a *pix.Area) uint {
 	a.Fill(r)
 	a.SetColor(black)
 	a.Fill(r)
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 
@@ -119,15 +120,15 @@ func testText(a *pix.Area) uint {
 	start := time.Now()
 	fmt.Fprint(w, "Hello World!\n\n")
 	w.SetColor(yellow)
-	w.Face = font.NewScaled(w.Face, 2, font.Nearest)
+	w.Face = font.NewMagnified(w.Face, 2, font.Nearest)
 	fmt.Fprint(w, 1234.56)
 	w.SetColor(red)
-	w.Face.(*font.Scaled).SetScale(3)
+	w.Face.(*font.Magnified).SetScale(3)
 	fmt.Fprintf(w, "\n%X", uint32(0xDEADBEEF))
 	w.SetColor(green)
-	w.Face.(*font.Scaled).SetScale(5)
+	w.Face.(*font.Magnified).SetScale(5)
 	fmt.Fprint(w, "\nGroop")
-	w.Face.(*font.Scaled).SetScale(2)
+	w.Face.(*font.Magnified).SetScale(2)
 	fmt.Fprint(w, "\nI implore thee,")
 	w.Face = fterm
 	fmt.Fprintln(w, "\nmy foonting turlingdromes.")
@@ -137,6 +138,7 @@ func testText(a *pix.Area) uint {
 	fmt.Fprintln(w, "in the gobberwarts")
 	fmt.Fprintln(w, "with my blurglecruncheon,")
 	fmt.Fprintln(w, "see if I don't!")
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 
@@ -157,6 +159,7 @@ func testLines(a *pix.Area, color color.Color) uint {
 		a.Line(p1, p2)
 	}
 	t := time.Now().Sub(start) // fillScreen doesn't count against timing
+	a.Flush()
 	a.SetColor(black)
 	a.Fill(r)
 	a.SetColor(color)
@@ -172,6 +175,7 @@ func testLines(a *pix.Area, color color.Color) uint {
 		a.Line(p1, p2)
 	}
 	t += time.Now().Sub(start)
+	a.Flush()
 	a.SetColor(black)
 	a.Fill(r)
 	a.SetColor(color)
@@ -187,6 +191,7 @@ func testLines(a *pix.Area, color color.Color) uint {
 		a.Line(p1, p2)
 	}
 	t += time.Now().Sub(start)
+	a.Flush()
 	a.SetColor(black)
 	a.Fill(r)
 	a.SetColor(color)
@@ -202,6 +207,7 @@ func testLines(a *pix.Area, color color.Color) uint {
 		a.Line(p1, p2)
 	}
 	t += time.Now().Sub(start)
+	a.Flush()
 	return uint(t / 1e3)
 }
 
@@ -223,6 +229,7 @@ func testFastLines(a *pix.Area, color1, color2 color.Color) uint {
 		p1.X = p0.X
 		a.Line(p0, p1)
 	}
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 
@@ -238,6 +245,7 @@ func testRects(a *pix.Area, color color.Color) uint {
 		d := image.Pt(i/2, i/2)
 		a.RoundRect(c.Sub(d), c.Add(d), 0, 0, false)
 	}
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 
@@ -258,6 +266,7 @@ func testFilledRects(a *pix.Area, color1, color2 color.Color) uint {
 		a.SetColor(color2)
 		a.RoundRect(c.Sub(d), c.Add(d), 0, 0, false)
 	}
+	a.Flush()
 	return uint(t / 1e3)
 }
 
@@ -274,6 +283,7 @@ func testFilledCircles(a *pix.Area, radius int, color color.Color) uint {
 			a.RoundRect(p, p, radius, radius, true)
 		}
 	}
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 
@@ -291,6 +301,7 @@ func testCircles(a *pix.Area, radius int, color color.Color) uint {
 			a.RoundRect(p, p, radius, radius, false)
 		}
 	}
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 
@@ -308,6 +319,7 @@ func testTriangles(a *pix.Area) uint {
 		p2 := c.Add(image.Pt(i, i))  // bottom right
 		a.Quad(p0, p0, p1, p2, false)
 	}
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 
@@ -328,6 +340,7 @@ func testFilledTriangles(a *pix.Area) uint {
 		a.SetColorRGBA(uint8(i*10), uint8(i*10), 0, 255)
 		a.Quad(p0, p0, p1, p2, false)
 	}
+	a.Flush()
 	return uint(t / 1e3)
 }
 
@@ -344,6 +357,7 @@ func testRoundRects(a *pix.Area) uint {
 		a.SetColorRGBA(uint8(i), 0, 0, 255)
 		a.RoundRect(c.Sub(d), c.Add(d), r, r, false)
 	}
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 
@@ -360,6 +374,7 @@ func testFilledRoundRects(a *pix.Area) uint {
 		a.SetColorRGBA(0, uint8(i), 0, 255)
 		a.RoundRect(c.Sub(d), c.Add(d), r, r, true)
 	}
+	a.Flush()
 	return uint(time.Now().Sub(start) / 1e3)
 }
 

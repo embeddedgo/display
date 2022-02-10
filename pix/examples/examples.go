@@ -64,6 +64,7 @@ func Colors(disp *pix.Display) {
 		r.Max.X = max.X
 		a.Fill(r)
 	}
+	a.Flush()
 	t2 := time.Now()
 	println("Colors:", t2.Sub(t1).String())
 	time.Sleep(2 * time.Second)
@@ -93,6 +94,7 @@ func Colors(disp *pix.Display) {
 		r.Max.X = max.X
 		a.Fill(r)
 	}
+	a.Flush()
 	t2 = time.Now()
 	println("Colors:", t2.Sub(t1).String())
 	time.Sleep(2 * time.Second)
@@ -114,6 +116,7 @@ func RotateDisplay(disp *pix.Display) {
 	// they position will adapt to current orientation of screen
 	w := r.Max.X / 10
 	h := r.Dy() / 3
+	s := (w + h) / 4
 	for i := 0; i < 5; i++ {
 		t1 := time.Now()
 
@@ -128,8 +131,8 @@ func RotateDisplay(disp *pix.Display) {
 
 		// draw the arrow
 		a.SetColor(white)
-		p0 := image.Pt(w/2, w/2)
-		p1 := image.Pt(w, w*3/4)
+		p0 := image.Pt(s/2, s/2)
+		p1 := image.Pt(s, s*3/4)
 		p2 := image.Pt(p1.Y, p1.X)
 		a.Quad(p0, p0, p1, p2, true)
 		a.Line(p0, p1.Add(p2))
@@ -159,6 +162,7 @@ func RotateDisplay(disp *pix.Display) {
 		a.SetColorRGBA(128, 0, 128, 255)
 		a.RoundRect(r.Min, r.Max, 8, 8, false)
 
+		a.Flush()
 		t2 := time.Now()
 		println("RotateDisplay:", t2.Sub(t1).String())
 		time.Sleep(2 * time.Second)
@@ -229,6 +233,7 @@ func clearAndPrint(a *pix.Area, face font.Face, s string) {
 	a.SetColor(black)
 	w := a.NewTextWriter(face)
 	w.WriteString(s)
+	a.Flush()
 	t2 := time.Now()
 	println("DrawText:", t2.Sub(t1).String())
 	time.Sleep(5 * time.Second)
