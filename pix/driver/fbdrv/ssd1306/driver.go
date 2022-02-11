@@ -10,7 +10,7 @@ import (
 	"github.com/embeddedgo/display/pix/driver/fbdrv"
 )
 
-// display geometry for Vertical Addressing Mode
+// Display geometry in Vertical Addressing Mode
 const (
 	width  = 64
 	height = 128
@@ -45,24 +45,9 @@ func (fb *FrameBuffer) SetDir(dir int) (pix []byte, w, h, s int, shift, mvxy uin
 }
 
 func (fb *FrameBuffer) Init(cmds []byte) {
-	i := 0
-	for i < len(cmds) {
-		cmd := cmds[i]
-		n := int(cmds[i+1])
-		i += 2
-		if n == 255 {
-			time.Sleep(time.Duration(cmd) * time.Millisecond)
-			continue
-		}
-		fb.dci.Cmd(cmd)
-		if n != 0 {
-			k := i + n
-			data := cmds[i:k]
-			i = k
-			for _, b := range data {
-				fb.dci.Cmd(b)
-			}
-		}
+	time.Sleep(time.Millisecond)
+	for _, b := range cmds {
+		fb.dci.Cmd(b)
 	}
 	fb.dci.WriteBytes(fb.pix[:])
 	fb.dci.End()
