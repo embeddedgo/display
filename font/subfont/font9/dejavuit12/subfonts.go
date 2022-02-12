@@ -10,8 +10,14 @@ const (
 	Ascent = 12
 )
 
+// NewFace provides a convenient way to create a font face containing the listed
+// subfonts. The returned face is SAFE for concurent use.
+func NewFace(subfonts ...*subfont.Subfont) *subfont.Face {
+	return &subfont.Face{Height: Height, Ascent: Ascent, Subfonts: subfonts}
+}
+
 // Xfff9_ffff subfont, n=7, ￼�
-var Xfff9_ffff = subfont.Subfont{
+var Xfff9_ffff = &subfont.Subfont{
 	First:  0xfff9,
 	Last:   0xffff,
 	Offset: 0,
@@ -19,7 +25,7 @@ var Xfff9_ffff = subfont.Subfont{
 }
 
 // Xfb00_fc00 subfont, n=257, ﬀﬁﬂﬃﬄﬅﬆﬓﬔﬕﬖﬗיִﬞײַﬠﬡﬢﬣﬤﬥﬦﬧﬨ﬩שׁשׂשּׁשּׂאַאָאּבּגּדּהּוּזּטּיּךּכּלּמּנּסּףּפּ
-var Xfb00_fc00 = subfont.Subfont{
+var Xfb00_fc00 = &subfont.Subfont{
 	First:  0xfb00, // 'ﬀ'
 	Last:   0xfc00, // 'ﰀ'
 	Offset: 0,
@@ -27,7 +33,7 @@ var Xfb00_fc00 = subfont.Subfont{
 }
 
 // Xf6c4_f7c4 subfont, n=257, 
-var Xf6c4_f7c4 = subfont.Subfont{
+var Xf6c4_f7c4 = &subfont.Subfont{
 	First:  0xf6c4,
 	Last:   0xf7c4,
 	Offset: 0,
@@ -35,7 +41,7 @@ var Xf6c4_f7c4 = subfont.Subfont{
 }
 
 // Xf400_f500 subfont, n=257, 
-var Xf400_f500 = subfont.Subfont{
+var Xf400_f500 = &subfont.Subfont{
 	First:  0xf400,
 	Last:   0xf500,
 	Offset: 0,
@@ -43,7 +49,7 @@ var Xf400_f500 = subfont.Subfont{
 }
 
 // Xa746_a846 subfont, n=257, ꝆꝇꝈꝉꝊꝋꝌꝍꝎꝏꝐꝑꝒꝓꝔꝕꝖꝗꝘꝙꝚꝛꝜꝝꝞꝟꝠꝡꝢꝣꝤꝥꝦꝧꝨꝩꝪꝫꝬꝭꝮꝯꝰꝱꝲꝳꝴꝵ
-var Xa746_a846 = subfont.Subfont{
+var Xa746_a846 = &subfont.Subfont{
 	First:  0xa746, // 'Ꝇ'
 	Last:   0xa846, // 'ꡆ'
 	Offset: 0,
@@ -51,7 +57,7 @@ var Xa746_a846 = subfont.Subfont{
 }
 
 // Xa644_a744 subfont, n=257, ꙄꙅꙆꙇꙈꙉꙊꙋꙌꙍꙎꙏꙐꙑꙒꙓꙔꙕꙖꙗꙘꙙꙚꙛꙜꙝꙞꙟꙠꙡꙢꙣꙤꙥꙦꙧꙨꙩꙪꙫꙬꙭꙮ꙯꙰꙱꙲꙳
-var Xa644_a744 = subfont.Subfont{
+var Xa644_a744 = &subfont.Subfont{
 	First:  0xa644, // 'Ꙅ'
 	Last:   0xa744, // 'Ꝅ'
 	Offset: 0,
@@ -59,7 +65,7 @@ var Xa644_a744 = subfont.Subfont{
 }
 
 // X2e18_2f18 subfont, n=257, ⸘⸙⸚⸛⸜⸝⸞⸟⸠⸡⸢⸣⸤⸥⸦⸧⸨⸩⸪⸫⸬⸭⸮ⸯ⸰⸱⸲⸳⸴⸵⸶⸷⸸⸹⸺⸻⸼⸽⸾⸿⹀⹁⹂⹃⹄⹅⹆⹇
-var X2e18_2f18 = subfont.Subfont{
+var X2e18_2f18 = &subfont.Subfont{
 	First:  0x2e18, // '⸘'
 	Last:   0x2f18, // '⼘'
 	Offset: 0,
@@ -67,7 +73,7 @@ var X2e18_2f18 = subfont.Subfont{
 }
 
 // X2c60_2d60 subfont, n=257, ⱠⱡⱢⱣⱤⱥⱦⱧⱨⱩⱪⱫⱬⱭⱮⱯⱰⱱⱲⱳⱴⱵⱶⱷⱸⱹⱺⱻⱼⱽⱾⱿⲀⲁⲂⲃⲄⲅⲆⲇⲈⲉⲊⲋⲌⲍⲎⲏ
-var X2c60_2d60 = subfont.Subfont{
+var X2c60_2d60 = &subfont.Subfont{
 	First:  0x2c60, // 'Ⱡ'
 	Last:   0x2d60, // 'ⵠ'
 	Offset: 0,
@@ -75,7 +81,7 @@ var X2c60_2d60 = subfont.Subfont{
 }
 
 // X2b00_2c00 subfont, n=257, ⬀⬁⬂⬃⬄⬅⬆⬇⬈⬉⬊⬋⬌⬍⬎⬏⬐⬑⬒⬓⬔⬕⬖⬗⬘⬙⬚⬛⬜⬝⬞⬟⬠⬡⬢⬣⬤⬥⬦⬧⬨⬩⬪⬫⬬⬭⬮⬯
-var X2b00_2c00 = subfont.Subfont{
+var X2b00_2c00 = &subfont.Subfont{
 	First:  0x2b00, // '⬀'
 	Last:   0x2c00, // 'Ⰰ'
 	Offset: 0,
@@ -83,7 +89,7 @@ var X2b00_2c00 = subfont.Subfont{
 }
 
 // X29eb_2aeb subfont, n=257, ⧫⧬⧭⧮⧯⧰⧱⧲⧳⧴⧵⧶⧷⧸⧹⧺⧻⧼⧽⧾⧿⨀⨁⨂⨃⨄⨅⨆⨇⨈⨉⨊⨋⨌⨍⨎⨏⨐⨑⨒⨓⨔⨕⨖⨗⨘⨙⨚
-var X29eb_2aeb = subfont.Subfont{
+var X29eb_2aeb = &subfont.Subfont{
 	First:  0x29eb, // '⧫'
 	Last:   0x2aeb, // '⫫'
 	Offset: 0,
@@ -91,7 +97,7 @@ var X29eb_2aeb = subfont.Subfont{
 }
 
 // X28a2_29a2 subfont, n=257, ⢢⢣⢤⢥⢦⢧⢨⢩⢪⢫⢬⢭⢮⢯⢰⢱⢲⢳⢴⢵⢶⢷⢸⢹⢺⢻⢼⢽⢾⢿⣀⣁⣂⣃⣄⣅⣆⣇⣈⣉⣊⣋⣌⣍⣎⣏⣐⣑
-var X28a2_29a2 = subfont.Subfont{
+var X28a2_29a2 = &subfont.Subfont{
 	First:  0x28a2, // '⢢'
 	Last:   0x29a2, // '⦢'
 	Offset: 0,
@@ -99,7 +105,7 @@ var X28a2_29a2 = subfont.Subfont{
 }
 
 // X27a1_28a1 subfont, n=257, ➡➢➣➤➥➦➧➨➩➪➫➬➭➮➯➰➱➲➳➴➵➶➷➸➹➺➻➼➽➾➿⟀⟁⟂⟃⟄⟅⟆⟇⟈⟉⟊⟋⟌⟍⟎⟏⟐
-var X27a1_28a1 = subfont.Subfont{
+var X27a1_28a1 = &subfont.Subfont{
 	First:  0x27a1, // '➡'
 	Last:   0x28a1, // '⢡'
 	Offset: 0,
@@ -107,7 +113,7 @@ var X27a1_28a1 = subfont.Subfont{
 }
 
 // X2638_2738 subfont, n=257, ☸☹☺☻☼☽☾☿♀♁♂♃♄♅♆♇♈♉♊♋♌♍♎♏♐♑♒♓♔♕♖♗♘♙♚♛♜♝♞♟♠♡♢♣♤♥♦♧
-var X2638_2738 = subfont.Subfont{
+var X2638_2738 = &subfont.Subfont{
 	First:  0x2638, // '☸'
 	Last:   0x2738, // '✸'
 	Offset: 0,
@@ -115,7 +121,7 @@ var X2638_2738 = subfont.Subfont{
 }
 
 // X2524_2624 subfont, n=257, ┤┥┦┧┨┩┪┫┬┭┮┯┰┱┲┳┴┵┶┷┸┹┺┻┼┽┾┿╀╁╂╃╄╅╆╇╈╉╊╋╌╍╎╏═║╒╓
-var X2524_2624 = subfont.Subfont{
+var X2524_2624 = &subfont.Subfont{
 	First:  0x2524, // '┤'
 	Last:   0x2624, // '☤'
 	Offset: 0,
@@ -123,7 +129,7 @@ var X2524_2624 = subfont.Subfont{
 }
 
 // X2423_2523 subfont, n=257, ␣␤␥␦⑀⑁⑂⑃⑄⑅⑆⑇⑈⑉⑊①②③④⑤⑥⑦⑧⑨⑩⑪⑫⑬⑭⑮⑯⑰⑱⑲⑳⑴⑵⑶⑷⑸⑹⑺⑻⑼⑽⑾⑿⒀
-var X2423_2523 = subfont.Subfont{
+var X2423_2523 = &subfont.Subfont{
 	First:  0x2423, // '␣'
 	Last:   0x2523, // '┣'
 	Offset: 0,
@@ -131,7 +137,7 @@ var X2423_2523 = subfont.Subfont{
 }
 
 // X1e01_1f01 subfont, n=257, ḁḂḃḄḅḆḇḈḉḊḋḌḍḎḏḐḑḒḓḔḕḖḗḘḙḚḛḜḝḞḟḠḡḢḣḤḥḦḧḨḩḪḫḬḭḮḯḰ
-var X1e01_1f01 = subfont.Subfont{
+var X1e01_1f01 = &subfont.Subfont{
 	First:  0x1e01, // 'ḁ'
 	Last:   0x1f01, // 'ἁ'
 	Offset: 0,
@@ -139,7 +145,7 @@ var X1e01_1f01 = subfont.Subfont{
 }
 
 // X1d00_1e00 subfont, n=257, ᴀᴁᴂᴃᴄᴅᴆᴇᴈᴉᴊᴋᴌᴍᴎᴏᴐᴑᴒᴓᴔᴕᴖᴗᴘᴙᴚᴛᴜᴝᴞᴟᴠᴡᴢᴣᴤᴥᴦᴧᴨᴩᴪᴫᴬᴭᴮᴯ
-var X1d00_1e00 = subfont.Subfont{
+var X1d00_1e00 = &subfont.Subfont{
 	First:  0x1d00, // 'ᴀ'
 	Last:   0x1e00, // 'Ḁ'
 	Offset: 0,
@@ -147,7 +153,7 @@ var X1d00_1e00 = subfont.Subfont{
 }
 
 // X10a0_11a0 subfont, n=257, ႠႡႢႣႤႥႦႧႨႩႪႫႬႭႮႯႰႱႲႳႴႵႶႷႸႹႺႻႼႽႾႿჀჁჂჃჄჅჇჍაბგდევზთ
-var X10a0_11a0 = subfont.Subfont{
+var X10a0_11a0 = &subfont.Subfont{
 	First:  0x10a0, // 'Ⴀ'
 	Last:   0x11a0, // 'ᆠ'
 	Offset: 0,
@@ -155,7 +161,7 @@ var X10a0_11a0 = subfont.Subfont{
 }
 
 // X0101_0201 subfont, n=257, āĂăĄąĆćĈĉĊċČčĎďĐđĒēĔĕĖėĘęĚěĜĝĞğĠġĢģĤĥĦħĨĩĪīĬĭĮįİ
-var X0101_0201 = subfont.Subfont{
+var X0101_0201 = &subfont.Subfont{
 	First:  0x0101, // 'ā'
 	Last:   0x0201, // 'ȁ'
 	Offset: 0,
@@ -163,7 +169,7 @@ var X0101_0201 = subfont.Subfont{
 }
 
 // X0000_0100 subfont, n=257,  !"#$%&'()*+,-./0123456789:;<=>?@ABCDEFGHIJKLMNO
-var X0000_0100 = subfont.Subfont{
+var X0000_0100 = &subfont.Subfont{
 	First:  0x0000,
 	Last:   0x0100, // 'Ā'
 	Offset: 0,

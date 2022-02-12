@@ -123,7 +123,12 @@ func main() {
 	fmt.Fprintf(w, "\nconst (\n")
 	fmt.Fprintf(w, "	Height = %d\n", fontHeight)
 	fmt.Fprintf(w, "	Ascent = %d\n", fontAscent)
-	fmt.Fprintf(w, ")\n")
+	fmt.Fprintf(w, ")\n\n")
+	fmt.Fprintf(w, "// NewFace provides a convenient way to create a font face containing the listed\n")
+	fmt.Fprintf(w, "// subfonts. The returned face is SAFE for concurent use.\n")
+	fmt.Fprintf(w, "func NewFace(subfonts ...*subfont.Subfont) *subfont.Face {\n")
+	fmt.Fprintf(w, "	return &subfont.Face{Height: Height, Ascent: Ascent, Subfonts: subfonts}\n")
+	fmt.Fprintf(w, "}\n")
 	fmt.Fprintf(wd, "\nimport (\n")
 	fmt.Fprintf(wd, "	\"image\"\n\n")
 	fmt.Fprintf(wd, "	\"github.com/embeddedgo/display/font/subfont/font9\"\n")
@@ -421,7 +426,7 @@ func printSubfont(w io.Writer, first, last rune, offset int, name string) {
 			i++
 		}
 	}
-	fmt.Fprintf(w, "\nvar X%04x_%04x = subfont.Subfont{\n", first, last)
+	fmt.Fprintf(w, "\nvar X%04x_%04x = &subfont.Subfont{\n", first, last)
 	if unicode.IsPrint(first) {
 		fmt.Fprintf(w, "	First:  %#04x, // '%c'\n", first, first)
 	} else {
