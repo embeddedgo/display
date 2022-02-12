@@ -15,8 +15,8 @@ import "image"
 // a way to request multiple independend Face instances that represents the same
 // font face in the repository.
 type Face interface {
-	// Size returns the font height (interline spacing) and the ascent (height
-	// above the baseline.
+	// Size returns the font face height (interline spacing) and the ascent
+	// (height above the baseline).
 	Size() (height, ascent int)
 
 	// Advance returns the glyph advance for the given rune. The advance
@@ -25,8 +25,8 @@ type Face interface {
 	Advance(r rune) int
 
 	// Glyph returns the graphical representation of the given rune in the alpha
-	// channel of returned image. The image is valid until the next Glyph call.
-	// The origin point is given in the img coordinates, may be outside of the
-	// image bounds.
+	// channel of returned image. The image is valid until the next Glyph call
+	// which makes Face UNSAFE for concurrent use. The origin point is given in
+	// the img coordinates, may be outside of the image bounds.
 	Glyph(r rune) (img image.Image, origin image.Point, advance int)
 }
