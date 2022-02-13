@@ -13,11 +13,10 @@ import (
 	"github.com/embeddedgo/display/font"
 )
 
-// Wrap determines what TextWriter does if the string does not fit in the area.
-type Wrap uint8
-
+// Wrapping modes that determine what TextWriter does if the string does not
+// fit in the drawing area.
 const (
-	NoWrap Wrap = iota
+	NoWrap byte = iota
 	WrapNewLine
 	WrapSameLine
 )
@@ -43,23 +42,22 @@ func Width(s []byte, f font.Face) int {
 	return x
 }
 
-// TextWriter allows to write a text on the area. At least the Area, Face and
+// TextWriter allows to write a text on an area. At least the Area, Face and
 // Color fields must be set before use it.
 //
-// Notice that the Color field type is image.Image, not color.Color. This gives
-// greater flexibility when drawing text. Set it to &image.Uniform{color} for
-// traditional uniform color of glyphs.
+// Notice that the Color field type is image.Image, not color.Color. Set it to
+// &image.Uniform{color} for traditional uniform color of glyphs.
 type TextWriter struct {
-	Area  *Area
-	Face  font.Face
-	Color image.Image
-	Pos   image.Point
-	Wrap  Wrap
-	_     byte // literals must have keys to allow adding fields in the future
+	Area  *Area       // area for text drawing
+	Face  font.Face   // source of glyphs
+	Color image.Image // glyph color (foreground image)
+	Pos   image.Point // position for the next glyph
+	Wrap  byte        // wrapping mode
+	_     byte        // require keys in literals
 }
 
 // SetColor is a convenient way to set drawing color. If the w.Color contains
-// value of type *image.Uniform it sets the color of the current image to c.
+// value of type *image.Uniform it modifies the color of the current image.
 // Otherwise it sets w.Color to &image.Uniform{c}.
 func (w *TextWriter) SetColor(c color.Color) {
 	if img, ok := w.Color.(*image.Uniform); ok {
