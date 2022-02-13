@@ -9,6 +9,7 @@ import (
 	"image/color"
 
 	"github.com/embeddedgo/display/font"
+	"github.com/embeddedgo/display/images"
 )
 
 type areaDisplay struct {
@@ -25,7 +26,9 @@ type Area struct {
 	bounds image.Rectangle // area coordinates
 	tr     image.Point     // translation to the display coordinates
 	color  color.Color     // drawing color
-	ad     areaDisplay     // linked list of displays covered by this area
+	misrc  images.Mirror
+	mimask images.Mirror
+	ad     areaDisplay // linked list of displays covered by this area
 }
 
 // NewArea creates new area that covers the given rectangle on the displays.
@@ -83,14 +86,54 @@ func (a *Area) Err(clear bool) error {
 	return nil
 }
 
+const (
+	MI = images.MI // identity (no operation)
+	MV = images.MV // swap X with Y
+	MX = images.MX // mirror X axis
+	MY = images.MY // mirror Y axis
+)
+
+// Mirror returns current mirror drawing mode.
+func (a *Area) Mirror() int {
+	return a.misrc.Mode
+}
+
+// SetMirror sets mirror drawing mode. It affects all drawing methods and
+// Bounds. Other Area's methods are unaffected.
+func (a *Area) SetMirror(mvxy int) {
+	a.misrc.Mode = mvxy
+	a.mimask.Mode = mvxy
+}
+
 // Bounds return the area bounds.
 func (a *Area) Bounds() image.Rectangle {
-	return a.bounds
+	if a.misrc.Mode == MI {
+		return a.bounds
+	}
+	r := a.bounds
+	if a.misrc.Mode&MX != 0 {
+		r.Min.X, r.Max.X = -r.Max.X, -r.Min.X
+	}
+	if a.misrc.Mode&MY != 0 {
+		r.Min.Y, r.Max.Y = -r.Max.Y, -r.Min.Y
+	}
+	if a.misrc.Mode&MV != 0 {
+		r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+		r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
+	}
+	return r
+}
+
+// Returns the coordinate of the upper left corner of the area in the area's own
+// coordinate system.  The origin equals to a.Bounds().Min in MI mirror mode.
+func (a *Area) Origin() image.Point {
+	return a.bounds.Min
 }
 
 // SetOrigin sets the coordinate of the upper left corner of the area. It does
-// not affect the rectangle covered by the area but translates the area own
-// coordinate system in a way that the a.Bounds().Min = origin.
+// not affect the rectangle covered by the area but translates the area's own
+// coordinate system in a way that the a.Bounds().Min = origin in MI mirror
+// mode.
 func (a *Area) SetOrigin(origin image.Point) {
 	delta := a.bounds.Min.Sub(origin)
 	a.bounds.Max = origin.Add(a.bounds.Size())
@@ -127,10 +170,11 @@ func (a *Area) Color() color.Color {
 func (a *Area) NewTextWriter(f font.Face) *TextWriter {
 	_, ascent := f.Size()
 	return &TextWriter{
-		Area:  a,
-		Face:  f,
-		Color: &image.Uniform{a.color},
-		Pos:   image.Pt(0, ascent),
-		Wrap:  WrapNewLine,
+		Area:   a,
+		Face:   f,
+		Color:  &image.Uniform{a.color},
+		Pos:    a.Bounds().Min,
+		Offset: image.Pt(0, ascent),
+		Wrap:   WrapNewLine,
 	}
 }

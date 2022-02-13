@@ -565,16 +565,18 @@ func TestTextRotation(t *testing.T) {
 	bgimg := loadImage(t, "../testdata/gopherbug.jpg")
 
 	size := bgimg.Bounds().Size()
-	disp := newDisplay(size.X+10, size.Y+40)
+	disp := newDisplay(size.X, size.Y)
 	a := disp.NewArea(disp.Bounds())
-	a.SetMirror(pix.MV)
-	a.Draw(a.Bounds(), bgimg, bgimg.Bounds().Min, nil, image.Point{}, draw.Src)
+	a.SetMirror(pix.MX)
+	a.Draw(image.Rect(-200, 0, 200, 400), bgimg, bgimg.Bounds().Min, nil, image.Point{}, draw.Src)
 
 	a.SetColor(blue)
-	w := a.NewTextWriter(Dejavu14)
-	for i := 0; i < 4; i++ {
-		w.WriteString("Hello, World!\n")
-	}
+	/*
+		w := a.NewTextWriter(Dejavu14)
+		for i := 0; i < 4; i++ {
+			w.WriteString("Hello, World!\n")
+		}
+	*/
 	saveDisplay(t, disp, testFile)
 }
 

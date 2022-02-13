@@ -20,7 +20,7 @@ const (
 	Bilinear
 )
 
-// Magnified can be used to wrap image to scale it up at runtime by integer
+// Magnified can be used to wrap an image to scale it up at runtime by integer
 // factor.
 type Magnified struct {
 	Image image.Image

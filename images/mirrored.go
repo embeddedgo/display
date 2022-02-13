@@ -16,6 +16,9 @@ const (
 	MY             // mirror Y axis
 )
 
+// Mirrored can be used to wrap an image to reflect it through three different
+// axes: (0, t) for MX, (t, 0) for MY and (t, t) for MV (parentheses contain
+// parametric descriptions of axes).
 type Mirrored struct {
 	Image image.Image
 	Mode  int
@@ -37,20 +40,59 @@ func (p *Mirrored) Bounds() image.Rectangle {
 		r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
 		r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
 	}
+	if p.Mode&MX != 0 {
+		r.Min.X, r.Max.X = -r.Max.X, -r.Min.X
+	}
+	if p.Mode&MY != 0 {
+		r.Min.Y, r.Max.Y = -r.Max.Y, -r.Min.Y
+	}
 	return r
 }
 
 // At implements image.Image interface.
 func (p *Mirrored) At(x, y int) color.Color {
-	r := p.Image.Bounds()
 	if p.Mode&MX != 0 {
-		x = r.Max.X - 1 - x
+		x = -1 - x
 	}
 	if p.Mode&MY != 0 {
-		y = r.Max.Y - 1 - y
+		y = -1 - y
 	}
 	if p.Mode&MV != 0 {
 		x, y = y, x
 	}
 	return p.Image.At(x, y)
 }
+
+/*
+Reflecing relative to the center of the coordinate system (as seen above) has
+many nice properties and overall looks like the only correct way to reflect
+Go images.
+
+Reflecting relative to the center of the image does not change the image
+position/bounds in case of Mode&MV == 0 but it must change it anyway for MV
+reflection. It also  has slower At method, mainly because of calling Bounds
+method (see code below).
+
+func (p *Mirrored) Bounds() image.Rectangle {
+	r := p.Image.Bounds()
+	if p.Mode&MV != 0 {
+		r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+		r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
+	}
+	return r
+}
+
+func (p *Mirrored) At(x, y int) color.Color {
+	r := p.Image.Bounds()
+	if p.Mode&MX != 0 {
+		x = r.Min.X + r.Max.X - 1 - x
+	}
+	if p.Mode&MY != 0 {
+		y = r.Min.Y + r.Max.Y - 1 - y
+	}
+	if p.Mode&MV != 0 {
+		x, y = y, x
+	}
+	return p.Image.At(x, y)
+}
+*/

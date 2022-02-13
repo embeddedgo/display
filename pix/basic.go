@@ -64,8 +64,36 @@ func (a *Area) Draw(r image.Rectangle, src image.Image, sp image.Point, mask ima
 	}
 	delta := r.Min.Sub(orig)
 	sp = sp.Add(delta)
-	if mask != nil {
-		mp = mp.Add(delta)
+	mp = mp.Add(delta)
+	if a.misrc.Mode != MI {
+		if _, ok := src.(*image.Uniform); !ok {
+			a.misrc.Image = src
+			src = &a.misrc
+		}
+		if mask != nil {
+			if _, ok := mask.(*image.Uniform); !ok {
+				a.mimask.Image = mask
+				mask = &a.mimask
+			}
+		}
+		if a.misrc.Mode&MV != 0 {
+			r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+			r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
+			sp.X, sp.Y = sp.Y, sp.X
+			mp.X, mp.Y = mp.Y, mp.X
+		}
+		if a.misrc.Mode&MX != 0 {
+			r.Min.X, r.Max.X = -r.Max.X, -r.Min.X
+			dx := r.Min.X - r.Max.X
+			sp.X = dx - sp.X
+			mp.X = dx - mp.X
+		}
+		if a.misrc.Mode&MY != 0 {
+			r.Min.Y, r.Max.Y = -r.Max.Y, -r.Min.Y
+			dy := r.Min.Y - r.Max.Y
+			sp.Y = dy - sp.Y
+			mp.Y = dy - mp.Y
+		}
 	}
 	for ad := &a.ad; ad != nil; ad = ad.link {
 		rt := r.Add(ad.tr)
