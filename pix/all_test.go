@@ -8,16 +8,16 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/jpeg"
+	_ "image/jpeg"
 	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/embeddedgo/display/font"
-	"github.com/embeddedgo/display/font/subfont"
 	"github.com/embeddedgo/display/font/subfont/font9/anonpro11"
 	"github.com/embeddedgo/display/font/subfont/font9/dejavu12"
+	"github.com/embeddedgo/display/font/subfont/font9/dejavu14"
 	"github.com/embeddedgo/display/font/subfont/font9/terminus12"
 	"github.com/embeddedgo/display/font/subfont/font9/vga"
 	"github.com/embeddedgo/display/images"
@@ -31,6 +31,31 @@ const testDir = "testdata"
 var (
 	white = color.Gray{255}
 	black = color.Gray{0}
+	red   = color.RGBA{255, 0, 0, 255}
+	green = color.RGBA{0, 255, 0, 255}
+	blue  = color.RGBA{0, 0, 255, 255}
+
+	AnonPro11 = anonpro11.NewFace(
+		anonpro11.X0000_0100,
+		anonpro11.X0101_0201,
+	)
+	Dejavu12 = dejavu12.NewFace(
+		dejavu12.X0000_0100,
+		dejavu12.X0101_0201,
+	)
+	Dejavu14 = dejavu14.NewFace(
+		dejavu14.X0000_0100,
+		dejavu14.X0101_0201,
+	)
+	Terminus12 = terminus12.NewFace(
+		terminus12.X0020_007e,
+		terminus12.X00a0_0175,
+		terminus12.X0178_017f,
+	)
+	VGA = vga.NewFace(
+		vga.X0000_007f,
+		vga.X00a0_021f,
+	)
 )
 
 func failErr(t *testing.T, err error) {
@@ -44,25 +69,23 @@ func newDisplay(width, height int) *pix.Display {
 	return pix.NewDisplay(imgdrv.New(screen))
 }
 
-/*
-func saveImage(t *testing.T, img image.Image, name string) {
-	f, err := os.OpenFile(filepath.Join(testDir, name), os.O_WRONLY|os.O_CREATE, 0755)
+func loadFile(t *testing.T, name string) []byte {
+	data, err := os.ReadFile(name)
 	failErr(t, err)
-	failErr(t, png.Encode(f, img))
-	failErr(t, f.Close())
+	return data
 }
 
-func saveDisplay(t *testing.T, disp *pix.Display, name string) {
-	saveImage(t, disp.Driver().(*imgdrv.Driver).Image, name)
-}
-*/
-
-func checkImage(t *testing.T, img image.Image, name string) {
-	f, err := os.Open(filepath.Join(testDir, name))
+func loadImage(t *testing.T, name string) image.Image {
+	f, err := os.Open(name)
 	failErr(t, err)
-	saved, err := png.Decode(f)
+	img, _, err := image.Decode(f)
 	f.Close()
 	failErr(t, err)
+	return img
+}
+
+func checkImage(t *testing.T, img image.Image, name string) {
+	saved := loadImage(t, filepath.Join(testDir, name))
 	r0, r1 := saved.Bounds(), img.Bounds()
 	if r0.Size() != r1.Size() {
 		t.Error(name, "different sizes:", r0.Size(), r1.Size())
@@ -150,18 +173,12 @@ func TestLineEllipse(t *testing.T) {
 func TestImage(t *testing.T) {
 	testFile := "image.png"
 
-	f, err := os.Open("../testdata/gopherbug.jpg")
-	failErr(t, err)
-	gobug, err := jpeg.Decode(f)
-	f.Close()
-	failErr(t, err)
-
+	gobug := loadImage(t, "../testdata/gopherbug.jpg")
 	gobugMask := new(images.AlphaN)
 	gobugMask.Rect.Min = image.Pt(31, 21)
 	gobugMask.Rect.Max = gobugMask.Rect.Min.Add(image.Pt(211, 251))
 	gobugMask.Stride = 27
-	gobugMask.Pix, err = os.ReadFile("../testdata/gopherbug.211x251s27b1")
-	failErr(t, err)
+	gobugMask.Pix = loadFile(t, "../testdata/gopherbug.211x251s27b1")
 
 	disp := newDisplay(272*2, 272*2)
 	a := disp.NewArea(disp.Bounds())
@@ -186,42 +203,6 @@ func TestImage(t *testing.T) {
 	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
 }
-
-var (
-	AnonPro11 = &subfont.Face{
-		Height: anonpro11.Height,
-		Ascent: anonpro11.Ascent,
-		Subfonts: []*subfont.Subfont{
-			&anonpro11.X0000_0100,
-			&anonpro11.X0101_0201,
-		},
-	}
-	Dejavu12 = &subfont.Face{
-		Height: dejavu12.Height,
-		Ascent: dejavu12.Ascent,
-		Subfonts: []*subfont.Subfont{
-			&dejavu12.X0000_0100,
-			&dejavu12.X0101_0201,
-		},
-	}
-	Terminus12 = &subfont.Face{
-		Height: terminus12.Height,
-		Ascent: terminus12.Ascent,
-		Subfonts: []*subfont.Subfont{
-			&terminus12.X0020_007e,
-			&terminus12.X00a0_0175,
-			&terminus12.X0178_017f,
-		},
-	}
-	VGA = &subfont.Face{
-		Height: vga.Height,
-		Ascent: vga.Ascent,
-		Subfonts: []*subfont.Subfont{
-			&vga.X0000_007f,
-			&vga.X00a0_021f,
-		},
-	}
-)
 
 // The Akkerman Steppe Original Polish by Adam Mickiewicz (1798-1855)
 const AkermanianSteppePL = `` +
@@ -576,4 +557,34 @@ func TestButtons(t *testing.T) {
 
 	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
+}
+
+func TestTextRotation(t *testing.T) {
+	testFile := "text_rotation.png"
+
+	bgimg := loadImage(t, "../testdata/gopherbug.jpg")
+
+	size := bgimg.Bounds().Size()
+	disp := newDisplay(size.X+10, size.Y+40)
+	a := disp.NewArea(disp.Bounds())
+	a.SetMirror(pix.MV)
+	a.Draw(a.Bounds(), bgimg, bgimg.Bounds().Min, nil, image.Point{}, draw.Src)
+
+	a.SetColor(blue)
+	w := a.NewTextWriter(Dejavu14)
+	for i := 0; i < 4; i++ {
+		w.WriteString("Hello, World!\n")
+	}
+	saveDisplay(t, disp, testFile)
+}
+
+func saveImage(t *testing.T, img image.Image, name string) {
+	f, err := os.OpenFile(filepath.Join(testDir, name), os.O_WRONLY|os.O_CREATE, 0755)
+	failErr(t, err)
+	failErr(t, png.Encode(f, img))
+	failErr(t, f.Close())
+}
+
+func saveDisplay(t *testing.T, disp *pix.Display, name string) {
+	saveImage(t, disp.Driver().(*imgdrv.Driver).Image, name)
 }

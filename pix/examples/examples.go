@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"github.com/embeddedgo/display/font"
-	"github.com/embeddedgo/display/font/subfont"
 	"github.com/embeddedgo/display/font/subfont/font9/dejavu12"
 	"github.com/embeddedgo/display/font/subfont/font9/terminus12"
 	"github.com/embeddedgo/display/pix"
@@ -188,24 +187,17 @@ I stand in stillness, hear the migratory cranes, Their necks and wings beyond th
 
 Where on its underside a viper writhes through stalks. Amid the hush I lean my ears down grassy lanes And listen for a voice from home. Nobody talks.`
 
-var fdejavu = &subfont.Face{
-	Height: dejavu12.Height,
-	Ascent: dejavu12.Ascent,
-	Subfonts: []*subfont.Subfont{
-		&dejavu12.X0000_0100,
-		&dejavu12.X0101_0201,
-	},
-}
-
-var fterm = &subfont.Face{
-	Height: terminus12.Height,
-	Ascent: terminus12.Ascent,
-	Subfonts: []*subfont.Subfont{
-		&terminus12.X0020_007e,
-		&terminus12.X00a0_0175,
-		&terminus12.X0178_017f,
-	},
-}
+var (
+	fdejavu = dejavu12.NewFace(
+		dejavu12.X0000_0100,
+		dejavu12.X0101_0201,
+	)
+	fterm = terminus12.NewFace(
+		terminus12.X0020_007e,
+		terminus12.X00a0_0175,
+		terminus12.X0178_017f,
+	)
+)
 
 func randPoint(r image.Rectangle) (p image.Point) {
 	p.X = r.Min.X + rand.Int()%r.Dx()
