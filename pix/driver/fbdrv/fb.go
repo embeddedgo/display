@@ -14,6 +14,7 @@ package fbdrv
 
 // Coordination system translation constants
 const (
+	MI = 0         // identity (no operation)
 	MV = 1 << iota // swap X with Y
 	MX             // mirror X axis
 	MY             // mirror Y axis
