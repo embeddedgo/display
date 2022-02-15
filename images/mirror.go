@@ -16,25 +16,25 @@ const (
 	MY             // mirror Y axis
 )
 
-// Mirrored can be used to wrap an image to reflect it through three different
+// Mirror can be used to wrap an image to reflect it through three different
 // axes: (0, t) for MX, (t, 0) for MY and (t, t) for MV (parentheses contain
 // parametric descriptions of axes).
-type Mirrored struct {
+type Mirror struct {
 	Image image.Image
 	Mode  int
 }
 
-func NewMirrored(img image.Image, mvxy int) *Mirrored {
-	return &Mirrored{img, mvxy}
+func NewMirror(img image.Image, mvxy int) *Mirror {
+	return &Mirror{img, mvxy}
 }
 
 // ColorModel implements image.Image interface.
-func (p *Mirrored) ColorModel() color.Model {
+func (p *Mirror) ColorModel() color.Model {
 	return p.Image.ColorModel()
 }
 
 // Bounds implements image.Image interface.
-func (p *Mirrored) Bounds() image.Rectangle {
+func (p *Mirror) Bounds() image.Rectangle {
 	r := p.Image.Bounds()
 	if p.Mode&MV != 0 {
 		r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
@@ -50,7 +50,7 @@ func (p *Mirrored) Bounds() image.Rectangle {
 }
 
 // At implements image.Image interface.
-func (p *Mirrored) At(x, y int) color.Color {
+func (p *Mirror) At(x, y int) color.Color {
 	if p.Mode&MX != 0 {
 		x = -1 - x
 	}
@@ -73,7 +73,7 @@ position/bounds in case of Mode&MV == 0 but it must change it anyway for MV
 reflection. It also  has slower At method, mainly because of calling Bounds
 method (see code below).
 
-func (p *Mirrored) Bounds() image.Rectangle {
+func (p *Mirror) Bounds() image.Rectangle {
 	r := p.Image.Bounds()
 	if p.Mode&MV != 0 {
 		r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
@@ -82,7 +82,7 @@ func (p *Mirrored) Bounds() image.Rectangle {
 	return r
 }
 
-func (p *Mirrored) At(x, y int) color.Color {
+func (p *Mirror) At(x, y int) color.Color {
 	r := p.Image.Bounds()
 	if p.Mode&MX != 0 {
 		x = r.Min.X + r.Max.X - 1 - x
