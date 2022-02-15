@@ -18,6 +18,7 @@ import (
 	"github.com/embeddedgo/display/font/subfont/font9/anonpro11"
 	"github.com/embeddedgo/display/font/subfont/font9/dejavu12"
 	"github.com/embeddedgo/display/font/subfont/font9/dejavu14"
+	"github.com/embeddedgo/display/font/subfont/font9/dejavusans14"
 	"github.com/embeddedgo/display/font/subfont/font9/terminus12"
 	"github.com/embeddedgo/display/font/subfont/font9/vga"
 	"github.com/embeddedgo/display/images"
@@ -47,6 +48,7 @@ var (
 	Dejavu14 = dejavu14.NewFace(
 		dejavu14.X0000_0100,
 		dejavu14.X0101_0201,
+		dejavusans14.X0404_0504,
 	)
 	Terminus12 = terminus12.NewFace(
 		terminus12.X0020_007e,
@@ -560,33 +562,118 @@ func TestButtons(t *testing.T) {
 	checkDisplay(t, disp, testFile)
 }
 
+var helloWorld = []string{
+	"Hello, Wolrd!\n",
+	"Witaj, Świecie!\n",
+	"Привет, Мир!\n",
+}
+
 func TestTextRotation(t *testing.T) {
 	testFile := "text_rotation.png"
 
-	bgimg := loadImage(t, "../testdata/gopherbug.jpg")
-
-	size := bgimg.Bounds().Size()
+	img := loadImage(t, "../testdata/gopherbug.jpg")
+	img = images.NewMagnified(img, 2, images.Bilinear)
+	size := img.Bounds().Size()
 	disp := newDisplay(size.X, size.Y)
 	a := disp.NewArea(disp.Bounds())
-	a.Draw(a.Bounds(), bgimg, bgimg.Bounds().Min, nil, image.Point{}, draw.Src)
+	a.Draw(a.Bounds(), img, img.Bounds().Min, nil, image.Point{}, draw.Src)
+
+	a.SetColor(red)
+	r := a.Bounds()
+	hc := (r.Min.X + r.Max.X - 1) / 2
+	vc := (r.Min.Y + r.Max.Y - 1) / 2
+	a.Line(image.Pt(hc, r.Min.Y), image.Pt(hc, r.Max.Y-1))
+	a.Line(image.Pt(r.Min.X, vc), image.Pt(r.Max.X-1, vc))
+
 	a.SetColor(blue)
-	w := a.NewTextWriter(Dejavu12)
-	dr := disp.Bounds()
-	dr.Min.X = (dr.Min.X + dr.Max.X) / 2
-	a.SetRect(dr)
-	for i := 0; i < 3; i++ {
-		w.WriteString("Hello, Wolrd!\n")
-	}
-	dr = disp.Bounds()
-	dr.Max.X = (dr.Min.X + dr.Max.X) / 2
-	a.SetRect(dr)
-	a.SetMirror(pix.MX)
-	w.Pos = a.Bounds().Min
-	for i := 0; i < 3; i++ {
-		w.WriteString("Hello, Wolrd!\n")
+	w := a.NewTextWriter(Dejavu14)
+
+	markNextGlyph := func() {
+		p0 := w.Pos.Add(w.Offset)
+		p1 := p0.Add(image.Pt(6, 6))
+		p2 := p0.Add(image.Pt(0, 9))
+		c := a.Color()
+		a.SetColor(red)
+		a.Quad(p0, p0, p1, p2, true)
+		a.SetColor(c)
 	}
 
-	saveDisplay(t, disp, testFile)
+	r = disp.Bounds()
+	r.Min.X = (r.Min.X+r.Max.X)/2 + 4
+	a.SetRect(r)
+	for _, s := range helloWorld {
+		w.WriteString(s)
+	}
+	markNextGlyph()
+	r = disp.Bounds()
+	r.Max.X = (r.Min.X+r.Max.X)/2 - 5
+	a.SetRect(r)
+	a.SetMirror(pix.MX)
+	w.Pos = a.Bounds().Min
+	for _, s := range helloWorld {
+		w.WriteString(s)
+	}
+	markNextGlyph()
+
+	a.SetMirror(pix.MY)
+	w.Pos = a.Bounds().Min
+	r = disp.Bounds()
+	r.Min.X = (r.Min.X+r.Max.X)/2 + 4
+	a.SetRect(r)
+	for _, s := range helloWorld {
+		w.WriteString(s)
+	}
+	markNextGlyph()
+	r = disp.Bounds()
+	r.Max.X = (r.Min.X+r.Max.X)/2 - 5
+	a.SetRect(r)
+	a.SetMirror(pix.MX | pix.MY)
+	w.Pos = a.Bounds().Min
+	for _, s := range helloWorld {
+		w.WriteString(s)
+	}
+	markNextGlyph()
+
+	r = disp.Bounds()
+	r.Min.Y = (r.Min.Y+r.Max.Y)/2 + 4
+	a.SetRect(r)
+	a.SetMirror(pix.MV)
+	w.Pos = a.Bounds().Min
+	for _, s := range helloWorld {
+		w.WriteString(s)
+	}
+	markNextGlyph()
+	r = disp.Bounds()
+	r.Max.Y = (r.Min.Y+r.Max.Y)/2 - 5
+	a.SetRect(r)
+	a.SetMirror(pix.MV | pix.MY)
+	w.Pos = a.Bounds().Min
+	for _, s := range helloWorld {
+		w.WriteString(s)
+	}
+	markNextGlyph()
+
+	r = disp.Bounds()
+	r.Min.Y = (r.Min.Y+r.Max.Y)/2 + 4
+	a.SetRect(r)
+	a.SetMirror(pix.MV | pix.MX)
+	w.Pos = a.Bounds().Min
+	for _, s := range helloWorld {
+		w.WriteString(s)
+	}
+	markNextGlyph()
+	r = disp.Bounds()
+	r.Max.Y = (r.Min.Y+r.Max.Y)/2 - 5
+	a.SetRect(r)
+	a.SetMirror(pix.MV | pix.MY | pix.MX)
+	w.Pos = a.Bounds().Min
+	for _, s := range helloWorld {
+		w.WriteString(s)
+	}
+	markNextGlyph()
+
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
 
 func saveImage(t *testing.T, img image.Image, name string) {

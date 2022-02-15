@@ -48,23 +48,36 @@ func Width(s []byte, f font.Face) int {
 // Notice that the Color field type is image.Image, not color.Color. Set it to
 // &image.Uniform{color} for traditional uniform color of glyphs.
 type TextWriter struct {
-	Area  *Area       // area for text drawing
-	Face  font.Face   // source of glyphs
-	Color image.Image // glyph color (foreground image)
-	Pos   image.Point // position for the next glyph
-	Wrap  byte        // wrapping mode
-	_     byte        // require keys in literals
+	Area   *Area       // area for text drawing
+	Face   font.Face   // source of glyphs
+	Color  image.Image // glyph color (foreground image)
+	Pos    image.Point // position for the next glyph
+	Offset image.Point // offset from the Pos to the glyph origin
+	Wrap   byte        // wrapping mode
+	_      byte        // require keys in literals
 }
 
-// SetColor is a convenient way to set drawing color. If the w.Color contains
-// value of type *image.Uniform it modifies the color of the current image.
-// Otherwise it sets w.Color to &image.Uniform{c}.
+// SetColor provides a convenient way to set drawing color. If the w.Color
+// contains value of type *image.Uniform it modifies the color of the current
+// image. Otherwise it sets w.Color to &image.Uniform{c}.
 func (w *TextWriter) SetColor(c color.Color) {
 	if img, ok := w.Color.(*image.Uniform); ok {
 		img.C = c
 	} else {
 		w.Color = image.NewUniform(c)
 	}
+}
+
+// SetFace provides a convenient way to set w.Face and at the same time modify
+// w.Offset in such a way that the current baseline is unaffected.
+func (w *TextWriter) SetFace(f font.Face) {
+	_, ascent := f.Size()
+	if w.Face != nil {
+		_, a := w.Face.Size()
+		ascent -= a
+	}
+	w.Face = f
+	w.Offset.Y += ascent
 }
 
 func (w *TextWriter) Write(s []byte) (int, error) {
@@ -86,8 +99,9 @@ func (w *TextWriter) WriteString(s string) (int, error) {
 }
 
 func drawRune(w *TextWriter, r rune, height int) {
+	ar := w.Area.Bounds()
 	if r == '\n' && w.Wrap == WrapNewLine {
-		w.Pos.X = w.Area.bounds.Min.X
+		w.Pos.X = ar.Min.X
 		w.Pos.Y += height
 		return
 	}
@@ -99,15 +113,15 @@ func drawRune(w *TextWriter, r rune, height int) {
 		}
 	}
 	nx := w.Pos.X + advance
-	if w.Wrap != NoWrap && nx > w.Area.bounds.Max.X {
-		w.Pos.X = w.Area.bounds.Min.X
-		nx = w.Area.bounds.Min.X + advance
+	if w.Wrap != NoWrap && nx > ar.Max.X {
+		w.Pos.X = ar.Min.X
+		nx = ar.Min.X + advance
 		if w.Wrap == WrapNewLine {
 			w.Pos.Y += height
 		}
 	}
 	mr := mask.Bounds()
-	dr := mr.Add(w.Pos.Sub(origin))
+	dr := mr.Add(w.Pos.Add(w.Offset).Sub(origin))
 	w.Area.Draw(dr, w.Color, image.Point{}, mask, mr.Min, draw.Over)
 	w.Pos.X = nx
 	// draw bounding box

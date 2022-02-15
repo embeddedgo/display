@@ -11,6 +11,18 @@ import (
 
 // Fill fills the given rectangle.
 func (a *Area) Fill(r image.Rectangle) {
+	if a.misrc.Mode != MI {
+		if a.misrc.Mode&MV != 0 {
+			r.Min.X, r.Min.Y = r.Min.Y, r.Min.X
+			r.Max.X, r.Max.Y = r.Max.Y, r.Max.X
+		}
+		if a.misrc.Mode&MX != 0 {
+			r.Min.X, r.Max.X = -r.Max.X, -r.Min.X
+		}
+		if a.misrc.Mode&MY != 0 {
+			r.Min.Y, r.Max.Y = -r.Max.Y, -r.Min.Y
+		}
+	}
 	for ad := &a.ad; ad != nil; ad = ad.link {
 		rt := r.Add(ad.tr).Intersect(ad.visible)
 		if !rt.Empty() {
