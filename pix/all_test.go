@@ -42,6 +42,7 @@ var (
 	Dejavu12 = dejavu12.NewFace(
 		dejavu12.X0000_0100,
 		dejavu12.X0101_0201,
+		dejavu12.X0404_0504,
 	)
 	Dejavu14 = dejavu14.NewFace(
 		dejavu14.X0000_0100,
@@ -567,16 +568,24 @@ func TestTextRotation(t *testing.T) {
 	size := bgimg.Bounds().Size()
 	disp := newDisplay(size.X, size.Y)
 	a := disp.NewArea(disp.Bounds())
-	a.SetMirror(pix.MX)
-	a.Draw(image.Rect(-200, 0, 200, 400), bgimg, bgimg.Bounds().Min, nil, image.Point{}, draw.Src)
-
+	a.Draw(a.Bounds(), bgimg, bgimg.Bounds().Min, nil, image.Point{}, draw.Src)
 	a.SetColor(blue)
-	/*
-		w := a.NewTextWriter(Dejavu14)
-		for i := 0; i < 4; i++ {
-			w.WriteString("Hello, World!\n")
-		}
-	*/
+	w := a.NewTextWriter(Dejavu12)
+	dr := disp.Bounds()
+	dr.Min.X = (dr.Min.X + dr.Max.X) / 2
+	a.SetRect(dr)
+	for i := 0; i < 3; i++ {
+		w.WriteString("Hello, Wolrd!\n")
+	}
+	dr = disp.Bounds()
+	dr.Max.X = (dr.Min.X + dr.Max.X) / 2
+	a.SetRect(dr)
+	a.SetMirror(pix.MX)
+	w.Pos = a.Bounds().Min
+	for i := 0; i < 3; i++ {
+		w.WriteString("Hello, Wolrd!\n")
+	}
+
 	saveDisplay(t, disp, testFile)
 }
 
