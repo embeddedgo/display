@@ -48,10 +48,10 @@ func Width(s []byte, f font.Face) int {
 // Notice that the Color field type is image.Image, not color.Color. Set it to
 // &image.Uniform{color} for traditional uniform color of glyphs.
 type TextWriter struct {
-	Area   *Area       // area for text drawing
+	Area   *Area       // drawing area
 	Face   font.Face   // source of glyphs
 	Color  image.Image // glyph color (foreground image)
-	Pos    image.Point // position for the next glyph
+	Pos    image.Point // position of the next glyph
 	Offset image.Point // offset from the Pos to the glyph origin
 	Wrap   byte        // wrapping mode
 	_      byte        // require keys in literals
