@@ -79,65 +79,77 @@ const (
 func StartWrite8(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
-	dci.Cmd(CASET)
+	reg.Xarg[0] = CASET
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = uint8(r.Min.X)
 	reg.Xarg[1] = uint8(r.Max.X)
 	dci.WriteBytes(reg.Xarg[:2])
-	dci.Cmd(PASET)
+	reg.Xarg[0] = PASET
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = uint8(r.Min.Y)
 	reg.Xarg[1] = uint8(r.Max.Y)
 	dci.WriteBytes(reg.Xarg[:2])
-	dci.Cmd(RAMWR)
+	reg.Xarg[0] = RAMWR
+	dci.Cmd(reg.Xarg[:1])
 }
 
 func StartRead8(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
-	dci.Cmd(CASET)
+	reg.Xarg[0] = CASET
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = uint8(r.Min.X)
 	reg.Xarg[1] = uint8(r.Max.X)
 	dci.WriteBytes(reg.Xarg[:2])
-	dci.Cmd(PASET)
+	reg.Xarg[0] = PASET
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = uint8(r.Min.Y)
 	reg.Xarg[1] = uint8(r.Max.Y)
 	dci.WriteBytes(reg.Xarg[:2])
-	dci.Cmd(RAMRD)
+	reg.Xarg[0] = RAMRD
+	dci.Cmd(reg.Xarg[:1])
 }
 
 func StartWrite16(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
-	dci.Cmd(CASET)
+	reg.Xarg[0] = CASET
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = uint8(r.Min.X >> 8)
 	reg.Xarg[1] = uint8(r.Min.X)
 	reg.Xarg[2] = uint8(r.Max.X >> 8)
 	reg.Xarg[3] = uint8(r.Max.X)
-	dci.WriteBytes(reg.Xarg[:])
-	dci.Cmd(PASET)
+	dci.WriteBytes(reg.Xarg[:4])
+	reg.Xarg[0] = PASET
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = uint8(r.Min.Y >> 8)
 	reg.Xarg[1] = uint8(r.Min.Y)
 	reg.Xarg[2] = uint8(r.Max.Y >> 8)
 	reg.Xarg[3] = uint8(r.Max.Y)
-	dci.WriteBytes(reg.Xarg[:])
-	dci.Cmd(RAMWR)
+	dci.WriteBytes(reg.Xarg[:4])
+	reg.Xarg[0] = RAMWR
+	dci.Cmd(reg.Xarg[:1])
 }
 
 func StartRead16(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
-	dci.Cmd(CASET)
+	reg.Xarg[0] = CASET
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = uint8(r.Min.X >> 8)
 	reg.Xarg[1] = uint8(r.Min.X)
 	reg.Xarg[2] = uint8(r.Max.X >> 8)
 	reg.Xarg[3] = uint8(r.Max.X)
-	dci.WriteBytes(reg.Xarg[:])
-	dci.Cmd(PASET)
+	dci.WriteBytes(reg.Xarg[:4])
+	reg.Xarg[0] = PASET
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = uint8(r.Min.Y >> 8)
 	reg.Xarg[1] = uint8(r.Min.Y)
 	reg.Xarg[2] = uint8(r.Max.Y >> 8)
 	reg.Xarg[3] = uint8(r.Max.Y)
-	dci.WriteBytes(reg.Xarg[:])
-	dci.Cmd(RAMRD)
+	dci.WriteBytes(reg.Xarg[:4])
+	reg.Xarg[0] = RAMRD
+	dci.Cmd(reg.Xarg[:1])
 }
 
 func SetDir(dci tftdrv.DCI, reg *tftdrv.Reg, dir int) {
@@ -153,8 +165,9 @@ func SetDir(dci tftdrv.DCI, reg *tftdrv.Reg, dir int) {
 	case 3:
 		rdir ^= (V | MY)
 	}
+	reg.Xarg[0] = MADCTL
+	dci.Cmd(reg.Xarg[:1])
 	reg.Xarg[0] = rdir
-	dci.Cmd(MADCTL)
 	dci.WriteBytes(reg.Xarg[:1])
 	dci.End()
 }

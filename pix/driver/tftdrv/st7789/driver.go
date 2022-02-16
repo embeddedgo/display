@@ -40,7 +40,8 @@ func setPF(dci tftdrv.DCI, reg *tftdrv.Reg, pixSize int) {
 	}
 	if reg.PF[0] != pf {
 		reg.PF[0] = pf
-		dci.Cmd(COLMOD)
+		reg.Xarg[0] = COLMOD
+		dci.Cmd(reg.Xarg[:1])
 		dci.WriteBytes(reg.PF[:])
 	}
 }

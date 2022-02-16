@@ -28,7 +28,8 @@ func setPF(dci tftdrv.DCI, reg *tftdrv.Reg, pixSize int) {
 	}
 	if reg.PF[0] != rmcd {
 		reg.PF[0] = rmcd
-		dci.Cmd(RMCD)
+		reg.Xarg[0] = RMCD
+		dci.Cmd(reg.Xarg[:1])
 		dci.WriteBytes(reg.PF[:])
 	}
 }
@@ -40,7 +41,8 @@ func setDir(dci tftdrv.DCI, reg *tftdrv.Reg, dir int) {
 
 	}
 	reg.PF[0] = rmcd
-	dci.Cmd(RMCD)
+	reg.Xarg[0] = RMCD
+	dci.Cmd(reg.Xarg[:1])
 	dci.WriteBytes(reg.PF[:])
 	dci.End()
 }

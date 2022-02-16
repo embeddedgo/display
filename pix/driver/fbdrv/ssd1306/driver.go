@@ -46,9 +46,7 @@ func (fb *FrameBuffer) SetDir(dir int) (pix []byte, w, h, s int, shift, mvxy uin
 
 func (fb *FrameBuffer) Init(cmds []byte) {
 	time.Sleep(time.Millisecond)
-	for _, b := range cmds {
-		fb.dci.Cmd(b)
-	}
+	fb.dci.Cmd(cmds)
 	fb.dci.WriteBytes(fb.pix[:])
 	fb.dci.End()
 }

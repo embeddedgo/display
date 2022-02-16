@@ -6,14 +6,15 @@ package tftdrv
 
 // DCI defines the basic Display Controller Interface.
 type DCI interface {
-	// Cmd starts a display controller command.
-	Cmd(cmd byte)
+	// Cmd writes len(p) bytes from p to the display controller using command
+	// transfer mode.
+	Cmd(p []byte)
 
-	// WriteBytes writes the len(p) bytes from p to the display controller using
+	// WriteBytes writes len(p) bytes from p to the display controller using
 	// data transfer mode.
 	WriteBytes(p []uint8)
 
-	// ReadBytes reads the len(p) bytes into p from the display controller using
+	// ReadBytes reads len(p) bytes into p from the display controller using
 	// data transfer mode. Some displays are write-only so the implementation
 	// designed exclusively for write-only displays may do nothing.
 	ReadBytes(p []byte)
@@ -30,7 +31,7 @@ type DCI interface {
 // StringWriter is an optional interface that may be implemented by DCI to
 // speed up drawing of immutable images.
 //
-// WriteString writes the len(s) bytes from s to the display controller using
+// WriteString writes len(s) bytes from s to the display controller using
 // data transfer mode.
 type StringWriter interface {
 	WriteString(s string)

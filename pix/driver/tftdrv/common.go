@@ -31,7 +31,7 @@ const (
 // Reg contains local copy of some controller registers to allow working with
 // write-only displays.
 type Reg struct {
-	PF   [1]byte // pixel format relaed register
+	PF   [1]byte // pixel format related register
 	Dir  [1]byte // direction/orientation related register
 	Xarg [4]byte // scratch buffer to avoid allocation
 }
@@ -47,14 +47,14 @@ type Ctrl struct {
 func initialize(dci DCI, reg *Reg, cmds []byte) {
 	i := 0
 	for i < len(cmds) {
-		cmd := cmds[i]
+		cmd := cmds[i : i+1]
 		n := int(cmds[i+1])
 		i += 2
 		if n == 255 {
-			time.Sleep(time.Duration(cmd) * time.Millisecond)
+			time.Sleep(time.Duration(cmd[0]) * time.Millisecond)
 			continue
 		}
-		dci.Cmd(cmd)
+		dci.Cmd(cmd[:1])
 		if n != 0 {
 			k := i + n
 			data := cmds[i:k]
