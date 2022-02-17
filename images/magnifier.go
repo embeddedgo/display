@@ -23,15 +23,15 @@ const (
 // Magnifier can be used to wrap an image to scale it up at runtime by integer
 // factor.
 type Magnifier struct {
-	Image image.Image
-	Scale int
-	Mode  byte
+	Image  image.Image
+	Sx, Sy int  // scaling factors along X and Y axes
+	Mode   byte // scaling mode: Nearest or Bilinear
 }
 
 // Magnify wraps img into Magnifier to scale it up by scale factor usind given
 // scaling mode.
-func Magnify(img image.Image, scale int, mode byte) *Magnifier {
-	return &Magnifier{img, scale, mode}
+func Magnify(img image.Image, sx, sy int, mode byte) *Magnifier {
+	return &Magnifier{img, sx, sy, mode}
 }
 
 // ColorModel implements image.Image interface.
@@ -42,32 +42,32 @@ func (p *Magnifier) ColorModel() color.Model {
 // Bounds implements image.Image interface.
 func (p *Magnifier) Bounds() image.Rectangle {
 	r := p.Image.Bounds()
-	r.Min = r.Min.Mul(p.Scale)
-	r.Max = r.Max.Mul(p.Scale)
+	r.Min.X *= p.Sx
+	r.Min.Y *= p.Sy
+	r.Max.X *= p.Sx
+	r.Max.Y *= p.Sy
 	return r
 }
 
 // At implements image.Image interface.
 func (p *Magnifier) At(x, y int) color.Color {
-	if p.Scale == 1 {
+	if p.Sx == 1 && p.Sy == 1 {
 		return p.Image.At(x, y)
 	}
 	if p.Mode != Nearest {
-		center := p.Scale / 2
-		x -= center
-		y -= center
+		x -= p.Sx / 2
+		y -= p.Sy / 2
 	}
-	round := p.Scale - 1
 	x0 := x
 	if x0 < 0 {
-		x0 -= round // make division round down even for negative x0
+		x0 -= p.Sx - 1 // make division round down even for negative x0
 	}
 	y0 := y
 	if y0 < 0 {
-		y0 -= round // make division round down even for negative y0
+		y0 -= p.Sy - 1 // make division round down even for negative y0
 	}
-	x0 /= p.Scale
-	y0 /= p.Scale
+	x0 /= p.Sx
+	y0 /= p.Sy
 	if p.Mode == Nearest {
 		return p.Image.At(x0, y0)
 	}
@@ -77,10 +77,10 @@ func (p *Magnifier) At(x, y int) color.Color {
 	r10, g10, b10, a10 := p.Image.At(x1, y0).RGBA()
 	r01, g01, b01, a01 := p.Image.At(x0, y1).RGBA()
 	r11, g11, b11, a11 := p.Image.At(x1, y1).RGBA()
-	x0 *= p.Scale
-	x1 *= p.Scale
-	y0 *= p.Scale
-	y1 *= p.Scale
+	x0 *= p.Sx
+	x1 *= p.Sx
+	y0 *= p.Sy
+	y1 *= p.Sy
 	dx0 := uint(x - x0)
 	dx1 := uint(x1 - x)
 	dy0 := uint(y - y0)
@@ -93,7 +93,7 @@ func (p *Magnifier) At(x, y int) color.Color {
 	g1 := uint(g01)*dx1 + uint(g11)*dx0
 	b1 := uint(b01)*dx1 + uint(b11)*dx0
 	a1 := uint(a01)*dx1 + uint(a11)*dx0
-	div := uint(p.Scale) * uint(p.Scale)
+	div := uint(p.Sx) * uint(p.Sy)
 	r := (r0*dy1 + r1*dy0) / div
 	g := (g0*dy1 + g1*dy0) / div
 	b := (b0*dy1 + b1*dy0) / div

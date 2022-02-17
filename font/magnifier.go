@@ -33,10 +33,11 @@ type Magnifier struct {
 
 // Magnify wraps face into Magnifier to scale it up by scale factor usind given
 // scaling mode.
-func Magnify(face Face, scale int, mode byte) *Magnifier {
+func Magnify(face Face, sx, sy int, mode byte) *Magnifier {
 	p := new(Magnifier)
 	p.fa = face
-	p.mi.Scale = scale
+	p.mi.Sx = sx
+	p.mi.Sy = sy
 	p.mi.Mode = mode
 	return p
 }
@@ -51,31 +52,36 @@ func (p *Magnifier) SetFace(face Face) {
 	p.fa = face
 }
 
-// Scale returns current scaling factor.
-func (p *Magnifier) Scale() int {
-	return p.mi.Scale
+// Scale returns current scaling factors.
+func (p *Magnifier) Scale() (sx, sy int) {
+	return p.mi.Sx, p.mi.Sy
 }
 
 // SetScale sets the scaling factor.
-func (p *Magnifier) SetScale(scale int) {
-	p.mi.Scale = scale
+func (p *Magnifier) SetScale(sx, sy int) {
+	p.mi.Sx = sx
+	p.mi.Sy = sy
 }
 
 // Size implements Face interface.
 func (p *Magnifier) Size() (height, ascent int) {
 	height, ascent = p.fa.Size()
-	return height * p.mi.Scale, ascent * p.mi.Scale
+	return height * p.mi.Sy, ascent * p.mi.Sy
 }
 
 // Advance implements Face interface.
 func (p *Magnifier) Advance(r rune) int {
-	return p.fa.Advance(r) * p.mi.Scale
+	return p.fa.Advance(r) * p.mi.Sx
 }
 
 // Glyph implements Face interface.
 func (p *Magnifier) Glyph(r rune) (img image.Image, origin image.Point, advance int) {
 	img, origin, advance = p.fa.Glyph(r)
 	p.mi.Image = img
-	return &p.mi, origin.Mul(p.mi.Scale), advance * p.mi.Scale
+	img = &p.mi
+	origin.X *= p.mi.Sx
+	origin.Y *= p.mi.Sy
+	advance *= p.mi.Sx
+	return
 
 }

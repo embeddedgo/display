@@ -187,18 +187,6 @@ I stand in stillness, hear the migratory cranes, Their necks and wings beyond th
 
 Where on its underside a viper writhes through stalks. Amid the hush I lean my ears down grassy lanes And listen for a voice from home. Nobody talks.`
 
-var (
-	fdejavu = dejavu12.NewFace(
-		dejavu12.X0000_0100,
-		dejavu12.X0101_0201,
-	)
-	fterm = terminus12.NewFace(
-		terminus12.X0020_007e,
-		terminus12.X00a0_0175,
-		terminus12.X0178_017f,
-	)
-)
-
 func randPoint(r image.Rectangle) (p image.Point) {
 	p.X = r.Min.X + rand.Int()%r.Dx()
 	p.Y = r.Min.Y + rand.Int()%r.Dy()
@@ -241,9 +229,18 @@ func clearAndPrint(a *pix.Area, face font.Face, s string) {
 // Pay attention to the background visibility, font anti-aliasing (display
 // dependent), non-ASCII letters in Polish text.
 func DrawText(disp *pix.Display) {
+	dejavu := dejavu12.NewFace(
+		dejavu12.X0000_0100,
+		dejavu12.X0101_0201,
+	)
+	terminus := terminus12.NewFace(
+		terminus12.X0020_007e,
+		terminus12.X00a0_0175,
+		terminus12.X0178_017f,
+	)
 	a := disp.NewArea(disp.Bounds())
-	clearAndPrint(a, fdejavu, akkermanSteppeEN)
-	clearAndPrint(a, fdejavu, akkermanSteppePL)
-	clearAndPrint(a, fterm, akkermanSteppeEN)
-	clearAndPrint(a, fterm, akkermanSteppePL)
+	clearAndPrint(a, dejavu, akkermanSteppeEN)
+	clearAndPrint(a, dejavu, akkermanSteppePL)
+	clearAndPrint(a, terminus, akkermanSteppeEN)
+	clearAndPrint(a, terminus, akkermanSteppePL)
 }

@@ -286,7 +286,7 @@ func TestTextWriter(t *testing.T) {
 	w.Face = VGA
 	w.WriteString(AkermanianSteppeEN)
 
-	w.Face = font.Magnify(Terminus12, 2, font.Nearest)
+	w.Face = font.Magnify(Terminus12, 2, 2, font.Nearest)
 	w.WriteString(AkermanianSteppeDE)
 
 	//saveDisplay(t, disp, testFile)
@@ -572,7 +572,7 @@ func TestTextRotation(t *testing.T) {
 	testFile := "text_rotation.png"
 
 	img := loadImage(t, "../testdata/gopherbug.jpg")
-	img = images.Magnify(img, 2, images.Bilinear)
+	img = images.Magnify(img, 1, 2, images.Bilinear)
 	size := img.Bounds().Size()
 	disp := newDisplay(size.X, size.Y)
 	a := disp.NewArea(disp.Bounds())

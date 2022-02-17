@@ -25,6 +25,7 @@ import (
 	"time"
 
 	"github.com/embeddedgo/display/font"
+	"github.com/embeddedgo/display/font/subfont/font9/terminus12"
 	"github.com/embeddedgo/display/pix"
 )
 
@@ -116,21 +117,22 @@ func testText(a *pix.Area) uint {
 	a.SetColor(black)
 	a.Fill(r)
 	a.SetColor(white)
-	w := a.NewTextWriter(fterm)
+	ff := terminus12.NewFace(terminus12.X0020_007e)
+	w := a.NewTextWriter(ff)
 	start := time.Now()
 	fmt.Fprint(w, "Hello World!\n\n")
 	w.SetColor(yellow)
-	w.Face = font.Magnify(w.Face, 2, font.Nearest)
+	w.Face = font.Magnify(w.Face, 2, 2, font.Nearest)
 	fmt.Fprint(w, 1234.56)
 	w.SetColor(red)
-	w.Face.(*font.Magnifier).SetScale(3)
+	w.Face.(*font.Magnifier).SetScale(3, 3)
 	fmt.Fprintf(w, "\n%X", uint32(0xDEADBEEF))
 	w.SetColor(green)
-	w.Face.(*font.Magnifier).SetScale(5)
+	w.Face.(*font.Magnifier).SetScale(5, 5)
 	fmt.Fprint(w, "\nGroop")
-	w.Face.(*font.Magnifier).SetScale(2)
+	w.Face.(*font.Magnifier).SetScale(2, 2)
 	fmt.Fprint(w, "\nI implore thee,")
-	w.Face = fterm
+	w.Face = ff
 	fmt.Fprintln(w, "\nmy foonting turlingdromes.")
 	fmt.Fprintln(w, "And hooptiously drangle me")
 	fmt.Fprintln(w, "with crinkly bindlewurdles,")
