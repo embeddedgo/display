@@ -63,7 +63,7 @@ func (fb *monofb) Flush() []byte {
 		return fb.img.Pix
 	}
 	os.Mkdir(workDir, 0755)
-	f, err := os.OpenFile(fb.path, os.O_WRONLY|os.O_CREATE, 0755)
+	f, err := os.Create(fb.path)
 	if err != nil {
 		fb.err = err
 		return fb.img.Pix
@@ -174,7 +174,7 @@ func (fb *rgbfb) Flush() []byte {
 		return fb.img.Pix
 	}
 	os.Mkdir(workDir, 0755)
-	f, err := os.OpenFile(fb.path, os.O_WRONLY|os.O_CREATE, 0755)
+	f, err := os.Create(fb.path)
 	if err != nil {
 		fb.err = err
 		return fb.img.Pix

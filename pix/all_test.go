@@ -677,7 +677,7 @@ func TestTextRotation(t *testing.T) {
 }
 
 func saveImage(t *testing.T, img image.Image, name string) {
-	f, err := os.OpenFile(filepath.Join(testDir, name), os.O_WRONLY|os.O_CREATE, 0755)
+	f, err := os.Create(filepath.Join(testDir, name))
 	failErr(t, err)
 	failErr(t, png.Encode(f, img))
 	failErr(t, f.Close())
