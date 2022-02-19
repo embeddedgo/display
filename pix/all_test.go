@@ -402,13 +402,14 @@ func TestQuad(t *testing.T) {
 	quads := [][4]image.Point{
 		{{40, 240}, {230, 300}, {300, 20}, {10, 10}},
 		{{320, 10}, {380, 10}, {390, 300}, {250, 300}},
+		//{{20, 10}, {30, 30}, {35, 60}, {25, 35}},
 	}
 
 	for _, q := range quads {
-		a.SetColorRGBA(200, 0, 0, 200)
-		a.Quad(q[0], q[1], q[2], q[3], true)
-		a.SetColorRGBA(0, 128, 0, 128)
+		a.SetColorRGBA(0, 255, 0, 255)
 		a.Quad(q[0], q[1], q[2], q[3], false)
+		a.SetColorRGBA(191, 0, 0, 191)
+		a.Quad(q[0], q[1], q[2], q[3], true)
 	}
 
 	quads = [][4]image.Point{
@@ -422,7 +423,6 @@ func TestQuad(t *testing.T) {
 		a.SetColorRGBA(192, 0, 0, 192)
 		a.FillQuad(q[0], q[1], q[2], q[3])
 	}
-
 	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
 }

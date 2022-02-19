@@ -205,3 +205,66 @@ func IsConvex(vertices ...image.Point) bool {
 	}
 	return true
 }
+
+/*
+Initial (reference) version of fillQuad, without many optimizations
+
+func fillQuad(a *Area, p0, p1, p2, p3 image.Point, fillRules bool) {
+	// make the quad clockwise
+	var q1, q2 image.Point
+	if p1.Eq(p0) {
+		q1 = p2
+		q2 = p3
+	} else {
+		q1 = p1
+		if p2.Eq(p1) {
+			q2 = p3
+		} else {
+			q2 = p2
+		}
+	}
+	if (q1.X-p0.X)*(q2.Y-p0.Y) < (q1.Y-p0.Y)*(q2.X-p0.X) {
+		p0, p2 = p2, p0
+	}
+	// bounding box
+	var box image.Rectangle
+	box.Min.X = min4(p0.X, p1.X, p2.X, p3.X)
+	box.Min.Y = min4(p0.Y, p1.Y, p2.Y, p3.Y)
+	box.Max.X = max4(p0.X, p1.X, p2.X, p3.X) + 1
+	box.Max.Y = max4(p0.Y, p1.Y, p2.Y, p3.Y) + 1
+	box = box.Intersect(a.Bounds())
+	// setup
+	var bias0, bias1, bias2, bias3 int
+	if fillRules {
+		if notTopLeft(p1, p2) {
+			bias0 = -1
+		}
+		if notTopLeft(p2, p3) {
+			bias1 = -1
+		}
+		if notTopLeft(p3, p0) {
+			bias2 = -1
+		}
+		if notTopLeft(p0, p1) {
+			bias3 = -1
+		}
+	}
+	// fill
+	var p image.Point
+	for p.Y = box.Min.Y; p.Y < box.Max.Y; p.Y++ {
+		for p.X = box.Min.X; p.X < box.Max.X; p.X++ {
+			w0 := orient2d(p1, p2, p) + bias0
+			w1 := orient2d(p2, p3, p) + bias1
+			w2 := orient2d(p3, p0, p) + bias2
+			w3 := orient2d(p0, p1, p) + bias3
+			if w0|w1|w2|w3 >= 0 {
+				a.Pixel(p.X, p.Y)
+			}
+		}
+	}
+}
+
+func orient2d(a, b, c image.Point) int {
+	return (b.X-a.X)*(c.Y-a.Y) - (b.Y-a.Y)*(c.X-a.X)
+}
+*/
