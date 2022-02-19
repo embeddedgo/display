@@ -110,6 +110,12 @@ func (p *AlphaN) At(x, y int) color.Color {
 	return p.AlphaAt(x, y)
 }
 
+func (p *AlphaN) RGBA64At(x, y int) color.RGBA64 {
+	a := uint16(p.AlphaAt(x, y).A)
+	a |= a << 8
+	return color.RGBA64{a, a, a, a}
+}
+
 // PixOffset returns the index of the first element of Pix that corresponds to
 // the pixel at (x, y) and the index to the bits in that element that
 // determines the pixel value.
@@ -146,6 +152,15 @@ func (p *AlphaN) SetAlpha(x, y int, c color.Alpha) {
 	rshift := uint(8) - 1<<p.LogN
 	i, lshift := p.PixOffset(x, y)
 	p.Pix[i] = p.Pix[i]&^(0xff>>rshift<<lshift) | c.A>>rshift<<lshift
+}
+
+func (p *AlphaN) SetRGBA64(x, y int, c color.RGBA64) {
+	if !(image.Pt(x, y).In(p.Rect)) {
+		return
+	}
+	rshift := uint(16) - 1<<p.LogN
+	i, lshift := p.PixOffset(x, y)
+	p.Pix[i] = p.Pix[i]&^(0xff>>rshift<<lshift) | uint8(c.A>>rshift<<lshift)
 }
 
 // SubImage returns an image representing the portion of the image p visible
@@ -199,6 +214,12 @@ func (p *ImmAlphaN) AlphaAt(x, y int) color.Alpha {
 
 func (p *ImmAlphaN) At(x, y int) color.Color {
 	return p.AlphaAt(x, y)
+}
+
+func (p *ImmAlphaN) RGBA64At(x, y int) color.RGBA64 {
+	a := uint16(p.AlphaAt(x, y).A)
+	a |= a << 8
+	return color.RGBA64{a, a, a, a}
 }
 
 // PixOffset returns the index of the first element of Pix that corresponds to

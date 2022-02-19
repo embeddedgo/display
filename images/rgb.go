@@ -55,6 +55,18 @@ func rgb16torgba(h, l uint8) color.RGBA {
 	}
 }
 
+func rgb16torgba64(h, l uint8) color.RGBA64 {
+	r := uint(h&^7) << 8
+	g := (uint(h)<<13 | uint(l)<<5) & 0xfc00
+	b := (uint(l) << 11) & 0xf800
+	return color.RGBA64{
+		uint16(r | r>>5 | r>>10 | r>>15),
+		uint16(g | g>>6 | g>>12),
+		uint16(b | b>>5 | b>>10 | b>>15),
+		0xffff,
+	}
+}
+
 // RGB is an in-memory image whose At method returns RGB values.
 type RGB struct {
 	Rect   image.Rectangle // image bounds
@@ -88,6 +100,18 @@ func (p *RGB) RGBAAt(x, y int) color.RGBA {
 	return color.RGBA{s[0], s[1], s[2], 255}
 }
 
+func (p *RGB) RGBA64At(x, y int) color.RGBA64 {
+	if !(image.Pt(x, y).In(p.Rect)) {
+		return color.RGBA64{}
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+3 : i+3] // Small cap improves performance, see https://golang.org/issue/27857
+	r := uint16(s[0])
+	g := uint16(s[1])
+	b := uint16(s[2])
+	return color.RGBA64{r | r<<8, g | g<<8, b | b<<8, 255}
+}
+
 // PixOffset returns the index of the first element of Pix that corresponds to
 // the pixel at (x, y).
 func (p *RGB) PixOffset(x, y int) int {
@@ -115,6 +139,17 @@ func (p *RGB) SetRGBA(x, y int, c color.RGBA) {
 	s[0] = c.R
 	s[1] = c.G
 	s[2] = c.B
+}
+
+func (p *RGB) SetRGBA64(x, y int, c color.RGBA64) {
+	if !(image.Pt(x, y).In(p.Rect)) {
+		return
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+3 : i+3] // Small cap improves performance, see https://golang.org/issue/27857
+	s[0] = uint8(c.R >> 8)
+	s[1] = uint8(c.G >> 8)
+	s[2] = uint8(c.B >> 8)
 }
 
 // SubImage returns an image representing the portion of the image p visible
@@ -164,8 +199,20 @@ func (p *ImmRGB) RGBAAt(x, y int) color.RGBA {
 		return color.RGBA{}
 	}
 	i := p.PixOffset(x, y)
-	s := p.Pix[i : i+3]
+	s := p.Pix[i : i+3] // Small cap improves performance, see https://golang.org/issue/27857
 	return color.RGBA{s[0], s[1], s[2], 255}
+}
+
+func (p *ImmRGB) RGBA64At(x, y int) color.RGBA64 {
+	if !(image.Pt(x, y).In(p.Rect)) {
+		return color.RGBA64{}
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+3] // Small cap improves performance, see https://golang.org/issue/27857
+	r := uint16(s[0])
+	g := uint16(s[1])
+	b := uint16(s[2])
+	return color.RGBA64{r | r<<8, g | g<<8, b | b<<8, 255}
 }
 
 // PixOffset returns the index of the first element of Pix that corresponds to
@@ -225,6 +272,15 @@ func (p *RGB16) RGBAAt(x, y int) color.RGBA {
 	return rgb16torgba(s[0], s[1])
 }
 
+func (p *RGB16) RGBA64At(x, y int) color.RGBA64 {
+	if !(image.Pt(x, y).In(p.Rect)) {
+		return color.RGBA64{}
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+2 : i+2] // Small cap improves performance, see https://golang.org/issue/27857
+	return rgb16torgba64(s[0], s[1])
+}
+
 // PixOffset returns the index of the first element of Pix that corresponds to
 // the pixel at (x, y).
 func (p *RGB16) PixOffset(x, y int) int {
@@ -260,6 +316,16 @@ func (p *RGB16) SetRGBA(x, y int, c color.RGBA) {
 	s := p.Pix[i : i+2 : i+2] // Small cap improves performance, see https://golang.org/issue/27857
 	s[0] = c.R&^7 | c.G>>5
 	s[1] = (c.G&^3)<<3 | c.B>>3
+}
+
+func (p *RGB16) SetRGBA64(x, y int, c color.RGBA64) {
+	if !(image.Pt(x, y).In(p.Rect)) {
+		return
+	}
+	i := p.PixOffset(x, y)
+	s := p.Pix[i : i+2 : i+2] // Small cap improves performance, see https://golang.org/issue/27857
+	s[0] = uint8((c.R>>8)&^7 | c.G>>13)
+	s[1] = uint8((c.G&0xfc00)>>5 | c.B>>11)
 }
 
 // SubImage returns an image representing the portion of the image p visible

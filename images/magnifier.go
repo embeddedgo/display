@@ -51,9 +51,6 @@ func (p *Magnifier) Bounds() image.Rectangle {
 
 // At implements image.Image interface.
 func (p *Magnifier) At(x, y int) color.Color {
-	if p.Sx == 1 && p.Sy == 1 {
-		return p.Image.At(x, y)
-	}
 	if p.Mode != Nearest {
 		x -= p.Sx / 2
 		y -= p.Sy / 2
@@ -71,12 +68,59 @@ func (p *Magnifier) At(x, y int) color.Color {
 	if p.Mode == Nearest {
 		return p.Image.At(x0, y0)
 	}
+	return magnify(p, x, y, x0, y0)
+}
+
+// RGBA64At implements image.RGBA64Image interface.
+func (p *Magnifier) RGBA64At(x, y int) color.RGBA64 {
+	if p.Mode != Nearest {
+		x -= p.Sx / 2
+		y -= p.Sy / 2
+	}
+	x0 := x
+	if x0 < 0 {
+		x0 -= p.Sx - 1 // make division round down even for negative x0
+	}
+	y0 := y
+	if y0 < 0 {
+		y0 -= p.Sy - 1 // make division round down even for negative y0
+	}
+	x0 /= p.Sx
+	y0 /= p.Sy
+	if p.Mode == Nearest {
+		if img, ok := p.Image.(RGBA64Image); ok {
+			return img.RGBA64At(x, y)
+		}
+		r, g, b, a := p.Image.At(x, y).RGBA()
+		return color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
+	}
+	return magnify(p, x, y, x0, y0)
+}
+
+func magnify(p *Magnifier, x, y, x0, y0 int) color.RGBA64 {
 	x1 := x0 + 1
 	y1 := y0 + 1
-	r00, g00, b00, a00 := p.Image.At(x0, y0).RGBA()
-	r10, g10, b10, a10 := p.Image.At(x1, y0).RGBA()
-	r01, g01, b01, a01 := p.Image.At(x0, y1).RGBA()
-	r11, g11, b11, a11 := p.Image.At(x1, y1).RGBA()
+	var (
+		r00, g00, b00, a00 uint32
+		r10, g10, b10, a10 uint32
+		r01, g01, b01, a01 uint32
+		r11, g11, b11, a11 uint32
+	)
+	if img, ok := p.Image.(RGBA64Image); ok {
+		c := img.RGBA64At(x0, y0)
+		r00, g00, b00, a00 = uint32(c.R), uint32(c.G), uint32(c.B), uint32(c.A)
+		c = img.RGBA64At(x1, y0)
+		r10, g10, b10, a10 = uint32(c.R), uint32(c.G), uint32(c.B), uint32(c.A)
+		c = img.RGBA64At(x0, y1)
+		r01, g01, b01, a01 = uint32(c.R), uint32(c.G), uint32(c.B), uint32(c.A)
+		c = img.RGBA64At(x1, y1)
+		r11, g11, b11, a11 = uint32(c.R), uint32(c.G), uint32(c.B), uint32(c.A)
+	} else {
+		r00, g00, b00, a00 = p.Image.At(x0, y0).RGBA()
+		r10, g10, b10, a10 = p.Image.At(x1, y0).RGBA()
+		r01, g01, b01, a01 = p.Image.At(x0, y1).RGBA()
+		r11, g11, b11, a11 = p.Image.At(x1, y1).RGBA()
+	}
 	x0 *= p.Sx
 	x1 *= p.Sx
 	y0 *= p.Sy
@@ -99,4 +143,5 @@ func (p *Magnifier) At(x, y int) color.Color {
 	b := (b0*dy1 + b1*dy0) / div
 	a := (a0*dy1 + a1*dy0) / div
 	return color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
+
 }

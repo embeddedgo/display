@@ -58,6 +58,12 @@ func (p *Mono) At(x, y int) color.Color {
 	return p.GrayAt(x, y)
 }
 
+func (p *Mono) RGBA64At(x, y int) color.RGBA64 {
+	l := uint16(p.GrayAt(x, y).Y)
+	l |= l << 8
+	return color.RGBA64{l, l, l, 0xffff}
+}
+
 // PixOffset returns the index of the first element of Pix that corresponds to
 // the pixel at (x, y) and the index to the bit in that element that determines
 // the pixel value.
@@ -78,8 +84,18 @@ func (p *Mono) Set(x, y int, c color.Color) {
 		bit = uint8(int8(g.Y) >> 7)
 	} else {
 		r, g, b, _ := c.RGBA()
-		bit = uint8(int32(19595*r+38470*g+7471*b+1<<15) >> 31)
+		bit = uint8((19595*r + 38470*g + 7471*b + 1<<15) >> 31)
 	}
+	i, s := p.PixOffset(x, y)
+	p.Pix[i] = p.Pix[i]&^(1<<s) | bit<<s
+}
+
+func (p *Mono) SetRGBA64(x, y int, c color.RGBA64) {
+	if !(image.Pt(x, y).In(p.Rect)) {
+		return
+	}
+	r, g, b := uint32(c.R), uint32(c.G), uint32(c.B)
+	bit := uint8((19595*r + 38470*g + 7471*b + 1<<15) >> 31)
 	i, s := p.PixOffset(x, y)
 	p.Pix[i] = p.Pix[i]&^(1<<s) | bit<<s
 }

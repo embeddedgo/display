@@ -63,6 +63,24 @@ func (p *Mirror) At(x, y int) color.Color {
 	return p.Image.At(x, y)
 }
 
+// RGBA64At implements image.RGBA64Image interface.
+func (p *Mirror) RGBA64At(x, y int) color.RGBA64 {
+	if p.Mode&MX != 0 {
+		x = -1 - x
+	}
+	if p.Mode&MY != 0 {
+		y = -1 - y
+	}
+	if p.Mode&MV != 0 {
+		x, y = y, x
+	}
+	if img, ok := p.Image.(RGBA64Image); ok {
+		return img.RGBA64At(x, y)
+	}
+	r, g, b, a := p.Image.At(x, y).RGBA()
+	return color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
+}
+
 /*
 Reflecing relative to the center of the coordinate system (as seen above) has
 many nice properties and overall looks like the only correct way to reflect
