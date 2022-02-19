@@ -8,6 +8,8 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
+
+	"github.com/embeddedgo/display/images"
 )
 
 type RGB struct {
@@ -40,11 +42,19 @@ func (d *RGB) SetDir(dir int) image.Rectangle {
 func (d *RGB) Flush()               { d.pix = d.fb.Flush() }
 func (d *RGB) Err(clear bool) error { return d.fb.Err(clear) }
 
+func at128(img image.Image, x, y int) (r, g, b, a uint32) {
+	if img64, ok := img.(images.RGBA64Image); ok {
+		c := img64.RGBA64At(x, y)
+		return uint32(c.R), uint32(c.G), uint32(c.B), uint32(c.A)
+	}
+	return img.At(x, y).RGBA()
+}
+
 func (d *RGB) Draw(r image.Rectangle, src image.Image, sp image.Point, mask image.Image, mp image.Point, op draw.Op) {
 	var sr, sg, sb, sa uint32
 	srcIsUniform := false
 	if u, ok := src.(*image.Uniform); ok {
-		sr, sg, sb, sa = u.At(0, 0).RGBA()
+		sr, sg, sb, sa = u.At(0, 0).RGBA() // TODO: use RGBA64At
 		srcIsUniform = true
 	}
 	minx, miny := r.Min.X, r.Min.Y
@@ -69,11 +79,11 @@ func (d *RGB) Draw(r image.Rectangle, src image.Image, sp image.Point, mask imag
 		o := offset
 		for x := 0; x < width; x++ {
 			if !srcIsUniform {
-				sr, sg, sb, sa = src.At(sp.X+x, sp.Y+y).RGBA()
+				sr, sg, sb, sa = at128(src, sp.X+x, sp.Y+y)
 			}
 			ma := uint32(0xffff)
 			if mask != nil {
-				_, _, _, ma = mask.At(mp.X+x, mp.Y+y).RGBA()
+				_, _, _, ma = at128(mask, mp.X+x, mp.Y+y)
 			}
 			pix := d.pix[o : o+3 : o+3] // see https://golang.org/issue/27857
 			dr, dg, db := sr, sg, sb

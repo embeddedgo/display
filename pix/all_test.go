@@ -113,6 +113,17 @@ func checkDisplay(t *testing.T, disp *pix.Display, name string) {
 	checkImage(t, disp.Driver().(*imgdrv.Driver).Image, name)
 }
 
+func saveImage(t *testing.T, img image.Image, name string) {
+	f, err := os.Create(filepath.Join(testDir, name))
+	failErr(t, err)
+	failErr(t, png.Encode(f, img))
+	failErr(t, f.Close())
+}
+
+func saveDisplay(t *testing.T, disp *pix.Display, name string) {
+	saveImage(t, disp.Driver().(*imgdrv.Driver).Image, name)
+}
+
 func TestLineEllipse(t *testing.T) {
 	testFile := "line_ellipse.png"
 
@@ -674,15 +685,4 @@ func TestTextRotation(t *testing.T) {
 
 	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
-}
-
-func saveImage(t *testing.T, img image.Image, name string) {
-	f, err := os.Create(filepath.Join(testDir, name))
-	failErr(t, err)
-	failErr(t, png.Encode(f, img))
-	failErr(t, f.Close())
-}
-
-func saveDisplay(t *testing.T, disp *pix.Display, name string) {
-	saveImage(t, disp.Driver().(*imgdrv.Driver).Image, name)
 }
