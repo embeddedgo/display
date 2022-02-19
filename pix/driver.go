@@ -51,9 +51,9 @@ type Driver interface {
 	// memory is problematic or inefficient.
 	Flush()
 
-	// Err returns the saved error and clears it if the clear is true. If an
-	// error has occured it is recommended that the Driver avoids any further
-	// operations until the error is cleared.
+	// Err returns the saved error and clears it if clear is true. If an error
+	// has occured the driver should avoid any actions that may cause further
+	// errors until the recorded error is cleared.
 	Err(clear bool) error
 }
 
