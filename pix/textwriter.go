@@ -5,20 +5,29 @@
 package pix
 
 import (
+	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
+	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/embeddedgo/display/font"
 )
 
-// Wrapping modes that determine what TextWriter does if the string does not
+// Wrapping modes determine what TextWriter does if the string does not
 // fit in the drawing area.
 const (
 	NoWrap byte = iota
 	WrapNewLine
 	WrapSameLine
+)
+
+// Line breaking mode.
+const (
+	BreakAny   byte = iota // break at any rune
+	BreakSpace             // break at unicode White Space
 )
 
 // StringWidth returns the number of horizontal pixels that would be occupied by
@@ -54,6 +63,7 @@ type TextWriter struct {
 	Pos    image.Point // position of the next glyph
 	Offset image.Point // offset from the Pos to the glyph origin
 	Wrap   byte        // wrapping mode
+	Break  byte        // line breaking mode
 	_      byte        // require keys in literals
 }
 
@@ -81,30 +91,100 @@ func (w *TextWriter) SetFace(f font.Face) {
 }
 
 func (w *TextWriter) Write(s []byte) (int, error) {
+	n := len(s)
+	bounds := w.Area.Bounds()
 	height, _ := w.Face.Size()
-	for i := 0; i < len(s); {
-		r, size := utf8.DecodeRune(s[i:])
-		drawRune(w, r, height)
-		i += size
+	for len(s) != 0 {
+		k, m := len(s), len(s)
+		if w.Wrap != NoWrap {
+			if i := bytes.IndexByte(s[:k], '\n'); i >= 0 {
+				k = i
+				m = i + 1
+			}
+			free := bounds.Max.X - w.Pos.X - Width(s[:k], w.Face)
+			for free < 0 {
+				i := -1
+				if w.Break == BreakSpace {
+					i = bytes.LastIndexFunc(s[:k], unicode.IsSpace)
+					if i < 0 && w.Pos.X > bounds.Min.X {
+						k = 0
+						m = 0
+						break // try one more time with w.Pos.X=bounds.Min.X
+
+					}
+					m = i + 1
+				}
+				if i < 0 {
+					i = k - 1
+					m = i
+				}
+				free += Width(s[i:k], w.Face)
+				k = i
+			}
+		}
+		for i := 0; i < k; {
+			r, size := utf8.DecodeRune(s[i:k])
+			drawRune(w, r, height, bounds)
+			i += size
+		}
+		if k < len(s) {
+			w.Pos.X = bounds.Min.X
+			if w.Wrap == WrapNewLine {
+				w.Pos.Y += height
+			}
+		}
+		s = s[m:]
 	}
-	return len(s), nil
+	return n, nil
 }
 
 func (w *TextWriter) WriteString(s string) (int, error) {
+	n := len(s)
+	bounds := w.Area.Bounds()
 	height, _ := w.Face.Size()
-	for _, r := range s {
-		drawRune(w, r, height)
+	for len(s) != 0 {
+		k, m := len(s), len(s)
+		if w.Wrap != NoWrap {
+			if i := strings.IndexByte(s[:k], '\n'); i >= 0 {
+				k = i
+				m = i + 1
+			}
+			free := bounds.Max.X - w.Pos.X - StringWidth(s[:k], w.Face)
+			for free < 0 {
+				i := -1
+				if w.Break == BreakSpace {
+					i = strings.LastIndexFunc(s[:k], unicode.IsSpace)
+					if i < 0 && w.Pos.X > bounds.Min.X {
+						// try one more time with w.Pos.X=bounds.Min.X
+						k = 0
+						m = 0
+						break // try one more time with w.Pos.X=bounds.Min.X
+					}
+					m = i + 1
+				}
+				if i < 0 {
+					i = k - 1
+					m = i
+				}
+				free += StringWidth(s[i:k], w.Face)
+				k = i
+			}
+		}
+		for _, r := range s[:k] {
+			drawRune(w, r, height, bounds)
+		}
+		if k < len(s) {
+			w.Pos.X = bounds.Min.X
+			if w.Wrap == WrapNewLine {
+				w.Pos.Y += height
+			}
+		}
+		s = s[m:]
 	}
-	return len(s), nil
+	return n, nil
 }
 
-func drawRune(w *TextWriter, r rune, height int) {
-	ar := w.Area.Bounds()
-	if r == '\n' && w.Wrap == WrapNewLine {
-		w.Pos.X = ar.Min.X
-		w.Pos.Y += height
-		return
-	}
+func drawRune(w *TextWriter, r rune, height int, bounds image.Rectangle) {
 	mask, origin, advance := w.Face.Glyph(r)
 	if mask == nil {
 		mask, origin, advance = w.Face.Glyph(0)
@@ -112,21 +192,8 @@ func drawRune(w *TextWriter, r rune, height int) {
 			return
 		}
 	}
-	nx := w.Pos.X + advance
-	if w.Wrap != NoWrap && nx > ar.Max.X {
-		w.Pos.X = ar.Min.X
-		nx = ar.Min.X + advance
-		if w.Wrap == WrapNewLine {
-			w.Pos.Y += height
-		}
-	}
 	mr := mask.Bounds()
 	dr := mr.Add(w.Pos.Add(w.Offset).Sub(origin))
 	w.Area.Draw(dr, w.Color, image.Point{}, mask, mr.Min, draw.Over)
-	w.Pos.X = nx
-	// draw bounding box
-	//c := w.Area.Color()
-	//w.Area.SetColorRGBA(192, 0, 0, 192)
-	//w.Area.RoundRect(dr.Min, dr.Max.Sub(image.Pt(1, 1)), 0, 0, false)
-	//w.Area.SetColor(c)
+	w.Pos.X += advance
 }

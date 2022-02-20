@@ -141,12 +141,12 @@ func TestLineEllipse(t *testing.T) {
 
 	a.SetColorRGBA(24, 46, 68, 255)
 	for x := 0; x < max.X; x += 2 {
-		a.Pixel(x, 0)
-		a.Pixel(x+1, max.Y-1)
+		a.Point(x, 0)
+		a.Point(x+1, max.Y-1)
 	}
 	for y := 2; y < max.Y; y += 2 {
-		a.Pixel(0, y)
-		a.Pixel(max.X-1, y-1)
+		a.Point(0, y)
+		a.Point(max.X-1, y-1)
 	}
 
 	x := max.X / 2
@@ -219,8 +219,7 @@ func TestImage(t *testing.T) {
 }
 
 // The Akkerman Steppe Original Polish by Adam Mickiewicz (1798-1855)
-const AkermanianSteppePL = `` +
-	`Wpłynąłem na suchego przestwór oceanu,
+const AkermanianSteppePL = `Wpłynąłem na suchego przestwór oceanu,
 Wóz nurza się w zieloność i jak łódka brodzi,
 Śród fali łąk szumiących, śród kwiatów powodzi,
 Omijam koralowe ostrowy burzanu.
@@ -283,7 +282,7 @@ aus Litau'n...  Weiter! ... niemand ist zu hör'n, zu sehen.
 func TestTextWriter(t *testing.T) {
 	testFile := "text_writer.png"
 
-	disp := newDisplay(460, 1300)
+	disp := newDisplay(320, 1680)
 
 	a := disp.NewArea(disp.Bounds())
 	a.SetColorRGBA(250, 250, 200, 255)
@@ -292,12 +291,14 @@ func TestTextWriter(t *testing.T) {
 	a.SetColorRGBA(0, 0, 100, 255)
 
 	w := a.NewTextWriter(Dejavu12)
+	w.Break = pix.BreakSpace
 	w.WriteString(AkermanianSteppePL)
 
 	w.Face = VGA
 	w.WriteString(AkermanianSteppeEN)
 
 	w.Face = font.Magnify(Terminus12, 2, 2, font.Nearest)
+	w.Break = pix.BreakAny
 	w.WriteString(AkermanianSteppeDE)
 
 	//saveDisplay(t, disp, testFile)

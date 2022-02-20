@@ -23,7 +23,7 @@ type areaDisplay struct {
 // independent of its position on the display. Only one goroutine can use an
 // area at the same time.
 type Area struct {
-	bounds image.Rectangle // area coordinates
+	bounds image.Rectangle // area coordinates; always use Bounds() for drawing
 	tr     image.Point     // translation to the display coordinates
 	color  color.Color     // drawing color
 	misrc  images.Mirror
