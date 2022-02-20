@@ -252,7 +252,7 @@ func max(a, b int) int {
 
 func arc(a *Area, p image.Point, ra, rb, w0, dx0, dy0, w1, dx1, dy1, of int, dirx, diry int8) {
 	if ra|rb == 0 {
-		a.Pixel(p.X, p.Y)
+		a.Point(p.X, p.Y)
 		return
 	}
 	// based on Alois Zingl algorithm
@@ -274,7 +274,7 @@ func arc(a *Area, p image.Point, ra, rb, w0, dx0, dy0, w1, dx1, dy1, of int, dir
 	dy0 *= int(dirx)
 	dy1 *= int(dirx)
 	if dirx != diry && (w0|w1)^of >= 0 {
-		a.Pixel(p.X+x, p.Y)
+		a.Point(p.X+x, p.Y)
 	}
 	for {
 		e2 := 2 * e
@@ -296,7 +296,7 @@ func arc(a *Area, p image.Point, ra, rb, w0, dx0, dy0, w1, dx1, dy1, of int, dir
 			w1 += dx1
 		}
 		if (w0|w1)^of >= 0 {
-			a.Pixel(p.X+x, p.Y+y)
+			a.Point(p.X+x, p.Y+y)
 		}
 		if x == 0 {
 			break
@@ -308,7 +308,7 @@ func arc(a *Area, p image.Point, ra, rb, w0, dx0, dy0, w1, dx1, dy1, of int, dir
 		w0 += dx0
 		w1 += dx1
 		if (w0|w1)^of >= 0 {
-			a.Pixel(p.X, p.Y+y)
+			a.Point(p.X, p.Y+y)
 		}
 	}
 }

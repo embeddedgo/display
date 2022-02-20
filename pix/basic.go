@@ -37,15 +37,15 @@ func (a *Area) Fill(r image.Rectangle) {
 	}
 }
 
-// The simple implemetations of DrawPixel, hline and vline are almost as fast as
+// The simple implemetations of Point, hline and vline are almost as fast as
 // the optimized ones in case of real hardware that is slow in terms of
 // transferring commands and data. For example the simple implementation of
-// DrawPixel below is only 1.0003 slower than the optimized one that uses
-// Point.In and drv.Fill directly (ili9341.Driver, STM32 21 MHz DMA SPI) but
+// Point below is only 1.0003 slower than the optimized one that uses Point.In
+// and drv.Fill directly (ili9341.Driver, STM32 21 MHz DMA SPI) but
 // takes 500 bytes less of Flash.
 
-// Pixel provides a convenient way to fill one-pixel rectangle.
-func (a *Area) Pixel(x, y int) {
+// Point provides a convenient way to fill one-pixel rectangle.
+func (a *Area) Point(x, y int) {
 	a.Fill(image.Rectangle{image.Pt(x, y), image.Pt(x+1, y+1)})
 }
 
