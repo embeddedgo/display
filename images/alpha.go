@@ -56,15 +56,15 @@ func logNStride(r image.Rectangle, nbpp int) (logN uint8, stride int) {
 }
 
 func alphaLogN(a uint, logN uint8) color.Alpha {
-	if logN == 0 {
+	switch logN {
+	case 0:
 		a = -(a & 1)
-	} else {
-		if logN == 1 {
-			a &= 3
-			a |= a << 2
-		} else if logN < 3 {
-			a &= 15
-		}
+	case 1:
+		a &= 3
+		a |= a << 2
+		a |= a << 4
+	case 2:
+		a &= 15
 		a |= a << 4
 	}
 	return color.Alpha{uint8(a)}

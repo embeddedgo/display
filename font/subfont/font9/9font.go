@@ -6,11 +6,12 @@
 
 // 9font.go translates Plan 9 bitmap font to the Go source.
 //
-// Usage: go run 9font.go [-n] FONT_FILE
+// Usage: go run 9font.go [options] FONT_FILE
 package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
 	"image"
 	"image/color"
@@ -43,32 +44,58 @@ func dieInvalid(what ...interface{}) {
 	os.Exit(1)
 }
 
+func usage() {
+	fmt.Fprint(
+		os.Stderr,
+		"\nUsage:\n  go run 9font.go [options] FONT_FILE\n\nOptoins:\n",
+	)
+	flag.PrintDefaults()
+}
+
 var (
-	dir      string
-	sameDir  bool
+	fontDir  string
 	fontFile string
 	fontName string
 	fontSize string
-	pkgName  string // font face name
+
+	// command line arguments
+	dir     string
+	maxBPP  int
+	pkgName string
+	sameDir bool
 )
 
 func main() {
-	args := os.Args[1:]
-	if len(args) > 0 && args[0] == "-n" {
-		sameDir = true
-		args = args[1:]
-	}
-	switch len(args) {
-	case 1:
-		fontFile = args[0]
-	case 2:
-		fontFile = args[0]
-		pkgName = args[1]
-	default:
-		fmt.Fprintln(os.Stderr, "Usage: go run 9font.go [-n] FONT_FILE [PKG_NAME]\n")
+	flag.StringVar(
+		&dir, "dir", "",
+		"create the font package as a subdirectory of the specified directory",
+	)
+	flag.IntVar(
+		&maxBPP, "maxbpp", 8,
+		"reduce the number of bits per pixel (1 <= maxbpp <= 8)",
+	)
+	flag.StringVar(
+		&pkgName, "name", "",
+		"change the default font package name",
+	)
+	flag.BoolVar(
+		&sameDir, "samedir", false,
+		"only process subfonts in the same directory as the font file",
+	)
+	flag.Usage = usage
+	flag.Parse()
+	args := flag.Args()
+	if len(args) != 1 {
+		fmt.Fprintln(os.Stderr, "FONT_FILE is required.")
+		usage()
 		os.Exit(1)
 	}
-
+	if maxBPP < 1 || 8 < maxBPP {
+		fmt.Fprintln(os.Stderr, "Bad maxbpp.")
+		usage()
+		os.Exit(1)
+	}
+	fontFile = args[0]
 	fontName = filepath.Base(filepath.Dir(fontFile))
 	fontSize = strings.TrimSuffix(filepath.Base(fontFile), ".font")
 	fontSize = filepath.Ext(fontSize)
@@ -104,15 +131,15 @@ func main() {
 		}
 	}
 	dieErr(scan.Err())
-
-	dieErr(os.Mkdir(pkgName, 0755))
-	w, err := os.Create(filepath.Join(pkgName, "subfonts.go"))
+	pkgDir := filepath.Join(dir, pkgName)
+	dieErr(os.Mkdir(pkgDir, 0755))
+	w, err := os.Create(filepath.Join(pkgDir, "subfonts.go"))
 	dieErr(err)
 	defer w.Close()
-	wd, err := os.Create(filepath.Join(pkgName, "data.go"))
+	wd, err := os.Create(filepath.Join(pkgDir, "data.go"))
 	dieErr(err)
 	defer wd.Close()
-	ws, err := os.Create(filepath.Join(pkgName, "string.go"))
+	ws, err := os.Create(filepath.Join(pkgDir, "string.go"))
 	dieErr(err)
 	defer ws.Close()
 
@@ -137,7 +164,7 @@ func main() {
 
 	dataMap := make(map[string]string)
 
-	dir = filepath.Dir(fontFile)
+	fontDir = filepath.Dir(fontFile)
 	for scan.Scan() {
 		split := strings.Fields(scan.Text())
 		if len(split) != 3 && len(split) != 4 {
@@ -176,11 +203,11 @@ func main() {
 }
 
 func handleData(wd, ws io.Writer, name string) string {
-	if dir, _ := filepath.Split(name); dir != "" && sameDir {
+	if d, _ := filepath.Split(name); d != "" && sameDir {
 		fmt.Fprintln(os.Stderr, "ignore font data from another directory", name)
 		return ""
 	}
-	name = filepath.Join(dir, name)
+	name = filepath.Join(fontDir, name)
 	df, err := os.Open(name)
 	if os.IsNotExist(err) {
 		df, err = os.Open(name + ".0")
@@ -190,7 +217,7 @@ func handleData(wd, ws io.Writer, name string) string {
 		return ""
 	}
 
-	dirSplit := strings.Split(dir, "/")
+	dirSplit := strings.Split(fontDir, "/")
 	nameSplit := strings.Split(name, "/")
 
 	var names []string
@@ -296,6 +323,17 @@ boottom:
 	return img.SubImage(r).(font9.Image)
 }
 
+func outBPP(img image.Image) int {
+	bpp := 8
+	if img, ok := img.(*images.AlphaN); ok {
+		bpp = 1 << img.LogN
+	}
+	if bpp > maxBPP {
+		bpp = maxBPP
+	}
+	return bpp
+}
+
 func optimizeVariable(d *font9.Variable) {
 	d.Bits = removeEmptyRows(d.Bits)
 
@@ -304,12 +342,7 @@ func optimizeVariable(d *font9.Variable) {
 	r := d.Bits.Bounds()
 	r.Max.X = r.Dx()
 	r.Min.X = 0
-	bpp := 2 // reduce to 2 bpp
-	if img, ok := d.Bits.(*images.AlphaN); ok {
-		if img.LogN == 0 {
-			bpp = 1
-		}
-	}
+	bpp := outBPP(d.Bits)
 	dst := images.NewAlphaN(r, bpp)
 	var info strings.Builder
 	for i := 0; i < d.Num(); i++ {
@@ -362,12 +395,7 @@ func optimizeFixed(d *font9.Fixed) {
 	sr := src.Bounds()
 	sw := int(d.Width)
 	left := 0
-	bpp := 2 // reduce to 2 bpp
-	if img, ok := src.(*images.AlphaN); ok {
-		if img.LogN == 0 {
-			bpp = 1
-		}
-	}
+	bpp := outBPP(d.Bits)
 left:
 	for {
 		for i := 0; i < d.Num(); i++ {
