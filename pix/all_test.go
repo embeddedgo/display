@@ -687,3 +687,65 @@ func TestTextRotation(t *testing.T) {
 	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
 }
+
+func TestArc2(t *testing.T) {
+	testFile := "arc2.png"
+
+	disp := newDisplay(640, 320)
+	a := disp.NewArea(disp.Bounds())
+	p := a.Bounds().Max
+	p.X = p.X / 4
+	p.Y /= 2
+
+	alpha := int64(math2d.FullAngle) * 15 / 100
+	th0 := -math2d.RightAngle / 3
+	th1 := th0 + int32(alpha)
+
+	a.SetColorRGBA(200, 0, 0, 200)
+	a.Arc(p, 0, 0, 150, 150, th0, th1, true)
+
+	alpha = math2d.FullAngle * 25 / 100
+	th0 = th1
+	th1 = th0 + int32(alpha)
+
+	a.SetColorRGBA(0, 200, 0, 200)
+	a.Arc(p, 0, 0, 150, 150, th0, th1, true)
+
+	alpha = math2d.FullAngle * 60 / 100
+	th0 = th1
+	th1 = th0 + int32(alpha)
+
+	a.SetColorRGBA(0, 0, 200, 200)
+	a.Arc(p, 0, 0, 150, 150, th0, th1, true)
+
+	p.X *= 3
+
+	o0 := image.Pt(10, 0)
+
+	alpha = math2d.FullAngle * 15 / 100
+	th0 = -math2d.RightAngle / 3
+	th1 = th0 + int32(alpha)
+	o := math2d.Rotate(o0, th0+int32(alpha/2))
+
+	a.SetColorRGBA(200, 0, 0, 200)
+	a.Arc(p.Add(o), 40, 30, 160, 120, th0, th1, true)
+
+	alpha = math2d.FullAngle * 25 / 100
+	th0 = th1
+	th1 = th0 + int32(alpha)
+	o = math2d.Rotate(o0, th0+int32(alpha/2))
+
+	a.SetColorRGBA(0, 200, 0, 200)
+	a.Arc(p.Add(o), 40, 30, 160, 120, th0, th1, true)
+
+	alpha = math2d.FullAngle * 60 / 100
+	th0 = th1
+	th1 = th0 + int32(alpha)
+	o = math2d.Rotate(o0, th0+int32(alpha/2))
+
+	a.SetColorRGBA(0, 0, 200, 200)
+	a.Arc(p.Add(o), 40, 30, 160, 120, th0, th1, true)
+
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
+}

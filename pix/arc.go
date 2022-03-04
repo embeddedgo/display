@@ -21,7 +21,16 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 	box.Max.Y = maxb
 	// setup two sides
 	var w0, w1, dx0, dx1, dy0, dy1, of int
-	if th0 != th1 {
+	if th0 == th1 {
+		if !fill {
+			a.RoundRect(p, p, mina, minb, false)
+			a.RoundRect(p, p, maxa, maxb, false)
+			return
+		}
+		box.Max.X++
+		box.Max.Y++
+		box = box.Intersect(a.Bounds().Sub(p))
+	} else {
 		one := image.Pt(1<<frac, 0)
 		cosSin := math2d.Rotate(one, th0)
 		pmin0 := mulfi(cosSin, mina, minb)
@@ -38,12 +47,13 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 			dy0, dy1 = -dy0, -dy1
 			dx0, dx1 = -dx0, -dx1
 		}
-		top := th0 < th1 && th1 <= 0
-		bottom := uint32(th0) < uint32(th1) && uint32(th1) <= math2d.FullAngle/2
-		tr0, tr1 := th0+math2d.RightAngle, th1+math2d.RightAngle
-		left := tr0 < tr1 && tr1 <= 0
-		right := uint32(tr0) < uint32(tr1) && uint32(tr1) <= math2d.FullAngle/2
 		if !fill {
+			top := th0 < th1 && th1 <= 0
+			bottom := uint32(th0) < uint32(th1) && uint32(th1) <= math2d.FullAngle/2
+			th0 += math2d.RightAngle
+			th1 += math2d.RightAngle
+			left := th0 < th1 && th1 <= 0
+			right := uint32(th0) < uint32(th1) && uint32(th1) <= math2d.FullAngle/2
 			a.Line(pmin0.Add(p), pmax0.Add(p))
 			w0 := -dx0*pmin0.Y - dy0*pmin0.X
 			w1 := -dx1*pmin1.Y - dy1*pmin1.X
@@ -85,30 +95,27 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 			return
 		}
 		// more fitted box
-		if bottom {
-			box.Min.X = pmax1.X
-			box.Max.X = pmax0.X
-		} else if top {
-			box.Min.X = pmax0.X
-			box.Max.X = pmax1.X
+		if th1 < 0 && th0 > 0 || th0 < th1 && (th1 < 0 || th0 > 0) {
+			box.Max.X = max4(pmax0.X, pmax1.X, pmin0.X, pmin1.X)
 		}
-		if right {
-			box.Min.Y = pmax0.Y
-			box.Max.Y = pmax1.Y
-		} else if left {
-			box.Min.Y = pmax1.Y
-			box.Max.Y = pmax0.Y
+		th0 -= math2d.RightAngle
+		th1 -= math2d.RightAngle
+		if th1 < 0 && th0 > 0 || th0 < th1 && (th1 < 0 || th0 > 0) {
+			box.Max.Y = max4(pmax0.Y, pmax1.Y, pmin0.Y, pmin1.Y)
 		}
-		if bottom {
-			box.Min.Y = min(pmin0.Y, pmin1.Y)
-		} else if top {
-			box.Max.Y = max(pmin0.Y, pmin1.Y)
+		th0 -= math2d.RightAngle
+		th1 -= math2d.RightAngle
+		if th1 < 0 && th0 > 0 || th0 < th1 && (th1 < 0 || th0 > 0) {
+			box.Min.X = min4(pmax0.X, pmax1.X, pmin0.X, pmin1.X)
 		}
-		if right {
-			box.Min.X = min(pmin0.X, pmin1.X)
-		} else if left {
-			box.Max.X = max(pmin0.X, pmin1.X)
+		th0 -= math2d.RightAngle
+		th1 -= math2d.RightAngle
+		if th1 < 0 && th0 > 0 || th0 < th1 && (th1 < 0 || th0 > 0) {
+			box.Min.Y = min4(pmax0.Y, pmax1.Y, pmin0.Y, pmin1.Y)
 		}
+		box.Max.X++
+		box.Max.Y++
+		box = box.Intersect(a.Bounds().Sub(p))
 		w0 = dx0*(box.Min.Y-pmin0.Y) + dy0*(box.Min.X-pmin0.X)
 		w1 = dx1*(box.Min.Y-pmin1.Y) + dy1*(box.Min.X-pmin1.X)
 		if of < 0 {
@@ -116,14 +123,7 @@ func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fi
 		} else {
 			w1--
 		}
-	} else if !fill {
-		a.RoundRect(p, p, mina, minb, false)
-		a.RoundRect(p, p, maxa, maxb, false)
-		return
 	}
-	box.Max.X++
-	box.Max.Y++
-	box = box.Intersect(a.Bounds().Sub(p))
 	// setup ellipses
 	minaa := mina * mina
 	minbb := minb * minb
@@ -234,20 +234,6 @@ func mulfi(p image.Point, mx, my int) image.Point {
 	p.X = (p.X*mx + round) >> frac
 	p.Y = (p.Y*my + round) >> frac
 	return p
-}
-
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
 }
 
 func arc(a *Area, p image.Point, ra, rb, w0, dx0, dy0, w1, dx1, dy1, of int, dirx, diry int8) {
