@@ -301,7 +301,7 @@ func TestTextWriter(t *testing.T) {
 	w.Break = pix.BreakAny
 	w.WriteString(AkermanianSteppeDE)
 
-	//saveDisplay(t, disp, testFile)
+	saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
 }
 
