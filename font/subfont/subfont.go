@@ -17,10 +17,11 @@ type Subfont struct {
 
 // Loader is the interface that wraps the Load method.
 //
-// Load loads the subfont containing a given rune. A successful call returns the
-// pointer to the loaded subfont, otherwise the nil pointer is returned.
+// Load loads a subfont containing the given rune. A successful call returns
+// the pointer to the loaded subfont. Load may also add and/or remove any
+// subfonts from the current list and return the updated version.
 type Loader interface {
-	Load(r rune) *Subfont
+	Load(r rune, current []*Subfont) (containing *Subfont, updated []*Subfont)
 }
 
 // Data represents a glyph storage.

@@ -38,28 +38,15 @@ func (f *Face) Glyph(r rune) (img image.Image, origin image.Point, advance int) 
 	return sf.Data.Glyph(int(r - sf.First))
 }
 
-func getSubfont(f *Face, r rune) *Subfont {
+func getSubfont(f *Face, r rune) (sf *Subfont) {
 	// TODO: binary search
-	for _, sf := range f.Subfonts {
-		if sf.First <= r && r <= sf.Last {
+	for _, sf = range f.Subfonts {
+		if sf != nil && sf.First <= r && r <= sf.Last {
 			return sf
 		}
 	}
-	if f.Loader == nil {
-		return nil
+	if f.Loader != nil {
+		sf, f.Subfonts = f.Loader.Load(r, f.Subfonts)
 	}
-	new := f.Loader.Load(r)
-	if new == nil {
-		return nil
-	}
-	// TODO: binary search
-	for i, sf := range f.Subfonts {
-		if new.Last < sf.First {
-			f.Subfonts = append(f.Subfonts[:i+1], f.Subfonts[i:]...)
-			f.Subfonts[i] = new
-			return new
-		}
-	}
-	f.Subfonts = append(f.Subfonts, new)
-	return new
+	return sf
 }
