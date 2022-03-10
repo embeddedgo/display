@@ -12,6 +12,9 @@ import (
 
 const frac = 18 // maxa, maxb up to 8191 without 64-bit multiplication
 
+// Arc draws an arc with the center at p. The mina, minb, maxa, maxb represent
+// the minimal and maximal radiuses in x and y direction. The th0 and th1
+// represent the starting and ending angle of the arc.
 func (a *Area) Arc(p image.Point, mina, minb, maxa, maxb int, th0, th1 int32, fill bool) {
 	// bounding box
 	var box image.Rectangle
