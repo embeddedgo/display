@@ -164,9 +164,11 @@ func (a *Area) Color() color.Color {
 // used in place of the following set of statements:
 //	w := new(TextWriter)
 //	w.Area = a
-//	w.Face = f
 //	w.Color = &image.Uniform{a.Color()}
-//	_, w.Pos.Y = f.Size() // ascent
+//	w.Face = f
+//	w.Wrap = WrapNewLine
+//	w.Pos = a.Bounds().Min
+//	_, w.Offset.Y = f.Size() // ascent
 func (a *Area) NewTextWriter(f font.Face) *TextWriter {
 	_, ascent := f.Size()
 	return &TextWriter{
