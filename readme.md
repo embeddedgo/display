@@ -10,6 +10,10 @@ An implementation is allowed to store glyphs in any form (pixmap, vector) but mu
 
 Font contains some ready tu use fonts that can be imported as Go packages.
 
+#### images
+
+Package images provides image formats useful for embedded programming that are unavailable in the standard image package.
+
 #### math2d
 
 Package math2d provides a set of fixed-point 2D operations that work with `image.Point` vectors and `int32` angles.
