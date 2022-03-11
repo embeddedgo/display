@@ -115,7 +115,7 @@ func drawTimeDuration1(a *pix.Area, t, duration int) {
 	a.SetColor(ctrlColor)
 	a.Arc(p, rmin, rmin, rmax, rmax, th0, th1, false)
 	if t > 0 {
-		alpha := int64(math2d.FullAngle*3/4) * int64(t) / int64(duration)
+		alpha := int64(math2d.FullAngle*5/6) * int64(t) / int64(duration)
 		a.Arc(p, rmin, rmin, rmax, rmax, th0, th0+int32(alpha), true)
 	}
 
