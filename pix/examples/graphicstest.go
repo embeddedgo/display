@@ -31,6 +31,7 @@ import (
 
 func delay(ms int) { time.Sleep(time.Duration(ms) * time.Millisecond) }
 
+// GraphicsTest is a trsanslated to Go the Adafruit Graphic Test.
 func GraphicsTest(disp *pix.Display) {
 	a := disp.NewArea(disp.Bounds())
 
