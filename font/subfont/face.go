@@ -45,8 +45,9 @@ func getSubfont(f *Face, r rune) (sf *Subfont) {
 			return sf
 		}
 	}
-	if f.Loader != nil {
-		sf, f.Subfonts = f.Loader.Load(r, f.Subfonts)
+	if f.Loader == nil {
+		return nil
 	}
+	sf, f.Subfonts = f.Loader.Load(r, f.Subfonts)
 	return sf
 }
