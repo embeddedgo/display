@@ -5,11 +5,9 @@
 package pix
 
 import (
-	"bytes"
 	"image"
 	"image/color"
 	"image/draw"
-	"strings"
 	"unicode"
 	"unicode/utf8"
 
@@ -90,107 +88,134 @@ func (w *TextWriter) SetFace(f font.Face) {
 	w.Offset.Y += ascent
 }
 
+func writeNoWrap(w *TextWriter, s []byte) {
+	bounds := w.Area.Bounds()
+	for i := 0; i < len(s) && w.Pos.X < bounds.Max.X; {
+		r, m := utf8.DecodeRune(s[i:])
+		i += m
+		if r == utf8.RuneError {
+			continue
+		}
+		drawRune(w, r)
+	}
+}
+
 func (w *TextWriter) Write(s []byte) (int, error) {
-	n := len(s)
+	if w.Wrap == NoWrap {
+		writeNoWrap(w, s)
+		return len(s), nil
+	}
 	bounds := w.Area.Bounds()
 	height, _ := w.Face.Size()
-	for len(s) != 0 {
-		k, m := len(s), len(s)
-		if w.Wrap != NoWrap {
-			if i := bytes.IndexByte(s[:k], '\n'); i >= 0 {
-				k = i
-				m = i + 1
-			}
-			free := bounds.Max.X - w.Pos.X - Width(s[:k], w.Face)
-			for free < 0 {
-				i := -1
-				if w.Break == BreakSpace {
-					i = bytes.LastIndexFunc(s[:k], unicode.IsSpace)
-					if i < 0 && w.Pos.X > bounds.Min.X {
-						k = 0
-						m = 0
-						break // try one more time with w.Pos.X=bounds.Min.X
-
-					}
-					m = i + 1
-				}
-				if i < 0 {
-					i = k - 1
-					m = i
-				}
-				free += Width(s[i:k], w.Face)
-				k = i
-			}
+	posX := w.Pos.X
+	lastSpace := -1
+	done := 0
+	for i, m := 0, 0; i < len(s); i += m {
+		var r rune
+		r, m = utf8.DecodeRune(s[i:])
+		if r == utf8.RuneError {
+			continue
 		}
-		for i := 0; i < k; {
-			r, size := utf8.DecodeRune(s[i:k])
-			drawRune(w, r, height, bounds)
-			i += size
+		var advance, skip int
+		if r == '\n' {
+			skip = m
+			goto wrap
 		}
-		if k < len(s) {
-			w.Pos.X = bounds.Min.X
-			if w.Wrap == WrapNewLine {
-				w.Pos.Y += height
+		if w.Break == BreakSpace && unicode.IsSpace(r) {
+			lastSpace = i
+		}
+		advance = w.Face.Advance(r)
+		posX += advance
+		if posX > bounds.Max.X {
+			if w.Break == BreakSpace && lastSpace >= 0 {
+				i = lastSpace
+				lastSpace = -1
+				_, m = utf8.DecodeRune(s[i:])
+				advance = 0
+				skip = m
 			}
+			goto wrap
 		}
-		s = s[m:]
+		continue
+	wrap:
+		writeNoWrap(w, s[done:i])
+		done = i + skip
+		w.Pos.X = bounds.Min.X
+		posX = w.Pos.X + advance
+		if w.Wrap == WrapNewLine {
+			w.Pos.Y += height
+		}
 	}
-	return n, nil
+	writeNoWrap(w, s[done:])
+	return len(s), nil
+}
+
+func writeStringNoWrap(w *TextWriter, s string) {
+	bounds := w.Area.Bounds()
+	for i := 0; i < len(s) && w.Pos.X < bounds.Max.X; {
+		r, m := utf8.DecodeRuneInString(s[i:])
+		i += m
+		if r == utf8.RuneError {
+			continue
+		}
+		drawRune(w, r)
+	}
 }
 
 func (w *TextWriter) WriteString(s string) (int, error) {
-	n := len(s)
+	if w.Wrap == NoWrap {
+		writeStringNoWrap(w, s)
+		return len(s), nil
+	}
 	bounds := w.Area.Bounds()
 	height, _ := w.Face.Size()
-	for len(s) != 0 {
-		k, m := len(s), len(s)
-		if w.Wrap != NoWrap {
-			if i := strings.IndexByte(s[:k], '\n'); i >= 0 {
-				k = i
-				m = i + 1
-			}
-			free := bounds.Max.X - w.Pos.X - StringWidth(s[:k], w.Face)
-			for free < 0 {
-				i := -1
-				if w.Break == BreakSpace {
-					i = strings.LastIndexFunc(s[:k], unicode.IsSpace)
-					if i < 0 && w.Pos.X > bounds.Min.X {
-						// try one more time with w.Pos.X=bounds.Min.X
-						k = 0
-						m = 0
-						break // try one more time with w.Pos.X=bounds.Min.X
-					}
-					m = i + 1
-				}
-				if i < 0 {
-					i = k - 1
-					m = i
-				}
-				free += StringWidth(s[i:k], w.Face)
-				k = i
-			}
+	posX := w.Pos.X
+	lastSpace := -1
+	done := 0
+	for i, m := 0, 0; i < len(s); i += m {
+		var r rune
+		r, m = utf8.DecodeRuneInString(s[i:])
+		if r == utf8.RuneError {
+			continue
 		}
-		for _, r := range s[:k] {
-			drawRune(w, r, height, bounds)
+		var advance, skip int
+		if r == '\n' {
+			skip = m
+			goto wrap
 		}
-		if k < len(s) {
-			w.Pos.X = bounds.Min.X
-			if w.Wrap == WrapNewLine {
-				w.Pos.Y += height
+		if w.Break == BreakSpace && unicode.IsSpace(r) {
+			lastSpace = i
+		}
+		advance = w.Face.Advance(r)
+		posX += advance
+		if posX > bounds.Max.X {
+			if w.Break == BreakSpace && lastSpace >= 0 {
+				i = lastSpace
+				lastSpace = -1
+				_, m = utf8.DecodeRuneInString(s[i:])
+				advance = 0
+				skip = m
 			}
+			goto wrap
 		}
-		s = s[m:]
+		continue
+	wrap:
+		writeStringNoWrap(w, s[done:i])
+		done = i + skip
+		w.Pos.X = bounds.Min.X
+		posX = w.Pos.X + advance
+		if w.Wrap == WrapNewLine {
+			w.Pos.Y += height
+		}
 	}
-	return n, nil
+	writeStringNoWrap(w, s[done:])
+	return len(s), nil
 }
 
-func drawRune(w *TextWriter, r rune, height int, bounds image.Rectangle) {
+func drawRune(w *TextWriter, r rune) {
 	mask, origin, advance := w.Face.Glyph(r)
 	if mask == nil {
-		mask, origin, advance = w.Face.Glyph(0)
-		if mask == nil {
-			return
-		}
+		return
 	}
 	mr := mask.Bounds()
 	dr := mr.Add(w.Pos.Add(w.Offset).Sub(origin))

@@ -301,7 +301,7 @@ func TestTextWriter(t *testing.T) {
 	w.Break = pix.BreakAny
 	w.WriteString(AkermanianSteppeDE)
 
-	saveDisplay(t, disp, testFile)
+	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
 }
 
@@ -745,6 +745,44 @@ func TestArc2(t *testing.T) {
 
 	a.SetColorRGBA(0, 0, 200, 200)
 	a.Arc(p.Add(o), 40, 30, 160, 120, th0, th1, true)
+
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
+}
+
+const akkermanSteppePL = `Wpłynąłem na suchego przestwór oceanu, Wóz nurza się w zieloność i jak łódka brodzi, Śród fali łąk szumiących, śród kwiatów powodzi, Omijam koralowe ostrowy burzanu.
+
+Już mrok zapada, nigdzie drogi ni kurhanu; Patrzę w niebo, gwiazd szukam, przewodniczek łodzi; Tam z dala błyszczy obłok - tam jutrzenka wschodzi; To błyszczy Dniestr, to weszła lampa Akermanu.
+
+Stójmy! - jak cicho! - słyszę ciągnące żurawie, Których by nie dościgły źrenice sokoła; Słyszę, kędy się motyl kołysa na trawie,
+
+Kędy wąż śliską piersią dotyka się zioła. W takiej ciszy - tak ucho natężam ciekawie, Że słyszałbym głos z Litwy. - Jedźmy, nikt nie woła.`
+
+// The Akkerman Steppe translated to English by Leo Yankevich.
+const akkermanSteppeEN = `I launch myself across the dry and open narrows, My carriage plunging into green as if a ketch, Floundering through the meadow flowers in the stretch. I pass an archipelago of coral yarrows.
+
+It's dusk now, not a road in sight, nor ancient barrows. I look up at the sky and look for stars to catch. There distant clouds glint-there tomorrow starts to etch; The Dnieper glimmers; Akkerman's lamp shines and harrows.
+
+I stand in stillness, hear the migratory cranes, Their necks and wings beyond the reach of preying hawks; Hear where the sooty copper glides across the plains,
+
+Where on its underside a viper writhes through stalks. Amid the hush I lean my ears down grassy lanes And listen for a voice from home. Nobody talks.`
+
+func TestTextWriter1(t *testing.T) {
+	testFile := "text_writer1.png"
+
+	dejavu := dejavu12.NewFace(
+		dejavu12.X0000_0100,
+		dejavu12.X0101_0201,
+	)
+
+	disp := newDisplay(128, 128)
+	a := disp.NewArea(disp.Bounds())
+	a.SetColor(white)
+	a.Fill(a.Bounds())
+	a.SetColor(black)
+	w := a.NewTextWriter(dejavu)
+	w.Break = pix.BreakSpace
+	w.WriteString(akkermanSteppePL)
 
 	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)

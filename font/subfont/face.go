@@ -24,7 +24,10 @@ func (f *Face) Size() (height, ascent int) {
 func (f *Face) Advance(r rune) int {
 	sf := getSubfont(f, r)
 	if sf == nil {
-		return 0
+		sf = getSubfont(f, 0) // try to use rune(0) to render unsupported codepoints
+		if sf == nil {
+			return 0
+		}
 	}
 	return sf.Data.Advance(int(r - sf.First))
 }
@@ -33,7 +36,10 @@ func (f *Face) Advance(r rune) int {
 func (f *Face) Glyph(r rune) (img image.Image, origin image.Point, advance int) {
 	sf := getSubfont(f, r)
 	if sf == nil {
-		return
+		sf = getSubfont(f, 0) // try to use rune(0) to render unsupported codepoints
+		if sf == nil {
+			return
+		}
 	}
 	return sf.Data.Glyph(int(r - sf.First))
 }
