@@ -89,9 +89,9 @@ func (p *Magnifier) RGBA64At(x, y int) color.RGBA64 {
 	y0 /= p.Sy
 	if p.Mode == Nearest {
 		if img, ok := p.Image.(RGBA64Image); ok {
-			return img.RGBA64At(x, y)
+			return img.RGBA64At(x0, y0)
 		}
-		r, g, b, a := p.Image.At(x, y).RGBA()
+		r, g, b, a := p.Image.At(x0, y0).RGBA()
 		return color.RGBA64{uint16(r), uint16(g), uint16(b), uint16(a)}
 	}
 	return magnify(p, x, y, x0, y0)
