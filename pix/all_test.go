@@ -787,3 +787,14 @@ func TestTextWriter1(t *testing.T) {
 	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
 }
+
+func TestBadColor(t *testing.T) {
+	defer func() {
+		if r := recover(); r == nil || r != "bad alpha-premultiplied color" {
+			t.Error("expected \"bad alpha-premultiplied color\" panic but received:", r)
+		}
+	}()
+	disp := newDisplay(16, 16)
+	a := disp.NewArea(disp.Bounds())
+	a.SetColor(color.RGBA{0, 255, 0, 254})
+}
