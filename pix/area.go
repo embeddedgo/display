@@ -143,16 +143,18 @@ func (a *Area) SetOrigin(origin image.Point) {
 	}
 }
 
+const badAlphaPremul = "bad alpha-premultiplied color"
+
 // SetColor sets the color used by drawing methods.
 func (a *Area) SetColor(c color.Color) {
-	switch cc := c.(type) {
+	switch p := c.(type) {
 	case color.RGBA:
-		if cc.R > cc.A || cc.G > cc.A || cc.B > cc.A {
-			panic("bad alpha-premultiplied color")
+		if (int(p.A)-int(p.R))|(int(p.A)-int(p.G))|(int(p.A)-int(p.B)) < 0 {
+			panic(badAlphaPremul)
 		}
 	case color.RGBA64:
-		if cc.R > cc.A || cc.G > cc.A || cc.B > cc.A {
-			panic("bad alpha-premultiplied color")
+		if (int(p.A)-int(p.R))|(int(p.A)-int(p.G))|(int(p.A)-int(p.B)) < 0 {
+			panic(badAlphaPremul)
 		}
 	}
 	a.color = c
@@ -162,8 +164,8 @@ func (a *Area) SetColor(c color.Color) {
 // that r, g, b must be alpha-premultiplied, e.g. they must be less than or
 // equal to alpha.
 func (a *Area) SetColorRGBA(r, g, b, alpha uint8) {
-	if r > alpha || g > alpha || b > alpha {
-		panic("bad alpha-premultiplied color")
+	if (int(alpha)-int(r))|(int(alpha)-int(g))|(int(alpha)-int(b)) < 0 {
+		panic(badAlphaPremul)
 	}
 	a.color = color.RGBA{r, g, b, alpha}
 }

@@ -69,6 +69,16 @@ type TextWriter struct {
 // contains value of type *image.Uniform it modifies the color of the current
 // image. Otherwise it sets w.Color to &image.Uniform{c}.
 func (w *TextWriter) SetColor(c color.Color) {
+	switch p := c.(type) {
+	case color.RGBA:
+		if (int(p.A)-int(p.R))|(int(p.A)-int(p.G))|(int(p.A)-int(p.B)) < 0 {
+			panic(badAlphaPremul)
+		}
+	case color.RGBA64:
+		if (int(p.A)-int(p.R))|(int(p.A)-int(p.G))|(int(p.A)-int(p.B)) < 0 {
+			panic(badAlphaPremul)
+		}
+	}
 	if img, ok := w.Color.(*image.Uniform); ok {
 		img.C = c
 	} else {
