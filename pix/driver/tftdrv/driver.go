@@ -89,7 +89,7 @@ func (d *Driver) Draw(r image.Rectangle, src image.Image, sp image.Point, mask i
 	sip := imageAtPoint(src, sp)
 	if op == draw.Src {
 		if d.ctrl.SetPF != nil {
-			if mask == nil && sip.pixSize < dst.pixSize {
+			if mask == nil && sip.pixSize != 0 && sip.pixSize < dst.pixSize {
 				dst.pixSize = sip.pixSize
 			}
 			d.ctrl.SetPF(d.dci, &d.reg, dst.pixSize)

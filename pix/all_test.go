@@ -12,6 +12,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/embeddedgo/display/font"
@@ -25,6 +26,7 @@ import (
 	"github.com/embeddedgo/display/math2d"
 	"github.com/embeddedgo/display/pix"
 	"github.com/embeddedgo/display/pix/driver/imgdrv"
+	"github.com/embeddedgo/display/testdata"
 )
 
 const testDir = "testdata"
@@ -797,4 +799,20 @@ func TestBadColor(t *testing.T) {
 	disp := newDisplay(16, 16)
 	a := disp.NewArea(disp.Bounds())
 	a.SetColor(color.RGBA{0, 255, 0, 254})
+}
+
+func TestEmbedPNG(t *testing.T) {
+	testFile := "embedpng.png"
+
+	disp := newDisplay(128, 128)
+	a := disp.NewArea(disp.Bounds())
+	a.SetColor(blue)
+	a.Fill(a.Bounds())
+	gopher, err := png.Decode(strings.NewReader(testdata.GopherPNG))
+	if err != nil {
+		t.Error("decode testdata.GopherPNG:", err)
+	}
+	a.Draw(a.Bounds(), gopher, gopher.Bounds().Min, nil, image.Point{}, draw.Src)
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
 }
