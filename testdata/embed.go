@@ -6,6 +6,15 @@ package testdata
 
 import _ "embed"
 
+//go:embed gopher.48x48rgb16
+var Gopher48x48RGB16 string
+
+//go:embed gopher.48x48rgb24
+var Gopher48x48RGB24 string
+
+//go:embed gopher.48x48rgba32
+var Gopher48x4RGBA32 string
+
 //go:embed gopher.png
 var GopherPNG string
 
