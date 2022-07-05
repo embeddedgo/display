@@ -816,3 +816,26 @@ func TestEmbedPNG(t *testing.T) {
 	//saveDisplay(t, disp, testFile)
 	checkDisplay(t, disp, testFile)
 }
+
+func TestSetRectOrigin(t *testing.T) {
+	testFile := "set_rect_origin.png"
+
+	disp := newDisplay(128, 128)
+	a := disp.NewArea(disp.Bounds())
+	a.SetOrigin(a.Bounds().Max.Div(-2))
+	a.SetColor(blue)
+	a.Fill(a.Bounds())
+	a.SetColor(white)
+	r := image.Rect(0, 0, 60, 40)
+	a.Fill(r)
+	ar := a.Rect()
+	a.SetRect(image.Rect(60, 60, 94, 84).Add(ar.Min))
+	delta := a.Rect().Min.Sub(ar.Min)
+	a.SetOrigin(a.Bounds().Min.Add(delta))
+	a.SetColor(red)
+	a.Fill(a.Bounds())
+	a.SetColor(green)
+	a.Fill(r)
+	//saveDisplay(t, disp, testFile)
+	checkDisplay(t, disp, testFile)
+}
