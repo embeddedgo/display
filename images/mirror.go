@@ -74,7 +74,7 @@ func (p *Mirror) RGBA64At(x, y int) color.RGBA64 {
 	if p.Mode&MV != 0 {
 		x, y = y, x
 	}
-	if img, ok := p.Image.(RGBA64Image); ok {
+	if img, ok := p.Image.(image.RGBA64Image); ok {
 		return img.RGBA64At(x, y)
 	}
 	r, g, b, a := p.Image.At(x, y).RGBA()

@@ -8,8 +8,6 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-
-	"github.com/embeddedgo/display/images"
 )
 
 type RGB struct {
@@ -43,7 +41,7 @@ func (d *RGB) Flush()               { d.pix = d.fb.Flush() }
 func (d *RGB) Err(clear bool) error { return d.fb.Err(clear) }
 
 func at128(img image.Image, x, y int) (r, g, b, a uint32) {
-	if img64, ok := img.(images.RGBA64Image); ok {
+	if img64, ok := img.(image.RGBA64Image); ok {
 		c := img64.RGBA64At(x, y)
 		return uint32(c.R), uint32(c.G), uint32(c.B), uint32(c.A)
 	}

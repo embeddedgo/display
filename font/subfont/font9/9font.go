@@ -35,7 +35,7 @@ func dieErr(err error) {
 	}
 }
 
-func dieInvalid(what ...interface{}) {
+func dieInvalid(what ...any) {
 	fmt.Fprintf(os.Stderr, "invalid ")
 	for _, w := range what[:len(what)-1] {
 		fmt.Fprintf(os.Stderr, "%v: ", w)
@@ -509,7 +509,7 @@ func printString(w io.Writer, name string, data []byte) {
 	fmt.Fprintf(w, "\"\n")
 }
 
-func printImg(img image.Image, descr ...interface{}) {
+func printImg(img image.Image, descr any) {
 	r := img.Bounds()
 	w := r.Dx()
 	if w > 318 {
