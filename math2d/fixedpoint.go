@@ -25,19 +25,19 @@ func F(v image.Point, n int) image.Point {
 func I(v image.Point, n int) image.Point {
 	if n >= 0 {
 		m := uint(n)
-		round := 1 << (m - 1)
-		return image.Pt((v.X+round)>>m, (v.Y+round)>>m)
+		return image.Pt(v.X>>m, v.Y>>m)
 	}
 	m := uint(-n)
 	return image.Pt(v.X<<m, v.Y<<m)
 }
 
 // A converts an integer vector to a fixed-point one ensuring that both f.X
-// and f.Y valeus fit in n bits and at last one of f.X or f.Y has exactly n
-// significant bits. A returns the converted vector and the length of its
-// fractional part (can be negative if the number of significant bits was
-// reduced). For zero v it returns (v, n). Use A to normalize the vector before
-// passing it to the Rotate or Polar functions to improve accuracy.
+// and f.Y values fit in the n-bit signed fixed-point number and at last one of
+// f.X or f.Y has exactly n-1 significant bits plus a sign bit. A returns the
+// converted vector and the length of its fractional part (can be negative if
+// the number of significant bits was reduced). For zero v it returns (v, n-1).
+// Use A to normalize the vector before passing it to the Rotate or Polar
+// functions to improve accuracy.
 func A(v image.Point, n int) (f image.Point, m int) {
 	x, y := v.X, v.Y
 	if x < 0 {
@@ -49,11 +49,10 @@ func A(v image.Point, n int) (f image.Point, m int) {
 	if x < y {
 		x = y
 	}
-	n -= bits.UintSize - bits.LeadingZeros(uint(x))
+	n -= 1 + bits.UintSize - bits.LeadingZeros(uint(x))
 	if n >= 0 {
 		return image.Pt(v.X<<uint(n), v.Y<<uint(n)), n
 	}
 	k := uint(-n)
-	round := 1 << (k - 1)
-	return image.Pt((v.X+round)>>k, (v.Y+round)>>k), n
+	return image.Pt(v.X>>k, v.Y>>k), n
 }
