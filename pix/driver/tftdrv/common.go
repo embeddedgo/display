@@ -54,7 +54,11 @@ func initialize(dci DCI, reg *Reg, cmds []byte) {
 			time.Sleep(time.Duration(cmd[0]) * time.Millisecond)
 			continue
 		}
-		dci.Cmd(cmd[:1])
+		dm := None
+		if n != 0 {
+			dm = Write
+		}
+		dci.Cmd(cmd[:1], dm)
 		if n != 0 {
 			k := i + n
 			data := cmds[i:k]

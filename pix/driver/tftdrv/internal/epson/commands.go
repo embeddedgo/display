@@ -52,74 +52,74 @@ func StartWrite8(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
 	reg.Xarg[0] = CASET
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 	reg.Xarg[0] = uint8(r.Min.X)
 	reg.Xarg[1] = uint8(r.Max.X)
 	dci.WriteBytes(reg.Xarg[:2])
 	reg.Xarg[0] = PASET
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 	reg.Xarg[0] = uint8(r.Min.Y)
 	reg.Xarg[1] = uint8(r.Max.Y)
 	dci.WriteBytes(reg.Xarg[:2])
 	reg.Xarg[0] = RAMWR
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 }
 
 func StartRead8(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
 	reg.Xarg[0] = CASET
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 	reg.Xarg[0] = uint8(r.Min.X)
 	reg.Xarg[1] = uint8(r.Max.X)
 	dci.WriteBytes(reg.Xarg[:2])
 	reg.Xarg[0] = PASET
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 	reg.Xarg[0] = uint8(r.Min.Y)
 	reg.Xarg[1] = uint8(r.Max.Y)
 	dci.WriteBytes(reg.Xarg[:2])
 	reg.Xarg[0] = RAMRD
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Read)
 }
 
 func StartWrite16(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
 	reg.Xarg[0] = CASET
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 	reg.Xarg[0] = uint8(r.Min.X >> 8)
 	reg.Xarg[1] = uint8(r.Min.X)
 	reg.Xarg[2] = uint8(r.Max.X >> 8)
 	reg.Xarg[3] = uint8(r.Max.X)
 	dci.WriteBytes(reg.Xarg[:4])
 	reg.Xarg[0] = PASET
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 	reg.Xarg[0] = uint8(r.Min.Y >> 8)
 	reg.Xarg[1] = uint8(r.Min.Y)
 	reg.Xarg[2] = uint8(r.Max.Y >> 8)
 	reg.Xarg[3] = uint8(r.Max.Y)
 	dci.WriteBytes(reg.Xarg[:4])
 	reg.Xarg[0] = RAMWR
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 }
 
 func StartRead16(dci tftdrv.DCI, reg *tftdrv.Reg, r image.Rectangle) {
 	r.Max.X--
 	r.Max.Y--
 	reg.Xarg[0] = CASET
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 	reg.Xarg[0] = uint8(r.Min.X >> 8)
 	reg.Xarg[1] = uint8(r.Min.X)
 	reg.Xarg[2] = uint8(r.Max.X >> 8)
 	reg.Xarg[3] = uint8(r.Max.X)
 	dci.WriteBytes(reg.Xarg[:4])
 	reg.Xarg[0] = PASET
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Write)
 	reg.Xarg[0] = uint8(r.Min.Y >> 8)
 	reg.Xarg[1] = uint8(r.Min.Y)
 	reg.Xarg[2] = uint8(r.Max.Y >> 8)
 	reg.Xarg[3] = uint8(r.Max.Y)
 	dci.WriteBytes(reg.Xarg[:4])
 	reg.Xarg[0] = RAMRD
-	dci.Cmd(reg.Xarg[:1])
+	dci.Cmd(reg.Xarg[:1], tftdrv.Read)
 }

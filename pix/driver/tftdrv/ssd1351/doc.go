@@ -11,14 +11,14 @@ package ssd1351
 // depends on many factors which can probably be tuned for even higher speeds.
 // The absolute upper limits are those given for the parallel interface.
 const (
-	MaxSPIWriteClock = 4.5e6
-	MaxSPIReadClock = 6.7e6
+	MaxSPIWriteClock = 4_500_000
+	MaxSPIReadClock  = 6_700_000
 )
 
 // The maximum speed of the 18/16/8-bit paraler interface is 3.3 MHz for writing
 // and 3.1 Mhz for reading. This corresponds to the maximum bandwidth of 60 Mb/s
 // and 56 Mb/s respectively (18-bit interface).
 const (
-	MaxParallelWriteClock = 3.3e6
-	MaxParallelReadClock  = 3.1e6
+	MaxParallelWriteClock = 3_300_000
+	MaxParallelReadClock  = 3_100_000
 )

@@ -4,11 +4,20 @@
 
 package tftdrv
 
+// DCI.Cmd dataMode constants.
+const (
+	None  = 0
+	Write = 1
+	Read  = 2
+)
+
 // DCI defines the basic Display Controller Interface.
 type DCI interface {
 	// Cmd writes len(p) bytes from p to the display controller using command
-	// transfer mode.
-	Cmd(p []byte)
+	// transfer mode. The dataMode parameter describes the direction of possible
+	// data transfer which together with p forms a complete write or read
+	// transaction.
+	Cmd(p []byte, dataMode int)
 
 	// WriteBytes writes len(p) bytes from p to the display controller using
 	// data transfer mode.

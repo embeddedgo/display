@@ -12,14 +12,14 @@ package ili9341
 // probably be tuned for even higher speeds. The absolute upper limits are those
 // given for the parallel interface.
 const (
-	MaxSPIWriteClock = 10e6
-	MaxSPIReadClock = 6.7e6
+	MaxSPIWriteClock = 10_000_000
+	MaxSPIReadClock  = 6_700_000
 )
 
 // The maximum speed of the 18/16/9/8-bit paraller interface is 15 MHz for
 // writing and 2.2 MHz for reading. This corresponds to the maximum bandwidth of
 // 272 Mb/s and 40 Mb/s respectively (18-bit interface).
 const (
-	MaxParallelWriteClock = 15e6
-	MaxParallelReadClock  = 2.2e6
+	MaxParallelWriteClock = 15_000_000
+	MaxParallelReadClock  = 2_200_000
 )

@@ -46,7 +46,7 @@ func (fb *FrameBuffer) SetDir(dir int) (pix []byte, w, h, s int, shift, mvxy uin
 
 func (fb *FrameBuffer) Init(cmds []byte) {
 	time.Sleep(time.Millisecond)
-	fb.dci.Cmd(cmds)
+	fb.dci.Cmd(cmds, fbdrv.None) // the below WriteBytes is another transaction
 	fb.dci.WriteBytes(fb.pix[:])
 	fb.dci.End()
 }

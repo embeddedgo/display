@@ -4,6 +4,12 @@
 
 package fbdrv
 
+// DCI.Cmd dataMode constants.
+const (
+	None  = 0
+	Write = 1
+)
+
 // DCI defines the Display Controller Interface. It is used by some FrameBuffer
 // implementations to communicate with the underlying display controller,
 // in particular to transfer the content of the local frame buffer to the
@@ -11,8 +17,9 @@ package fbdrv
 // implementation should be a valid implementation of DCI.
 type DCI interface {
 	// Cmd writes len(p) bytes from p to the display controller using command
-	// transfer mode.
-	Cmd(p []byte)
+	// transfer mode. The dataMode parameter describes the presence of the
+	// data transfer which together with p forms a complete write transaction.
+	Cmd(p []byte, dataMode int)
 
 	// WriteBytes writes len(p) bytes from p to the display controller using
 	// data transfer mode.
