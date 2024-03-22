@@ -54,7 +54,7 @@ func new240x240_IPS_ST7789(dci tftdrv.DCI) *pix.Display {
 // Adafruit 1.54" 240x240 Wide Angle TFT LCD Display with MicroSD - ST7789
 func Adafruit_1i54_240x240_IPS_ST7789() Param {
 	return Param{
-		st7789.MaxSPIReadClock,
+		0,
 		st7789.MaxSPIWriteClock,
 		new240x240_IPS_ST7789,
 	}
