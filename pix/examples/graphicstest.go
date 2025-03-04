@@ -35,58 +35,58 @@ func delay(ms int) { time.Sleep(time.Duration(ms) * time.Millisecond) }
 func GraphicsTest(disp *pix.Display) {
 	a := disp.NewArea(disp.Bounds())
 
-	println("\n** Adafruit Graphics Test **")
-	println("Benchmark                Time (microseconds)")
+	fmt.Println("\n** Adafruit Graphics Test **")
+	fmt.Println("Benchmark                Time (microseconds)")
 	delay(10)
 
-	print("Screen fill              ")
-	println(testFillScreen(a))
+	fmt.Print("Screen fill              ")
+	fmt.Println(testFillScreen(a))
 	delay(500)
 
-	print("Text                     ")
-	println(testText(a))
+	fmt.Print("Text                     ")
+	fmt.Println(testText(a))
 	delay(3000)
 
-	print("Lines                    ")
-	println(testLines(a, cyan))
+	fmt.Print("Lines                    ")
+	fmt.Println(testLines(a, cyan))
 	delay(500)
 
-	print("Horiz/Vert Lines         ")
-	println(testFastLines(a, red, blue))
+	fmt.Print("Horiz/Vert Lines         ")
+	fmt.Println(testFastLines(a, red, blue))
 	delay(500)
 
-	print("Rectangles (outline)     ")
-	println(testRects(a, green))
+	fmt.Print("Rectangles (outline)     ")
+	fmt.Println(testRects(a, green))
 	delay(500)
 
-	print("Rectangles (filled)      ")
-	println(testFilledRects(a, yellow, magenta))
+	fmt.Print("Rectangles (filled)      ")
+	fmt.Println(testFilledRects(a, yellow, magenta))
 	delay(500)
 
-	print("Circles (filled)         ")
-	println(testFilledCircles(a, 10, magenta))
+	fmt.Print("Circles (filled)         ")
+	fmt.Println(testFilledCircles(a, 10, magenta))
 
-	print("Circles (outline)        ")
-	println(testCircles(a, 10, white))
+	fmt.Print("Circles (outline)        ")
+	fmt.Println(testCircles(a, 10, white))
 	delay(500)
 
-	print("Triangles (outline)      ")
-	println(testTriangles(a))
+	fmt.Print("Triangles (outline)      ")
+	fmt.Println(testTriangles(a))
 	delay(500)
 
-	print("Triangles (filled)       ")
-	println(testFilledTriangles(a))
+	fmt.Print("Triangles (filled)       ")
+	fmt.Println(testFilledTriangles(a))
 	delay(500)
 
-	print("Rounded rects (outline)  ")
-	println(testRoundRects(a))
+	fmt.Print("Rounded rects (outline)  ")
+	fmt.Println(testRoundRects(a))
 	delay(500)
 
-	print("Rounded rects (filled)   ")
-	println(testFilledRoundRects(a))
+	fmt.Print("Rounded rects (filled)   ")
+	fmt.Println(testFilledRoundRects(a))
 	delay(500)
 
-	print("Done!\n")
+	fmt.Print("Done!\n")
 
 	for rotation := 0; rotation < 5; rotation++ {
 		disp.SetDir(rotation)

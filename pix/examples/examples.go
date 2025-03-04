@@ -5,6 +5,7 @@
 package examples
 
 import (
+	"fmt"
 	"image"
 	"image/color"
 	"math/rand"
@@ -65,7 +66,7 @@ func Colors(disp *pix.Display) {
 	}
 	a.Flush()
 	t2 := time.Now()
-	println("Colors:", t2.Sub(t1).String())
+	fmt.Println("Colors:", t2.Sub(t1).String())
 	time.Sleep(2 * time.Second)
 	t1 = time.Now()
 	for y := 0; y < max.Y; y++ {
@@ -95,7 +96,7 @@ func Colors(disp *pix.Display) {
 	}
 	a.Flush()
 	t2 = time.Now()
-	println("Colors:", t2.Sub(t1).String())
+	fmt.Println("Colors:", t2.Sub(t1).String())
 	time.Sleep(2 * time.Second)
 }
 
@@ -163,7 +164,7 @@ func RotateDisplay(disp *pix.Display) {
 
 		a.Flush()
 		t2 := time.Now()
-		println("RotateDisplay:", t2.Sub(t1).String())
+		fmt.Println("RotateDisplay:", t2.Sub(t1).String())
 		time.Sleep(2 * time.Second)
 	}
 
@@ -215,7 +216,7 @@ func clearAndPrint(a *pix.Area, face font.Face, s string) {
 	w.WriteString(s)
 	a.Flush()
 	t2 := time.Now()
-	println("DrawText:", t2.Sub(t1).String())
+	fmt.Println("DrawText:", t2.Sub(t1).String())
 	time.Sleep(5 * time.Second)
 }
 
