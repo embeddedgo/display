@@ -11,7 +11,7 @@ import (
 )
 
 func newILI9341GFX(dci tftdrv.DCI) *pix.Display {
-	drv := ili9341.NewOver(dci)
+	drv := ili9341.NewOver(dci, 240, 320)
 	drv.Init(ili9341.GFX)
 	return pix.NewDisplay(drv)
 }

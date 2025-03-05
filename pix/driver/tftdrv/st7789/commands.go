@@ -112,7 +112,7 @@ const (
 
 const ms = 255
 
-// GFX contains initialization commands taken from Adafruit GFX library.
+// GFX contains initialization commands taken from the Adafruit GFX library.
 var GFX = []byte{
 	5, ms, // wait 5 ms after reset
 	INVON, 0,
@@ -123,4 +123,28 @@ var GFX = []byte{
 	5, ms,
 	DISPON, 0,
 	MADCTL, 1, 0, // default display orientation, must be the last one
+}
+
+// Pico_LCD_1i3 contains initialization commands taken from the Waveshare
+// pico-lcd-1.3 C library (LCD_1in3.c).
+var Pico_LCD_1i3 = []byte{
+	5, ms, // wait 5 ms after reset
+	COLMOD, 1, 0x05,
+	PORCTRL, 5, 0x0C, 0x0C, 0x00, 0x33, 0x33,
+	GCTRL, 1, 0x35,
+	VCOMS, 1, 0x19,
+	LCMCTRL, 1, 0x2C,
+	VDVVRHEN, 1, 0x01,
+	VRHS, 1, 0x12,
+	VDVS, 1, 0x20,
+	FRCTRL2, 1, 0x0F,
+	PWCTRL1, 2, 0xA4, 0xA1,
+	PVGAMCTRL, 14, 0xD0, 0x04, 0x0D, 0x11, 0x13, 0x2B, 0x3F, 0x54, 0x4C, 0x18, 0x0D, 0x0B, 0x1F, 0x23,
+	NVGAMCTRL, 14, 0xD0, 0x04, 0x0C, 0x11, 0x13, 0x2C, 0x3F, 0x44, 0x51, 0x2F, 0x1F, 0x1F, 0x20, 0x23,
+	INVON, 0,
+	10, ms,
+	SLPOUT, 0,
+	5, ms,
+	DISPON, 0,
+	MADCTL, 1, philips.V | philips.MX, // default display orientation, must be the last one
 }

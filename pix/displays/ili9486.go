@@ -11,7 +11,7 @@ import (
 )
 
 func newMSP4022(dci tftdrv.DCI) *pix.Display {
-	drv := ili9486.NewOver(dci)
+	drv := ili9486.NewOver(dci, 320, 480)
 	drv.Init(ili9486.MSP4022)
 	return pix.NewDisplay(drv)
 }

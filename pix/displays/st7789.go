@@ -12,16 +12,16 @@ import (
 	"github.com/embeddedgo/display/pix/driver/tftdrv/st7789"
 )
 
-var init_240x240_IPS_ST7789 = [...]byte{st7789.VSCSAD, 0, 40}
+var st7789shift40 = [...]byte{st7789.VSCSAD, 0, 40}
 
-func new240x240_IPS_ST7789(dci tftdrv.DCI) *pix.Display {
-	drv := st7789.New(dci)
+func new240x240_IPS_ST7789_GFX(dci tftdrv.DCI) *pix.Display {
+	drv := st7789.New(dci, 240, 320)
 	drv.Init(st7789.GFX)
 
 	// Move the 240 x 240 view port in the middle of the 240 x 320 frame
 	// memory to simplify handling of display rotations.
-	dci.Cmd(init_240x240_IPS_ST7789[:1], tftdrv.Write)
-	dci.WriteBytes(init_240x240_IPS_ST7789[1:3])
+	dci.Cmd(st7789shift40[:1], tftdrv.Write)
+	dci.WriteBytes(st7789shift40[1:3])
 
 	disp := pix.NewDisplay(drv)
 	disp.SetRect(image.Rect(0, 40, 240, 240+40)) // adjust to the view port
@@ -33,7 +33,7 @@ func Adafruit_1i54_240x240_IPS_ST7789() Param {
 	return Param{
 		0,
 		st7789.MaxSPIWriteClock,
-		new240x240_IPS_ST7789,
+		new240x240_IPS_ST7789_GFX,
 	}
 }
 
@@ -42,3 +42,25 @@ func ERTFTM_1i54_240x240_IPS_ST7789() Param {
 	return Adafruit_1i54_240x240_IPS_ST7789()
 }
 
+func new240x240_IPS_ST7789_Pico_LCD_1i3(dci tftdrv.DCI) *pix.Display {
+	drv := st7789.New(dci, 320, 240)
+	drv.Init(st7789.Pico_LCD_1i3) // it rotates the framebuffer 90 deg
+
+	// Move the 240 x 240 view port in the middle of the 320 x 240 frame
+	// memory to simplify handling of display rotations.
+	dci.Cmd(st7789shift40[:1], tftdrv.Write)
+	dci.WriteBytes(st7789shift40[1:3])
+
+	disp := pix.NewDisplay(drv)
+	disp.SetRect(image.Rect(40, 0, 240+40, 240)) // adjust to the view port
+	return disp
+}
+
+func Waveshare_1i3_240x240_IPS_ST7789() Param {
+	return Param{
+		0,
+		st7789.MaxSPIWriteClock,
+		new240x240_IPS_ST7789_Pico_LCD_1i3,
+	}
+
+}
