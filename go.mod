@@ -1,3 +1,3 @@
 module github.com/embeddedgo/display
 
-go 1.18
+go 1.22
