@@ -2,30 +2,32 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package segment
+package segdisp
 
 // Segment bits
 const (
-	A = 1 << iota // | : :
-	B             // :^: :
-	C             // : :^:
-	D             // : : |
-	E             // : :_:
-	F             // :_: :
-	G             // : | :
-	Q             //     .
+	A = 1 << iota // top | : : bottom
+	B             //     :^: :
+	C             //     : :^:
+	D             //     : : |
+	E             //     : :_:
+	F             //     :_: :
+	G             //     : | :
+	Q             //         ' (dot)
 )
 
-// A Seg8 provides an interface to print on 8-segment displays. The display is
-// considered as a metrix of symbols. Internally Seg8 maintains two buffers
-// each of which covers the entire display. The first one is used by all Set*
-// and Write* methods, the second one contains currently displayed symbols. The
-// Swap method swaps buffers ensuring glitchless content on the display.
+// A Seg8 provides an interface to print on the 7/8-segment displays. The
+// display is considered as a metrix of symbols. Internally Seg8 maintains two
+// buffers each of which covers the entire display. The first one is used by
+// all Set* and Write* methods, the second one contains currently displayed
+// symbols. The Swap method swaps buffers ensuring glitchless content on the
+// display.
 type Seg8 struct {
 	buf  []byte
 	buf1 []byte
 	i    int
 	ll   int
+	drv  Driver8
 }
 
 func NewSeg8(lineLen, lineNum int, drv Driver8) *Seg8 {
@@ -35,13 +37,25 @@ func NewSeg8(lineLen, lineNum int, drv Driver8) *Seg8 {
 	d.buf = buf[:n]
 	d.buf1 = buf[n:]
 	d.ll = lineLen
+	d.drv = drv
 	return d
 }
 
 func (d *Seg8) Clear() {
+	d.i = 0
 	clear(d.buf[:])
 }
 
+// Swap swaps the Seg8 internal buffers so the currently inactive buffer is
+// passed to the driver which makes it active and the previously active buffer
+// becomes inactive.
+func (d *Seg8) Swap() {
+	d.drv.Display8(d.buf)
+	d.buf, d.buf1 = d.buf1, d.buf
+	d.Clear()
+}
+
+// SetSymbol writes the symbol at the given position in the inactive buffer.
 func (d *Seg8) SetSymbol(x, y int, sym byte) {
 	i := y*d.ll + x
 	if uint(i) >= uint(len(d.buf)) {
@@ -50,10 +64,13 @@ func (d *Seg8) SetSymbol(x, y int, sym byte) {
 	d.buf[i] = sym
 }
 
+// SetChar works like SetSymbol but converts the ASCII char c to the symbol
+// before writting to the inactive buffer.
 func (d *Seg8) SetChar(x, y int, c byte) {
 	d.SetSymbol(x, y, conv(c))
 }
 
+// SetPos sets the current writting pusition for the Write* methods.
 func (d *Seg8) SetPos(x, y int) {
 	i := y*d.ll + x
 	if uint(i) >= uint(len(d.buf)) {
@@ -62,6 +79,12 @@ func (d *Seg8) SetPos(x, y int) {
 	d.i = i
 }
 
+// WritByte writes a byte at the current position to the inactive buffer. The
+// byte is considered an ASCII character (not all ASCII characters are possible
+// to display on 7/8-segment display). The '\n' character moves the current
+// writing position at the beginning of the next line or swaps the buffers if
+// written on the last line of the display (see Swap method) and sets the
+// writting position at the beggining of the first line of the inactive buffer.
 func (d *Seg8) WriteByte(b byte) (err error) {
 	i := d.i
 	if b == '.' && i > 0 {
@@ -70,11 +93,12 @@ func (d *Seg8) WriteByte(b byte) (err error) {
 			return
 		}
 	}
-	if b == '\n' || b == '\r' {
+	if b == '\n' {
 		l := i / d.ll
 		i = d.ll * (l + 1)
-		if i > len(d.buf) {
+		if i >= len(d.buf) {
 			i = len(d.buf)
+			d.Swap()
 		}
 		return nil
 	}
@@ -85,6 +109,9 @@ func (d *Seg8) WriteByte(b byte) (err error) {
 	return
 }
 
+// Write implements io.Writer. It writes all bytes of p to the inactive buffer
+// starting from the current  writting position. See WritByte for more
+// information.
 func (d *Seg8) Write(p []byte) (int, error) {
 	for _, b := range p {
 		d.WriteByte(b)
@@ -92,6 +119,7 @@ func (d *Seg8) Write(p []byte) (int, error) {
 	return len(p), nil
 }
 
+// WriteString implements io.StringWriter. See Write for more information.
 func (d *Seg8) WriteString(s string) (int, error) {
 	for i := 0; i < len(s); i++ {
 		d.WriteByte(s[i])
