@@ -98,8 +98,8 @@ func (tm *TimeMux8) refresh() {
 		tm.start.Unlock()
 		return
 	}
-	ticker := time.NewTicker(time.Second / time.Duration(tm.fps*len(syms)))
-	i := 0
+	i, n := 0, len(syms)
+	ticker := time.NewTicker(time.Second / time.Duration(tm.fps*n))
 	for {
 		tm.buf[0] = byte(1<<i) ^ x0
 		tm.buf[1] = syms[i] ^ x1
@@ -108,6 +108,7 @@ func (tm *TimeMux8) refresh() {
 		if i++; i >= len(syms) {
 			i = 0
 		}
+	wait:
 		select {
 		case syms, ok = <-tm.ch:
 			if !ok {
@@ -115,8 +116,11 @@ func (tm *TimeMux8) refresh() {
 				tm.start.Unlock()
 				return
 			}
-			ticker.Reset(time.Second / time.Duration(tm.fps*len(syms)))
-			i = 0
+			if len(syms) != n {
+				i, n = 0, len(syms)
+				ticker.Reset(time.Second / time.Duration(tm.fps*n))
+			}
+			goto wait
 		case <-ticker.C:
 		}
 	}
