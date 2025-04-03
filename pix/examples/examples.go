@@ -195,6 +195,7 @@ func randPoint(r image.Rectangle) (p image.Point) {
 }
 
 func randQuad(a *pix.Area, r image.Rectangle) {
+	a.SetColorRGBA(randColor())
 	p0, p1, p2, p3 := randPoint(r), randPoint(r), randPoint(r), randPoint(r)
 	if !pix.IsConvex(p0, p1, p2, p3) {
 		p0 = p1
@@ -202,14 +203,23 @@ func randQuad(a *pix.Area, r image.Rectangle) {
 	a.Quad(p0, p1, p2, p3, true)
 }
 
+func randColor() (r, g, b, a uint8) {
+	v := rand.Uint32()
+	a, v = uint8(64+v&127), v>>7
+	m := uint32(a + 1)
+	r, v = uint8(v%m), v/m
+	g, v = uint8(v%m), v/m
+	b = uint8(v % m)
+	return
+}
+
 func clearAndPrint(a *pix.Area, face font.Face, s string) {
 	t1 := time.Now()
 	r := a.Bounds()
 	a.SetColor(white)
 	a.Fill(r)
-	a.SetColorRGBA(70, 140, 210, 210)
 	randQuad(a, r)
-	a.SetColorRGBA(210, 140, 70, 210)
+	randQuad(a, r)
 	randQuad(a, r)
 	a.SetColor(black)
 	w := a.NewTextWriter(face)
