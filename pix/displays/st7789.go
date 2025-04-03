@@ -62,5 +62,18 @@ func Waveshare_1i3_240x240_IPS_ST7789() Param {
 		st7789.MaxSPIWriteClock,
 		new240x240_IPS_ST7789_Pico_LCD_1i3,
 	}
+}
 
+func new240x320_IPS_ST7789_Pico_ResTouch_LCD_2i8(dci tftdrv.DCI) *pix.Display {
+	drv := st7789.NewOver(dci, 240, 320)
+	drv.Init(st7789.Pico_ResTouch_LCD_2i8)
+	return pix.NewDisplay(drv)
+}
+
+func Waveshare_2i8_240x320_IPS_ST7789() Param {
+	return Param{
+		st7789.MaxSPIReadClock,
+		st7789.MaxSPIWriteClock,
+		new240x320_IPS_ST7789_Pico_ResTouch_LCD_2i8,
+	}
 }
