@@ -10,7 +10,7 @@ const (
 	Write = 1
 )
 
-// DCI defines the Display Controller Interface. It is used by some FrameBuffer
+// DCI defines the Display Controller Interface. It is used by a FrameBuffer
 // implementations to communicate with the underlying display controller,
 // in particular to transfer the content of the local frame buffer to the
 // display frame buffer. DCI is a subset of ../tftdrv.DCI so any tftdrv.DCI

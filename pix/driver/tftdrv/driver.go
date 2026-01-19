@@ -35,7 +35,9 @@ func New(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *Driver {
 	return d
 }
 
+func (d *Driver) DCI() DCI             { return d.dci }
 func (d *Driver) Err(clear bool) error { return d.dci.Err(clear) }
+func (d *Driver) Size() image.Point    { return image.Pt(int(d.w), int(d.h)) }
 func (d *Driver) Flush()               {}
 
 // Init initializes the display using provided initialization commands. The

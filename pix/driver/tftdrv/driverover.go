@@ -89,6 +89,7 @@ func NewOver(dci DCI, w, h uint16, pf PF, ctrl *Ctrl) *DriverOver {
 	return d
 }
 
+func (d *DriverOver) DCI() DCI             { return d.dci }
 func (d *DriverOver) Err(clear bool) error { return d.dci.Err(clear) }
 func (d *DriverOver) Flush()               {}
 func (d *DriverOver) Size() image.Point    { return image.Pt(int(d.w), int(d.h)) }
