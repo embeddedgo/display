@@ -11,17 +11,13 @@ import (
 	"github.com/embeddedgo/display/pix/driver/tftdrv"
 )
 
-func newSSD1306GFX128x64(dci tftdrv.DCI) *pix.Display {
-	fb := ssd1306.New(dci)
-	fb.Init(ssd1306.GFX128x64)
-	return pix.NewDisplay(fbdrv.NewMono(fb))
-}
-
 // Adafruit Monochrome 0.96" 128x64 OLED Graphic Display
-func Adafruit_0i96_128x64_OLED_SSD1306() Param {
-	return Param{
-		0,
-		ssd1306.MaxSPIWriteClock,
-		newSSD1306GFX128x64,
-	}
+var Adafruit_0i96_128x64_OLED_SSD1306 = Def{
+	0,
+	ssd1306.MaxSPIWriteClock,
+	func(dci tftdrv.DCI) *pix.Display {
+		fb := ssd1306.New(dci)
+		fb.Init(ssd1306.GFX128x64)
+		return pix.NewDisplay(fbdrv.NewMono(fb))
+	},
 }

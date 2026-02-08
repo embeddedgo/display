@@ -2,18 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package displays contains initialization functions for the most popular
-// displays.
+// Package displays provides definitions for the most popular displays.
 //
-// If you do not found a function for your display here do not worry. If your
-// display uses a display controller that had a driver in ../driver/tftdrv you
-// can easily initialize your display this way:
+// If you do not found a definition for your display here do not worry. If your
+// display uses a display controller that had a driver in the ../driver/tftdrv
+// you can easily initialize your display in the following way:
 //
 //	drv := driver.New(dci) // or NewOver(dci) if your display supports reading
 //	drv.Init(driver.InitCommands)
 //	disp := pix.NewDisplay(drv)
 //
-// which is basically what all functions in this package do internally.
+// which is basically what all Def.New functions in this package do internally.
 package displays
 
 import (
@@ -21,7 +20,8 @@ import (
 	"github.com/embeddedgo/display/pix/driver/tftdrv"
 )
 
-type Param struct {
+// A Def provides a display definition.
+type Def struct {
 	MaxReadClk  int
 	MaxWriteClk int
 	New         func(dci tftdrv.DCI) *pix.Display
