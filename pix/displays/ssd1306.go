@@ -16,7 +16,7 @@ var Adafruit_0i96_128x64_OLED_SSD1306 = Def{
 	0,
 	ssd1306.MaxSPIWriteClock,
 	func(dci tftdrv.DCI) *pix.Display {
-		fb := ssd1306.New(dci)
+		fb := ssd1306.New(dci, 128, 64)
 		fb.Init(ssd1306.GFX128x64)
 		return pix.NewDisplay(fbdrv.NewMono(fb))
 	},

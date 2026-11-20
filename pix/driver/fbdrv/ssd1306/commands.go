@@ -26,6 +26,7 @@ const (
 	DNOR   = 0xA6 // Set normal display
 	DINV   = 0xA7 // Set inverse display
 	MR     = 0xA8 // Multiplex ratio
+	IREF   = 0xAD // no in doc (Micropython driver uses it)
 	SLPIN  = 0xAE // Set sleep mode ON
 	SLPOUT = 0xAF // Set sleep mode OFF
 	PSA    = 0xB0 // Page start address (0..7) for page addressing mode
@@ -64,16 +65,38 @@ var GFX128x64ExtVcc = []byte{
 	MR, 64 - 1,
 	VOFF, 0,
 	DSL | 0,
-	CPUMP, 0x10,
+	CPUMP, 0x10, // external VCC
 	MAM, 0x01, // vertical addressing mode
 	SRM | 0x1,
 	COMSD | 0x08,
 	COMPHC, 0x12, // alternative configuration (8 row display)
 	CONTR, 0x9F,
-	PRE, 0x22,
+	PRE, 0x22, // external VCC
 	VCOMH, 0x40,
 	DOUT,
 	DNOR,
 	CSD,
+	SLPOUT,
+}
+
+var GNPE72x40 = []byte{
+	SLPIN,
+	CLKDIV, 0x80,
+	MR, 40 - 1,
+	VOFF, 0,
+	DSL | 0,
+	CPUMP, 0x14, // enable charge pump during display on
+	MAM, 0x01, // vertical addressing mode
+	SRM | 0x01,
+	COMSD | 0x08,
+	COMPHC, 0x12, // alternative configuration (8 row display)
+	CONTR, 0xCF,
+	PRE, 0xF1,
+	VCOMH, 0x40,
+	DOUT,
+	DNOR,
+	CSD,
+	CA, 28, 99, // 72 columns in the center
+	PA, 0, 4, // 5 top pages (40 lines)
 	SLPOUT,
 }

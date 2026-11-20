@@ -10,27 +10,27 @@ import (
 	"github.com/embeddedgo/display/pix/driver/fbdrv"
 )
 
-// Display geometry in Vertical Addressing Mode
-const (
-	width  = 64
-	height = 128
-	stride = width / 8
-)
-
 type FrameBuffer struct {
-	dci fbdrv.DCI
-	pix [stride * height]byte
+	dci  fbdrv.DCI
+	pix  []byte
+	w, h int
 }
 
-func New(dci fbdrv.DCI) *FrameBuffer {
-	return &FrameBuffer{dci: dci}
+func New(dci fbdrv.DCI, width, height int) *FrameBuffer {
+	width, height = height, width // because of the Vertical Addressing Mode
+	return &FrameBuffer{
+		dci: dci,
+		pix: make([]byte, width>>3*height),
+		w:   width,
+		h:   height,
+	}
 }
 
 func (fb *FrameBuffer) SetDir(dir int) (pix []byte, w, h, s int, shift, mvxy uint8) {
 	pix = fb.pix[:]
-	w = width
-	h = height
-	s = stride
+	w = fb.w
+	h = fb.h
+	s = fb.w >> 3
 	switch dir & 3 {
 	case 0:
 		mvxy = fbdrv.MV
